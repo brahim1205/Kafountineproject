@@ -15,6 +15,7 @@ exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
     namespace: kafontine
+  debug: {}
 
 service:
   pipelines:
@@ -25,6 +26,6 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [prometheus]
+      exporters: [debug]
 
-extensions: []
+extensions: {}

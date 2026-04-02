@@ -14,6 +14,26 @@ import { buildDashboardRoutes } from './modules/dashboard/presentation/dashboard
 import { buildPortalRoutes } from './modules/portal/presentation/portal.routes';
 import { buildPlaceholderRoutes } from './modules/placeholders/presentation/placeholders.routes';
 
+function buildMetricsPayload() {
+  const memoryUsage = process.memoryUsage();
+  const lines = [
+    '# HELP kafontine_backend_up Backend process health status.',
+    '# TYPE kafontine_backend_up gauge',
+    'kafontine_backend_up 1',
+    '# HELP kafontine_backend_uptime_seconds Backend uptime in seconds.',
+    '# TYPE kafontine_backend_uptime_seconds counter',
+    `kafontine_backend_uptime_seconds ${process.uptime().toFixed(3)}`,
+    '# HELP kafontine_backend_memory_rss_bytes Resident memory usage in bytes.',
+    '# TYPE kafontine_backend_memory_rss_bytes gauge',
+    `kafontine_backend_memory_rss_bytes ${memoryUsage.rss}`,
+    '# HELP kafontine_backend_heap_used_bytes Heap used in bytes.',
+    '# TYPE kafontine_backend_heap_used_bytes gauge',
+    `kafontine_backend_heap_used_bytes ${memoryUsage.heapUsed}`,
+  ];
+
+  return `${lines.join('\n')}\n`;
+}
+
 export function createApp() {
   const app = express();
   const container = buildContainer();
@@ -38,6 +58,10 @@ export function createApp() {
       status: isReady ? 'ready' : 'not ready',
       checks,
     });
+  });
+
+  app.get('/metrics', (_req, res) => {
+    res.type('text/plain').send(buildMetricsPayload());
   });
 
   const swaggerSpec = swaggerJsdoc({

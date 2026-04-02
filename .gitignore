@@ -55,6 +55,12 @@ mobile/.env.*
 !backend/.env.example
 !front/.env.example
 !mobile/.env.example
+.env.backend.prod.exemple
+.env.dev.exemple
+.env.front.prod.exemple
+.env.prod.exemple
+.env.staging.exemple
+.gitignore
 
 # Local databases and dumps
 *.sqlite

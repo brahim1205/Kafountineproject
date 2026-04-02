@@ -1,0 +1,21 @@
+## CI/CD & Tests
+
+**Backend CI** : `.github/workflows/backend-ci.yml`
+- Lint (ESLint)
+- Type check (tsc)
+- Tests (Vitest + Supertest, coverage >80%)
+- Build TS → JS
+- npm audit
+- Docker build test
+
+**Secret Scan** : TruffleHog on PR/main
+
+**Terraform IaC** : `infra/terraform/` for AWS RDS + ECS
+
+Run local :
+```bash
+npm test  # Vitest
+npm run lint
+npm run type-check
+```
+

@@ -1,0 +1,116 @@
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to rollback'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      target_version:
+        description: 'Docker image tag to rollback to (e.g., sha-abc123)'
+        required: true
+      reason:
+        description: 'Reason for rollback'
+        required: true
+
+env:
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'docker.io' }}
+  IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME || 'kafontine' }}
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip rollback]')"
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Pull specific version
+        run: |
+          docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.event.inputs.target_version }}
+          docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.event.inputs.target_version }}
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/kafontine
+            bash ./scripts/validate-prod-env.sh .env.prod
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login ${{ env.DOCKER_REGISTRY }} -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+            export BACKEND_IMAGE=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.event.inputs.target_version }}
+            export FRONTEND_IMAGE=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.event.inputs.target_version }}
+            
+            # Pull and restart services
+            docker compose --env-file .env.prod -f docker-compose.prod.yml pull backend front
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d postgres redis otel-collector
+            docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --no-build backend front
+            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend wget -qO- http://localhost:3000/ready
+            
+            echo "Rollback initiated at $(date)" >> rollback_history.log
+            echo "Target: ${{ github.event.inputs.target_version }}" >> rollback_history.log
+            echo "Reason: ${{ github.event.inputs.reason }}" >> rollback_history.log
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Health Check
+        run: |
+          curl -f --max-time 30 ${{ secrets.HEALTH_URL }} || {
+            echo "Health check failed - triggering alerts"
+            exit 1
+          }
+
+      - name: Notify rollback
+        if: always()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Rollback ${{ job.status }} for Kafontine",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Rollback *${{ job.status }}* for Kafontine Municipal\nTarget: `${{ github.event.inputs.target_version }}`\nReason: ${{ github.event.inputs.reason }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Create rollback issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[ROLLBACK] ${context.repo.owner}/${context.repo.repo}`,
+              body: `**Rollback executed**\n\n- Target: \`${{ github.event.inputs.target_version }}\`\n- Reason: ${{ github.event.inputs.reason }}\n- Status: ${{ job.status }}\n- Actor: @${context.actor}\n- Workflow: ${context.workflowUrl}`,
+              labels: ['rollback', 'production']
+            })

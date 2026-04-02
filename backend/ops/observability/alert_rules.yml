@@ -1,0 +1,29 @@
+groups:
+  - name: kafontine-alerts
+    rules:
+      - alert: BackendDown
+        expr: up{job="kafontine-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafontine backend is down"
+          description: "The backend service has been unreachable for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on backend"
+          description: "Error rate is above 5% for more than 5 minutes."
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="kafontine-backend"} > 800000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on backend"
+          description: "Backend memory usage is above 800MB."

@@ -1,0 +1,121 @@
+name: E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'front/e2e/**'
+      - 'front/src/**'
+      - 'front/playwright.config.ts'
+      - 'front/package.json'
+  pull_request:
+    paths:
+      - 'front/e2e/**'
+      - 'front/src/**'
+      - 'front/playwright.config.ts'
+      - 'front/package.json'
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: vhm-finances
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vhm-finances"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: front/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: front
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: front
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: front
+        env:
+          VITE_API_URL: http://localhost:3000/api/v1
+
+      - name: Start backend for testing
+        run: |
+          cd backend
+          npm ci
+          npm run prisma:generate
+          npx prisma migrate deploy || npx prisma db push --accept-data-loss
+          npm run prisma:seed
+          npm run build
+          node dist/index.js > /tmp/kafontine-backend.log 2>&1 &
+          sleep 10
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vhm-finances?schema=public
+          JWT_SECRET: test-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+          CORS_ORIGIN: http://localhost:4173
+          REDIS_URL: redis://localhost:6379
+
+      - name: Start frontend for testing
+        run: npm run preview -- --host 0.0.0.0 --port 4173 > /tmp/kafontine-front.log 2>&1 &
+        working-directory: front
+        env:
+          VITE_API_URL: http://localhost:3000/api/v1
+
+      - name: Wait for services
+        run: |
+          sleep 10
+          curl -f http://localhost:4173 || exit 1
+          curl -f http://localhost:3000/health || exit 1
+
+      - name: Run E2E tests
+        run: npx playwright test
+        working-directory: front
+        env:
+          FRONTEND_URL: http://localhost:4173
+          CI: 'true'
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: front/playwright-report/
+          retention-days: 7
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: front/test-results/
+          retention-days: 14

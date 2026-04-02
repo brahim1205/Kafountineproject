@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  nom       String
+  prenom    String
+  role      String   @default("AGENT")
+  telephone String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model Contribuable {
+  id              String   @id @default(uuid())
+  nin             String   @unique
+  nom             String
+  prenom          String
+  dateNaiss       DateTime
+  lieuNaiss       String
+  adresse         String
+  telephone       String
+  email           String?
+  profession      String?
+  typeContribuable String  @default("PARTICULIER")
+  zone            String?
+  montantImpot    Float    @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model Transaction {
+  id             String       @id @default(uuid())
+  numero         String       @unique
+  contribuableId String
+  agentId        String
+  categorie      String
+  service        String
+  quantite       Int          @default(1)
+  tarifUnitaire  Float
+  montant        Float
+  modePaiement   String       @default("ESPECE")
+  statut         String       @default("PAYE")
+  date           DateTime     @default(now())
+  year           Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  contribuable Contribuable @relation(fields: [contribuableId], references: [id], onDelete: Cascade)
+  agent        User         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([year])
+}

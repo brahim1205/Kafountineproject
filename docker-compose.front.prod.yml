@@ -1,0 +1,16 @@
+services:
+  front:
+    image: ${FRONTEND_IMAGE:-kafontine-front:local}
+    build:
+      context: ./front
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    restart: unless-stopped
+    ports:
+      - "${FRONT_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 20s
+      timeout: 5s
+      retries: 10

@@ -1,0 +1,477 @@
+import { useEffect, useMemo, useState } from 'react';
+import DashboardLayout from '../../components/feature/DashboardLayout';
+import {
+  createContribuable,
+  deleteContribuable,
+  listContribuables,
+  updateContribuable,
+  validateContribuableDuplicates,
+  type Contribuable,
+} from '../../services/contribuables';
+import { getStoredUserRole } from '../../services/auth';
+import { useYear } from '../../contexts/YearContext';
+import { useToast } from '../../components/feature/Toast';
+
+type UiContribuable = {
+  id: string;
+  name: string;
+  activityType: string;
+  zone: string;
+  phone: string;
+  status: string;
+  nin: string;
+  email?: string;
+};
+
+export default function Contribuables() {
+  const { selectedYear } = useYear();
+  const { showToast } = useToast();
+  const currentYear = new Date().getFullYear();
+  const isCurrentYear = selectedYear === currentYear;
+  const userRole = getStoredUserRole() || 'admin';
+  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && isCurrentYear;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'Actif' | 'Inactif'>('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedContribuable, setSelectedContribuable] = useState<UiContribuable | null>(null);
+  const [rows, setRows] = useState<UiContribuable[]>([]);
+
+  const loadData = async () => {
+    try {
+      const data = await listContribuables({ limit: 500, year: selectedYear });
+      const mapped = (data || []).map((item: Contribuable) => ({
+        id: item.id,
+        name: `${item.prenom || ''} ${item.nom || ''}`.trim(),
+        activityType: item.profession || item.typeContribuable || '-',
+        zone: item.zone || '-',
+        phone: item.telephone || '-',
+        status: item.isActive === false ? 'Inactif' : 'Actif',
+        nin: item.nin,
+        email: item.email,
+      }));
+      setRows(mapped);
+    } catch (error) {
+      setRows([]);
+      showToast('Impossible de charger les contribuables.', 'error');
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [selectedYear]);
+
+  const filteredData = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    let data = rows;
+    
+    // Filtre par statut
+    if (statusFilter !== 'all') {
+      data = data.filter(item => item.status === statusFilter);
+    }
+    
+    // Filtre par recherche
+    if (!q) return data;
+    return data.filter((item) => item.name.toLowerCase().includes(q) || item.phone.includes(q) || item.nin.includes(q));
+  }, [rows, searchTerm, statusFilter]);
+
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const fullName = String(fd.get('name') || '').trim();
+    const chunks = fullName.split(/\s+/).filter(Boolean);
+    const prenom = chunks.shift() || 'Sans';
+    const nom = chunks.join(' ') || 'Nom';
+    
+    const nin = String(fd.get('nin') || '').trim();
+    const telephone = String(fd.get('phone') || '').trim();
+    
+    try {
+      // Validation des doublons côté frontend
+      const { ninExists, telephoneExists } = await validateContribuableDuplicates(nin, telephone);
+      
+      if (ninExists) {
+        showToast('Ce numéro de carte d\'identité (NIN) est déjà utilisé par un autre contribuable.', 'error');
+        return;
+      }
+      if (telephoneExists) {
+        showToast('Ce numéro de téléphone est déjà utilisé par un autre contribuable.', 'error');
+        return;
+      }
+      
+      await createContribuable({
+        nin,
+        nom,
+        prenom,
+        telephone,
+        adresse: String(fd.get('address') || '').trim(),
+        profession: String(fd.get('activityType') || '').trim(),
+        zone: String(fd.get('zone') || '').trim(),
+        typeContribuable: String(fd.get('typeContribuable') || 'PARTICULIER'),
+        email: String(fd.get('email') || '').trim() || undefined,
+        dateNaiss: String(fd.get('dateNaiss') || '').trim() || undefined,
+        lieuNaiss: String(fd.get('lieuNaiss') || '').trim() || undefined,
+      });
+      setShowAddModal(false);
+      await loadData();
+    } catch (error) {
+      // Gestion des erreurs venant du backend
+      const message = error instanceof Error ? error.message : '';
+      if (message.includes('NIN') || message.includes('carte d\'identité')) {
+        showToast('Ce numéro de carte d\'identité (NIN) est déjà utilisé par un autre contribuable.', 'error');
+      } else if (message.includes('téléphone')) {
+        showToast('Ce numéro de téléphone est déjà utilisé par un autre contribuable.', 'error');
+      } else {
+        showToast('Erreur lors de la création du contribuable.', 'error');
+      }
+    }
+  };
+
+  const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedContribuable) return;
+    const fd = new FormData(e.currentTarget);
+    const fullName = String(fd.get('name') || '').trim();
+    const chunks = fullName.split(/\s+/).filter(Boolean);
+    const prenom = chunks.shift() || 'Sans';
+    const nom = chunks.join(' ') || 'Nom';
+    try {
+      await updateContribuable(selectedContribuable.id, {
+        nin: String(fd.get('nin') || '').trim(),
+        nom,
+        prenom,
+        telephone: String(fd.get('phone') || '').trim(),
+        zone: String(fd.get('zone') || '').trim(),
+        profession: String(fd.get('activityType') || '').trim(),
+        isActive: String(fd.get('status') || '') === 'Actif',
+      });
+      setShowEditModal(false);
+      setSelectedContribuable(null);
+      await loadData();
+    } catch (error) {
+      showToast('Erreur lors de la modification.', 'error');
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedContribuable) return;
+    try {
+      await deleteContribuable(selectedContribuable.id);
+      setShowDeleteModal(false);
+      setSelectedContribuable(null);
+      await loadData();
+    } catch (error) {
+      showToast('Erreur lors de la suppression.', 'error');
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestion des contribuables</h1>
+            <p className="text-sm text-gray-600 mt-1">Liste des contribuables enregistrés</p>
+          </div>
+          {canManage && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+            >
+              <i className="ri-add-line text-lg"></i>
+              Nouveau contribuable
+            </button>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
+              <input
+                type="text"
+                placeholder="Rechercher par nom, téléphone, NIN..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                  statusFilter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Tous
+              </button>
+              <button
+                onClick={() => setStatusFilter('Actif')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                  statusFilter === 'Actif' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Actifs
+              </button>
+              <button
+                onClick={() => setStatusFilter('Inactif')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                  statusFilter === 'Inactif' ? 'bg-white text-gray-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Inactifs
+              </button>
+            </div>
+          </div>
+          <div className="text-sm text-gray-600 mt-3">
+            Total: <span className="font-semibold text-gray-900">{rows.length}</span> | 
+            Actifs: <span className="font-semibold text-green-600">{rows.filter(r => r.status === 'Actif').length}</span> | 
+            Inactifs: <span className="font-semibold text-gray-500">{rows.filter(r => r.status === 'Inactif').length}</span> | 
+            Résultats: <span className="font-semibold text-teal-600">{filteredData.length}</span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Contribuable</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">NIN</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Activité</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Zone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Téléphone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Statut</th>
+                  {canManage && (
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredData.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{item.nin}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{item.activityType}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{item.zone}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{item.phone}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${item.status === 'Actif' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    {canManage && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedContribuable(item);
+                              setShowEditModal(true);
+                            }}
+                            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <i className="ri-edit-line text-lg"></i>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedContribuable(item);
+                              setShowDeleteModal(true);
+                            }}
+                            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <i className="ri-delete-bin-line text-lg"></i>
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {canManage && showAddModal && (
+        <Modal title="Nouveau contribuable" onClose={() => setShowAddModal(false)}>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Nom complet *" name="name" required />
+              <Input label="NIN (Numéro ID) *" name="nin" required placeholder="ex: 1234567890" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Téléphone *" name="phone" required placeholder="ex: 77 123 45 67" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                <select
+                  name="typeContribuable"
+                  defaultValue="PARTICULIER"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
+                >
+                  <option value="PARTICULIER">Particulier</option>
+                  <option value="ENTREPRISE">Entreprise</option>
+                  <option value="ASSOCIATION">Association</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Profession" name="activityType" placeholder="ex: Commerçant, Agriculteur..." />
+              <Input label="Zone / Quartier" name="zone" placeholder="ex: Quartier Nord" />
+            </div>
+            <Input label="Email" name="email" type="email" placeholder="ex: email@exemple.com" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Date de naissance" name="dateNaiss" type="date" />
+              <Input label="Lieu de naissance" name="lieuNaiss" placeholder="ex: Kafountine" />
+            </div>
+            <Textarea label="Adresse" name="address" />
+            <Actions onCancel={() => setShowAddModal(false)} submitLabel="Enregistrer" />
+          </form>
+        </Modal>
+      )}
+
+      {canManage && showEditModal && selectedContribuable && (
+        <Modal
+          title="Modifier contribuable"
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedContribuable(null);
+          }}
+        >
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Nom complet *" name="name" defaultValue={selectedContribuable.name} required />
+              <Input label="NIN (Numéro ID) *" name="nin" defaultValue={selectedContribuable.nin} required placeholder="ex: 1234567890" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Téléphone *" name="phone" defaultValue={selectedContribuable.phone} required placeholder="ex: 77 123 45 67" />
+              <Input label="Zone / Quartier" name="zone" defaultValue={selectedContribuable.zone} placeholder="ex: Quartier Nord" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Profession" name="activityType" defaultValue={selectedContribuable.activityType} placeholder="ex: Commerçant, Agriculteur..." />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+                <select
+                  name="status"
+                  defaultValue={selectedContribuable.status}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
+                >
+                  <option>Actif</option>
+                  <option>Inactif</option>
+                </select>
+              </div>
+            </div>
+            <Actions
+              onCancel={() => {
+                setShowEditModal(false);
+                setSelectedContribuable(null);
+              }}
+              submitLabel="Mettre à jour"
+            />
+          </form>
+        </Modal>
+      )}
+
+      {canManage && showDeleteModal && selectedContribuable && (
+        <Modal
+          title="Confirmer la suppression"
+          onClose={() => {
+            setShowDeleteModal(false);
+            setSelectedContribuable(null);
+          }}
+        >
+          <p className="text-sm text-gray-600">
+            Supprimer <strong>{selectedContribuable.name}</strong> ?
+          </p>
+          <div className="flex items-center justify-end gap-3 pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setSelectedContribuable(null);
+              }}
+              className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              className="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap"
+            >
+              Supprimer
+            </button>
+          </div>
+        </Modal>
+      )}
+    </DashboardLayout>
+  );
+}
+
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <i className="ri-close-line text-xl"></i>
+          </button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Input({ label, name, required, defaultValue, type, placeholder }: { label: string; name: string; required?: boolean; defaultValue?: string; type?: string; placeholder?: string }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <input
+        name={name}
+        required={required}
+        defaultValue={defaultValue}
+        type={type || 'text'}
+        placeholder={placeholder}
+        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+      />
+    </div>
+  );
+}
+
+function Textarea({ label, name }: { label: string; name: string }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <textarea
+        name={name}
+        rows={3}
+        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm resize-none"
+      ></textarea>
+    </div>
+  );
+}
+
+function Actions({ onCancel, submitLabel }: { onCancel: () => void; submitLabel: string }) {
+  return (
+    <div className="flex items-center justify-end gap-3 pt-4">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap"
+      >
+        Annuler
+      </button>
+      <button
+        type="submit"
+        className="px-4 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap"
+      >
+        {submitLabel}
+      </button>
+    </div>
+  );
+}

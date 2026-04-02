@@ -1,0 +1,38 @@
+# Docker Compose - Development
+# Use: docker-compose -f docker-compose.dev.yml up
+
+name: kafontine-dev
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: kafontine-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kafountine
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kafountine"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: kafontine-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

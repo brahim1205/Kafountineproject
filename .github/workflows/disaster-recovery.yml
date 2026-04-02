@@ -1,0 +1,186 @@
+name: Disaster Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - status
+          - full-backup
+          - restore-latest
+          - restore-from-artifact
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'status'
+    
+    steps:
+      - name: Check server backup status
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/kafontine
+            echo "=== Backup Status ==="
+            ls -lt backups 2>/dev/null | head -10 || echo "No backup directory"
+            echo ""
+            echo "=== Backend Readiness ==="
+            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend wget -qO- http://localhost:3000/ready || echo "Backend not ready"
+
+  full-backup:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'full-backup'
+    env:
+      BACKUP_FILENAME: disaster_recovery_${{ github.run_id }}_${{ github.run_attempt }}.dump
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create full backup on server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/kafontine
+            bash ./scripts/validate-prod-env.sh .env.prod
+            set -a
+            source .env.prod
+            set +a
+            mkdir -p backups
+            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
+              pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "backups/${{ env.BACKUP_FILENAME }}"
+
+      - name: Download backup artifact from server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: /opt/kafontine/backups/${{ env.BACKUP_FILENAME }}
+          target: ./backups
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: disaster-recovery-backup
+          path: backups/opt/kafontine/backups/${{ env.BACKUP_FILENAME }}
+          retention-days: 30
+
+      - name: Notify
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Disaster Recovery: Full backup completed for Kafontine"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  restore-latest:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'restore-latest'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download latest backup
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: backup.yml
+          name: database-backup
+
+      - name: Upload backup to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "./**/*.dump"
+          target: /opt/kafontine/backups/restore
+
+      - name: Restore database on server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/kafontine
+            bash ./scripts/validate-prod-env.sh .env.prod
+            set -a
+            source .env.prod
+            set +a
+            LATEST=$(find backups/restore -name "*.dump" | sort | tail -1)
+            test -n "$LATEST"
+            cat "$LATEST" | docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
+              pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+
+      - name: Notify
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Disaster Recovery: Database restored from latest backup"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  restore-from-artifact:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'restore-from-artifact'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download disaster recovery backup
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: disaster-recovery.yml
+          name: disaster-recovery-backup
+
+      - name: Upload disaster recovery backup to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "./**/*.dump"
+          target: /opt/kafontine/backups/restore
+
+      - name: Restore disaster recovery backup on server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/kafontine
+            bash ./scripts/validate-prod-env.sh .env.prod
+            set -a
+            source .env.prod
+            set +a
+            LATEST=$(find backups/restore -name "*.dump" | sort | tail -1)
+            test -n "$LATEST"
+            cat "$LATEST" | docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
+              pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+
+      - name: Notify
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "Disaster Recovery: Database restored from disaster recovery backup"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

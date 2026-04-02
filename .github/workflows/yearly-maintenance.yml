@@ -1,0 +1,48 @@
+name: Yearly Maintenance
+on:
+  # Exécuter automatiquement le 1er janvier à 00:00 UTC
+  schedule:
+    - cron: '0 0 1 1 *'
+  # Permettre une exécution manuelle
+  workflow_dispatch:
+  # Exécuter lors du déploiement en production
+  push:
+    branches:
+      - main
+
+jobs:
+  create-new-year:
+    name: Créer la nouvelle année fiscale
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+          
+      - name: Créer la nouvelle année
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd backend
+          npx prisma migrate deploy
+          curl -X POST "${{ secrets.API_URL }}/api/v1/years/auto-create" \
+            -H "Authorization: Bearer ${{ secrets.CRON_API_KEY }}"
+        continue-on-error: true
+        
+      - name: Log notification
+        run: |
+          echo "Tâche de création d'année exécutée"
+          date

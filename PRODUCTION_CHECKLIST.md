@@ -4,7 +4,8 @@
 
 - [ ] Remplacer tous les placeholders de [`.env.prod`](./.env.prod)
 - [ ] Vérifier les secrets GitHub Actions: `SSH_HOST`, `SSH_USERNAME`, `SSH_KEY`, `DOCKER_USERNAME`, `DOCKER_PASSWORD`
-- [ ] Vérifier le domaine, DNS et certificats Traefik
+- [ ] Vérifier le domaine, DNS et les certificats HTTPS du reverse proxy réellement utilisé
+- [ ] Si un `nginx` système occupe déjà `80/443`, déployer avec [`docker-compose.prod.yml`](./docker-compose.prod.yml) et ne pas utiliser [`docker-compose.yml`](./docker-compose.yml)
 - [ ] Exécuter `make validate-prod-env`
 - [ ] Exécuter `bash ./scripts/prod-preflight.sh`
 

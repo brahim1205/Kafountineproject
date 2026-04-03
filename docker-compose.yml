@@ -67,7 +67,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
-      - ./traefik/acme:/etc/traefik/acme
+      - ./traefik/acme/acme.json:/etc/traefik/acme/acme.json
       - traefik_logs:/var/log/traefik
     depends_on:
       - backend

@@ -89,7 +89,7 @@ services:
     environment:
       PORT: 3000
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-kafountine}?schema=public&connection_limit=20&pool_timeout=10
+      DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
@@ -102,10 +102,10 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@redis:6379}
       OTEL_ENABLED: ${OTEL_ENABLED:-true}
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-kafountine-backend}
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318/v1/traces}
       PORTAL_URL: ${PORTAL_URL}
-      REFRESH_COOKIE_SECURE: true
-      REFRESH_COOKIE_SAMESITE: none
+      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-true}
+      REFRESH_COOKIE_SAMESITE: ${REFRESH_COOKIE_SAMESITE:-lax}
     depends_on:
       postgres:
         condition: service_healthy

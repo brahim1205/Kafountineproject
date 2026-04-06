@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -10,10 +11,6 @@ function uuid() {
 
 function ts(month: number, day: number) {
   return new Date(2026, month, day).toISOString();
-}
-
-function now() {
-  return new Date().toISOString();
 }
 
 async function main() {

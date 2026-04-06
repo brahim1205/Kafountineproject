@@ -41,8 +41,6 @@ export class GetDashboardStatisticsUseCase {
     ]);
 
     const transactionsAujourdhui = await this.dashboardRepository.countTodayTransactionsByYear(year);
-    const totalExpected = totalRecettes > 0 ? totalRecettes : 1;
-
     return {
       totalContribuables,
       totalRecettes,

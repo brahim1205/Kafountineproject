@@ -1,6 +1,8 @@
+/* eslint-disable no-console */
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -70,7 +72,7 @@ async function main() {
     { nin: 'SN-2024-020', nom: 'Sow', prenom: 'Rokhaya', dateNaiss: '1989-08-16', lieuNaiss: 'Kafountine', adresse: 'Avenue Lamine', telephone: '+221771000020', profession: 'Comptable', typeContribuable: 'PARTICULIER', zone: 'Zone Commerciale', montantImpot: 6500 },
   ];
 
-  const contribuables: any[] = [];
+  const contribuables: Array<{ id: string }> = [];
   for (const c of contribuablesData) {
     const contribuable = await prisma.contribuable.upsert({
       where: { nin: c.nin },
@@ -98,7 +100,7 @@ async function main() {
 
   const existingTx = await prisma.transaction.count();
   if (existingTx < 10) {
-    const txData: any[] = [];
+    const txData: Prisma.TransactionCreateManyInput[] = [];
     let txNum = existingTx;
 
     for (let month = 0; month < 12; month++) {

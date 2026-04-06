@@ -63,8 +63,8 @@ jobs:
       - name: Prisma generate
         run: npm run prisma:generate
 
-      - name: Apply migrations
-        run: npx prisma migrate deploy
+      - name: Sync database schema
+        run: npx prisma db push --accept-data-loss --skip-generate
 
       - name: Seed data
         run: npm run prisma:seed

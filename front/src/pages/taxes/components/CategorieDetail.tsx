@@ -313,11 +313,13 @@ export default function CategorieDetail() {
             transaction={{
               numero: selectedTransaction.numero,
               date: selectedTransaction.date,
-              heure: selectedTransaction.heure,
-              contribuable: selectedTransaction.contribuable,
+              heure: selectedTransaction.heure || (selectedTransaction.date ? new Date(selectedTransaction.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''),
+              contribuable: `${selectedTransaction.contribuable?.prenom || ''} ${selectedTransaction.contribuable?.nom || ''}`.trim() || '-',
               type: selectedTransaction.service,
               montant: selectedTransaction.montant,
-              agent: selectedTransaction.agent
+              agent: `${selectedTransaction.agent?.prenom || ''} ${selectedTransaction.agent?.nom || ''}`.trim() || '-',
+              telephone: selectedTransaction.contribuable?.telephone || '',
+              nin: selectedTransaction.contribuable?.nin || '',
             }}
             onClose={() => {
               setShowRecuPDF(false);

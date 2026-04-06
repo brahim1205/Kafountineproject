@@ -17,15 +17,22 @@ export type Moto = {
     nom: string;
     prenom: string;
     nin?: string;
+    telephone?: string;
+    cni?: string;
   };
   conducteur?: {
     id: string;
     nom: string;
     prenom: string;
     nin?: string;
+    telephone?: string;
+    cni?: string;
   };
   enRetard?: boolean;
   montantPenalite?: number;
+  prochainPaiement?: string | null;
+  dernierPaiement?: string | null;
+  joursRetard?: number;
 };
 
 export type MotoStats = {
@@ -69,10 +76,24 @@ export type UpdateMotoPayload = Partial<CreateMotoPayload> & {
   statut?: string;
 };
 
+type ApiListResult<T> = T[] | { data?: T[] };
+
+function normalizeListResult<T>(result: ApiListResult<T>): T[] {
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+    return result.data;
+  }
+
+  return [];
+}
+
 export async function listMotos(year?: number): Promise<Moto[]> {
   const query = year ? `?year=${year}&limit=300` : '?limit=300';
-  const result = await apiRequest<Moto[] | { data?: Moto[] }>(`/motos${query}`);
-  return Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  const result = await apiRequest<ApiListResult<Moto>>(`/motos${query}`);
+  return normalizeListResult(result);
 }
 
 export async function getMotosStats(year?: number): Promise<MotoStats> {
@@ -88,8 +109,8 @@ export async function getMotoConfiguration() {
  * Vérifie si un numéro de matricule existe déjà
  */
 export async function checkMatriculeExists(matricule: string, excludeId?: string): Promise<boolean> {
-  const result = await apiRequest<Moto[] | { data?: Moto[] }>(`/motos?search=${encodeURIComponent(matricule)}&limit=50`);
-  const items = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  const result = await apiRequest<ApiListResult<Moto>>(`/motos?search=${encodeURIComponent(matricule)}&limit=50`);
+  const items = normalizeListResult(result);
   const match = items.find((m) => String(m.matricule).toLowerCase() === String(matricule).toLowerCase());
   if (!match) return false;
   if (excludeId && match.id === excludeId) return false;
@@ -101,8 +122,8 @@ export async function checkMatriculeExists(matricule: string, excludeId?: string
  */
 export async function checkPermisExists(permis: string, excludeId?: string): Promise<boolean> {
   if (!permis) return false;
-  const result = await apiRequest<Moto[] | { data?: Moto[] }>(`/motos?limit=300`);
-  const items = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  const result = await apiRequest<ApiListResult<Moto>>(`/motos?limit=300`);
+  const items = normalizeListResult(result);
   const match = items.find((m) => m.permis && String(m.permis).toLowerCase() === String(permis).toLowerCase());
   if (!match) return false;
   if (excludeId && match.id === excludeId) return false;

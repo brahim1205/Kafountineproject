@@ -14,6 +14,11 @@ export interface TransactionRecente {
   id: string;
   numero: string;
   montant: number;
+  type?: string;
+  categorie?: string;
+  statut?: string;
+  createdAt?: string;
+  contribuableNom?: string;
   agent?: Agent;
   contribuable?: Contribuable;
 }
@@ -40,6 +45,16 @@ export interface GlobalStats {
   recettesAujourdhui: number;
   recettesMois: number;
   tauxRecouvrement: number;
+  totalTransactions?: number;
+  totalUsers?: number;
+  totalAdmins?: number;
+  totalAgents?: number;
+  totalComptables?: number;
+  alertes?: Array<{
+    message: string;
+    type?: string;
+    timestamp?: string;
+  }>;
   stats: {
     motos: {
       total: number;
@@ -70,15 +85,7 @@ export interface GlobalStats {
     nombre: number;
     montant: number;
   }>;
-  transactionsRecentes?: Array<{
-    id: string;
-    numero: string;
-    montant: number;
-    agent?: {
-      nom: string;
-      prenom: string;
-    };
-  }>;
+  transactionsRecentes?: TransactionRecente[];
   topAgents?: Array<{
     nom: string;
     prenom?: string;

@@ -65,7 +65,7 @@ export default function Recettes() {
       });
       setRows(mapped);
       setContribuables(contribs || []);
-    } catch (error) {
+    } catch {
       setRows([]);
       setContribuables([]);
       showToast('Impossible de charger les recettes.', 'error');
@@ -145,7 +145,7 @@ export default function Recettes() {
       setNewTicketData(newTicket);
       setTicketSubmitted(true);
       await loadData();
-    } catch (error) {
+    } catch {
       showToast("Impossible d'enregistrer le ticket.", 'error');
     }
   };

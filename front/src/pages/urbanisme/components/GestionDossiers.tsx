@@ -16,7 +16,7 @@ type ReceiptData = {
   agent: string;
 };
 
-type UiDossier = DossierUrbanisme & {
+type UiDossier = Omit<DossierUrbanisme, 'date' | 'surface' | 'statut'> & {
   date: string;
   demandeur: string;
   cni: string;
@@ -82,7 +82,7 @@ export default function GestionDossiers() {
         };
       });
       setDossiers(transformedDossiers);
-    } catch (err) {
+    } catch {
       setDossiers([]);
       setError("Impossible de charger les dossiers d'urbanisme.");
     } finally {
@@ -386,7 +386,7 @@ export default function GestionDossiers() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Nature du projet</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedDossier.nature}</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedDossier.nature || selectedDossier.type}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-gray-500 mb-1">Description</p>

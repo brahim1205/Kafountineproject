@@ -42,7 +42,7 @@ export default function Utilisateurs() {
         lastLogin: item.lastLogin ? new Date(item.lastLogin).toLocaleString('fr-FR') : '-',
       }));
       setRows(mapped);
-    } catch (error) {
+    } catch {
       setRows([]);
       showToast("Impossible de charger les utilisateurs.", 'error');
     }
@@ -79,7 +79,7 @@ export default function Utilisateurs() {
       });
       setShowAddModal(false);
       await loadData();
-    } catch (error) {
+    } catch {
       showToast("Erreur lors de la création de l'utilisateur.", 'error');
     }
   };
@@ -104,7 +104,7 @@ export default function Utilisateurs() {
       setShowEditModal(false);
       setSelectedUser(null);
       await loadData();
-    } catch (error) {
+    } catch {
       showToast("Erreur lors de la mise à jour de l'utilisateur.", 'error');
     }
   };
@@ -116,7 +116,7 @@ export default function Utilisateurs() {
       setShowDeleteModal(false);
       setSelectedUser(null);
       await loadData();
-    } catch (error) {
+    } catch {
       showToast("Erreur lors de la suppression de l'utilisateur.", 'error');
     }
   };

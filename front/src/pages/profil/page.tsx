@@ -70,8 +70,8 @@ export default function ProfilPage() {
                       <p className="text-lg text-gray-600 mt-1">{userRoleLabel}</p>
                     </div>
                     <div className="flex items-center gap-2 sm:mt-12">
-                      <span className={`w-3 h-3 rounded-full ${me?.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                      <span className={`text-sm font-medium ${me?.isActive ? 'text-green-600' : 'text-gray-500'}`}>{me?.isActive ? 'Actif' : 'Inactif'}</span>
+                      <span className={`w-3 h-3 rounded-full ${me?.isActive !== false ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                      <span className={`text-sm font-medium ${me?.isActive !== false ? 'text-green-600' : 'text-gray-500'}`}>{me?.isActive !== false ? 'Actif' : 'Inactif'}</span>
                     </div>
                   </div>
                   <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -52,7 +52,7 @@ export default function ValidationDossiers() {
         }));
       
       setDossiersEnAttente(pendingDossiers);
-    } catch (err) {
+    } catch {
       setDossiersEnAttente([]);
       showToast("Impossible de charger les dossiers d'urbanisme.", 'error');
     } finally {
@@ -104,7 +104,7 @@ export default function ValidationDossiers() {
       
       setShowValidationModal(false);
       setSelectedDossier(null);
-    } catch (err) {
+    } catch {
       showToast('Erreur lors de la mise à jour du dossier', 'error');
     } finally {
       setSubmitting(false);

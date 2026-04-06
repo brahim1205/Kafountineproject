@@ -8,6 +8,7 @@ export interface DossierUrbanisme {
   description?: string;
   surface?: number;
   localisation?: string;
+  nature?: string;
   montant: number;
   agent: string;
   statut: string;
@@ -26,6 +27,11 @@ export interface UrbanismeStats {
   valide: number;
   rejete: number;
   montantTotal: number;
+  totalDossiers?: number;
+  dossiersEnAttente?: number;
+  dossiersValides?: number;
+  dossiersRejetes?: number;
+  recettes?: number;
 }
 
 export async function getDossiersUrbanisme(params?: {

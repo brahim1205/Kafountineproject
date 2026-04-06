@@ -26,7 +26,15 @@ export async function listEtatCivilDemandes(year?: number): Promise<EtatCivilDem
   query.set('limit', '300');
   if (year) query.set('year', String(year));
   const result = await apiRequest<EtatCivilDemande[] | { data?: EtatCivilDemande[] }>(`/etat-civil?${query.toString()}`);
-  return Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+    return result.data;
+  }
+
+  return [];
 }
 
 export async function getEtatCivilStats(year?: number): Promise<EtatCivilStats> {

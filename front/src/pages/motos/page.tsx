@@ -10,10 +10,16 @@ import { useToast } from '../../components/feature/Toast';
 type UiMoto = Moto & {
   photo: string;
   proprietaire: {
+    id?: string;
+    prenom?: string;
+    telephone?: string;
     nom: string;
     cni: string;
   };
   conducteur: {
+    id?: string;
+    prenom?: string;
+    telephone?: string;
     nom: string;
     cni: string;
   };
@@ -81,12 +87,18 @@ export default function MotosPage() {
         ...m,
         photo: m.photo || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600&h=400&fit=crop',
         proprietaire: {
+          id: m.proprietaire?.id,
+          prenom: m.proprietaire?.prenom,
+          telephone: m.proprietaire?.telephone,
           nom: `${m.proprietaire?.prenom || ''} ${m.proprietaire?.nom || ''}`.trim() || 'N/A',
-          cni: m.proprietaire?.nin || '-',
+          cni: m.proprietaire?.nin || m.proprietaire?.cni || '-',
         },
         conducteur: {
+          id: m.conducteur?.id,
+          prenom: m.conducteur?.prenom,
+          telephone: m.conducteur?.telephone,
           nom: `${m.conducteur?.prenom || ''} ${m.conducteur?.nom || ''}`.trim() || 'N/A',
-          cni: m.conducteur?.nin || '-',
+          cni: m.conducteur?.nin || m.conducteur?.cni || '-',
         },
       }));
       const paymentsMapped: UiMotoPayment[] = (paymentsData || []).map((p) => ({
@@ -303,7 +315,7 @@ export default function MotosPage() {
         setShowSuccessMessage(false);
         setShowRecuPDF(true);
       }, 1000);
-    } catch (error) {
+    } catch {
       showToast("Impossible d'enregistrer le paiement.", 'error');
     } finally {
       setIsSubmittingPaiement(false);

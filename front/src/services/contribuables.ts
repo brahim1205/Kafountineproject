@@ -16,6 +16,7 @@ export type Contribuable = {
   nom: string;
   prenom: string;
   telephone: string;
+  email?: string;
   adresse: string;
   zone?: string;
   profession?: string;
@@ -31,7 +32,15 @@ type TelephoneCheckResponse = {
 };
 
 function normalizeContribuablesResult(result: ContribuablesApiResult): Contribuable[] {
-  return Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+    return result.data;
+  }
+
+  return [];
 }
 
 export async function listContribuables(params: { page?: number; limit?: number; search?: string; year?: number } = {}): Promise<Contribuable[]> {

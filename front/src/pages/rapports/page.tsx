@@ -118,6 +118,12 @@ export default function Rapports() {
     ];
   }, [overview]);
 
+  const tauxRecouvrement = useMemo(() => {
+    return (overview?.txStats?.annee?.transactions || 0) > 0
+      ? Math.round(((overview?.txStats?.annee?.transactions || 0) / (overview?.totalContribuables || 1)) * 100)
+      : 0;
+  }, [overview]);
+
   const evolutionMensuelle = useMemo(() => {
     return overview?.evolutionSemaine || [];
   }, [overview?.evolutionSemaine]);
@@ -204,7 +210,7 @@ export default function Rapports() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-purple-100 text-sm">Evolution</p>
-                    <p className="text-3xl font-bold mt-1">{Math.round(overview?.tauxRecouvrement || 0)}%</p>
+                    <p className="text-3xl font-bold mt-1">{tauxRecouvrement}%</p>
                     <p className="text-purple-100 text-xs mt-1">taux de recouvrement</p>
                   </div>
                   <i className="ri-trending-up-line text-4xl text-purple-200"></i>

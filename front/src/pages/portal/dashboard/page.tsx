@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getContribuable, logoutPortalRequest } from '../../../services/portalAuth';
+import { getContribuable, getPortalToken, logoutPortalRequest } from '../../../services/portalAuth';
 
 interface Tax {
   id: string;

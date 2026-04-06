@@ -52,7 +52,7 @@ export default function Contribuables() {
         email: item.email,
       }));
       setRows(mapped);
-    } catch (error) {
+    } catch {
       setRows([]);
       showToast('Impossible de charger les contribuables.', 'error');
     }
@@ -149,7 +149,7 @@ export default function Contribuables() {
       setShowEditModal(false);
       setSelectedContribuable(null);
       await loadData();
-    } catch (error) {
+    } catch {
       showToast('Erreur lors de la modification.', 'error');
     }
   };
@@ -161,7 +161,7 @@ export default function Contribuables() {
       setShowDeleteModal(false);
       setSelectedContribuable(null);
       await loadData();
-    } catch (error) {
+    } catch {
       showToast('Erreur lors de la suppression.', 'error');
     }
   };

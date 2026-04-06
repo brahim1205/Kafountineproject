@@ -51,10 +51,24 @@ export type FormationStats = {
   totalCertifies?: number;
   tauxReussiteGlobal?: number;
   budgetTotal?: number;
-  repartitionDomaines?: Array<{ domaine: string; nombre: number }>;
-  repartitionSexe?: Array<{ sexe: string; nombre: number }>;
+  repartitionDomaines?: Array<{ domaine: string; nombre: number; pourcentage?: number }>;
+  repartitionSexe?: Array<{ sexe: string; nombre: number; pourcentage?: number }>;
   evolutionAnnuelle?: Array<{ annee: number; nombre: number }>;
 };
+
+type ApiListResult<T> = T[] | { data?: T[] };
+
+function normalizeListResult<T>(result: ApiListResult<T>): T[] {
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
+    return result.data;
+  }
+
+  return [];
+}
 
 export type CreateFormationPayload = {
   nom: string;
@@ -86,8 +100,8 @@ export async function listFormations(year?: number): Promise<Formation[]> {
   if (year) {
     params.set('year', String(year));
   }
-  const result = await apiRequest<Formation[] | { data?: Formation[] }>(`/formations?${params.toString()}`);
-  return Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  const result = await apiRequest<ApiListResult<Formation>>(`/formations?${params.toString()}`);
+  return normalizeListResult(result);
 }
 
 export async function createFormation(payload: CreateFormationPayload): Promise<Formation> {
@@ -121,16 +135,16 @@ export async function listJeunes(year?: number): Promise<Jeune[]> {
   if (year) {
     params.set('year', String(year));
   }
-  const result = await apiRequest<Jeune[] | { data?: Jeune[] }>(`/jeunes?${params.toString()}`);
-  return Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  const result = await apiRequest<ApiListResult<Jeune>>(`/jeunes?${params.toString()}`);
+  return normalizeListResult(result);
 }
 
 /**
  * Vérifie si un CNI existe déjà chez les jeunes
  */
 export async function checkJeuneCniExists(cni: string, excludeId?: string): Promise<boolean> {
-  const result = await apiRequest<Jeune[] | { data?: Jeune[] }>(`/jeunes?search=${encodeURIComponent(cni)}&limit=50`);
-  const items = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  const result = await apiRequest<ApiListResult<Jeune>>(`/jeunes?search=${encodeURIComponent(cni)}&limit=50`);
+  const items = normalizeListResult(result);
   const match = items.find((j) => String(j.cni) === String(cni));
   if (!match) return false;
   if (excludeId && match.id === excludeId) return false;
@@ -141,8 +155,8 @@ export async function checkJeuneCniExists(cni: string, excludeId?: string): Prom
  * Vérifie si un téléphone existe déjà chez les jeunes
  */
 export async function checkJeuneTelephoneExists(telephone: string, excludeId?: string): Promise<boolean> {
-  const result = await apiRequest<Jeune[] | { data?: Jeune[] }>(`/jeunes?search=${encodeURIComponent(telephone)}&limit=50`);
-  const items = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+  const result = await apiRequest<ApiListResult<Jeune>>(`/jeunes?search=${encodeURIComponent(telephone)}&limit=50`);
+  const items = normalizeListResult(result);
   const match = items.find((j) => String(j.telephone) === String(telephone));
   if (!match) return false;
   if (excludeId && match.id === excludeId) return false;

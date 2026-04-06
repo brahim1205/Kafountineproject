@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useYear } from '../../../contexts/YearContext';
-import { getGlobalStats, type GlobalStats, type TopAgent, type EvolutionJour, type TransactionRecente } from '../../../services/statistiques';
+import { getGlobalStats, type GlobalStats, type TopAgent, type EvolutionJour } from '../../../services/statistiques';
 import { apiRequest } from '../../../services/api';
 import { getStoredUserName } from '../../../services/auth';
 
@@ -60,7 +60,6 @@ export default function ComptableDashboard() {
   const [recettesParModule, setRecettesParModule] = useState<ModuleRevenue[]>([]);
   const [agentsPerformance, setAgentsPerformance] = useState<AgentPerformance[]>([]);
   const [evolutionMensuelle, setEvolutionMensuelle] = useState<MonthlyEvolution[]>([]);
-  const [transactionsRecentes, setTransactionsRecentes] = useState<TransactionRecente[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const { selectedYear } = useYear();
   const currentYear = new Date().getFullYear();
@@ -128,17 +127,12 @@ export default function ComptableDashboard() {
         }
         
         // Transactions récentes
-        if (globalStats?.transactionsRecentes) {
-          setTransactionsRecentes(globalStats.transactionsRecentes.slice(0, 10));
-        }
-        
       } catch {
         // Fallback to empty data
         setStats(null);
         setRecettesParModule([]);
         setAgentsPerformance([]);
         setEvolutionMensuelle([]);
-        setTransactionsRecentes([]);
         setBudgetStats(null);
         setBudgetLines([]);
         setMotosStats(null);

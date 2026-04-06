@@ -29,6 +29,7 @@ export type TaxService = {
 export type TransactionItem = {
   id: string;
   numero: string;
+  type?: string;
   categorie: string;
   service: string;
   quantite: number;
@@ -36,6 +37,9 @@ export type TransactionItem = {
   modePaiement: string;
   statut: string;
   date: string;
+  createdAt?: string;
+  heure?: string;
+  contribuableNom?: string;
   contribuable?: {
     id: string;
     nom: string;

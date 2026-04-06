@@ -44,7 +44,6 @@ export default function GestionBudgetPage() {
   const [editForm, setEditForm] = useState<BudgetFormData>(EMPTY_FORM);
   const [createError, setCreateError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadBudgetData();
@@ -53,13 +52,11 @@ export default function GestionBudgetPage() {
   const loadBudgetData = async () => {
     try {
       setLoading(true);
-      setLoadError(null);
       const lignes = await apiRequest<LigneBudgetaire[]>(`/budget/lignes?year=${selectedYear}`);
       setCategoriesBudget(Array.isArray(lignes) ? lignes : []);
     } catch {
       setCategoriesBudget([]);
-      setLoadError("Impossible de charger les lignes budgétaires.");
-    } finally {
+      } finally {
       setLoading(false);
     }
   };

@@ -20,6 +20,7 @@ type DashboardTransaction = {
 type DashboardTopAgent = TopAgent & {
   nom: string;
   initiale?: string;
+  initiales?: string;
 };
 
 export default function SuperAdminDashboard() {
@@ -145,7 +146,7 @@ export default function SuperAdminDashboard() {
   }) || [];
   const statsFormations = [
     { label: 'Formations actives', value: String(stats?.totalFormations || 0), icon: 'ri-book-open-line', color: 'text-emerald-600' },
-    { label: 'Transactions année', value: String(stats?.totalTransactions || 0), icon: 'ri-file-list-3-line', color: 'text-blue-600' },
+    { label: 'Transactions année', value: String(stats?.totalTransactions || stats?.transactionsMois || 0), icon: 'ri-file-list-3-line', color: 'text-blue-600' },
     { label: 'Recettes mois', value: `${Math.round((stats?.recettesMois || 0) / 1000)}K`, icon: 'ri-award-line', color: 'text-purple-600' },
     { label: 'Taux recouvrement', value: `${stats?.tauxRecouvrement || 0}%`, icon: 'ri-percent-line', color: 'text-teal-600' },
   ];

@@ -11,6 +11,8 @@ type ApiAuthUser = {
   nom: string;
   prenom: string;
   role: string;
+  isActive?: boolean;
+  createdAt?: string;
 };
 
 type LoginResponse = {
@@ -166,7 +168,8 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-export async function logoutRequest(_token?: string): Promise<void> {
+export async function logoutRequest(token?: string): Promise<void> {
+  void token;
   try {
     await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',

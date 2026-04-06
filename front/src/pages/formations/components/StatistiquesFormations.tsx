@@ -6,6 +6,8 @@ interface StatistiquesFormationsProps {
 
 export default function StatistiquesFormations({ stats }: StatistiquesFormationsProps) {
   const maxEvolutionAnnuelle = Math.max(...(stats?.evolutionAnnuelle || []).map((item) => item.nombre || 0), 1);
+  const totalDomaines = (stats?.repartitionDomaines || []).reduce((sum, item) => sum + (item.nombre || 0), 0);
+  const totalSexes = (stats?.repartitionSexe || []).reduce((sum, item) => sum + (item.nombre || 0), 0);
 
   const formatMontant = (montant: number) => {
     return new Intl.NumberFormat('fr-FR').format(montant);
@@ -74,13 +76,13 @@ export default function StatistiquesFormations({ stats }: StatistiquesFormations
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm text-gray-700">{item.domaine}</span>
                 <span className="text-sm font-medium text-gray-900">
-                  {item.nombre} ({item.pourcentage}%)
+                  {item.nombre} ({item.pourcentage ?? (totalDomaines > 0 ? Math.round((item.nombre / totalDomaines) * 100) : 0)}%)
                 </span>
               </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-emerald-500 rounded-full"
-                  style={{ width: `${Math.min(item.pourcentage, 100)}%` }}
+                  style={{ width: `${Math.min(item.pourcentage ?? (totalDomaines > 0 ? Math.round((item.nombre / totalDomaines) * 100) : 0), 100)}%` }}
                 ></div>
               </div>
             </div>
@@ -112,7 +114,7 @@ export default function StatistiquesFormations({ stats }: StatistiquesFormations
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-emerald-600">{item.pourcentage}%</p>
+                  <p className="text-2xl font-bold text-emerald-600">{item.pourcentage ?? (totalSexes > 0 ? Math.round((item.nombre / totalSexes) * 100) : 0)}%</p>
                 </div>
               </div>
             ))}

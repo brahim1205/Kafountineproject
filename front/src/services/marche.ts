@@ -8,6 +8,8 @@ export type PlaceMarche = {
   zone: string;
   occupantId?: string | null;
   occupant?: string | null;
+  telephone?: string | null;
+  dateAttribution?: string | null;
   activite?: string | null;
   tarif: number;
   periode: string;

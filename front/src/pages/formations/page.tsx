@@ -130,13 +130,6 @@ export default function FormationsPage() {
   const currentYear = new Date().getFullYear();
   const isCurrentYear = selectedYear === currentYear;
 
-  const toUiStatus = (status: string): string => {
-    if (status === 'EN_COURS') return 'En cours';
-    if (status === 'TERMINEE') return 'Terminée';
-    if (status === 'ANNULEE') return 'Annulée';
-    return 'Planifiée';
-  };
-
   const toApiStatus = (status: string): string => {
     if (status === 'En cours') return 'EN_COURS';
     if (status === 'Terminée') return 'TERMINEE';

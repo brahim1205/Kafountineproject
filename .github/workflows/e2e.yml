@@ -73,7 +73,7 @@ jobs:
           cd backend
           npm ci
           npm run prisma:generate
-          npx prisma migrate deploy || npx prisma db push --accept-data-loss
+          npx prisma db push --accept-data-loss --skip-generate
           npm run prisma:seed
           npm run build
           node dist/index.js > /tmp/kafontine-backend.log 2>&1 &

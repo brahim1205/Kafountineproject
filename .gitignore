@@ -44,6 +44,7 @@ front/backend.log
 # Environment files
 .env
 .env.*
+.env.prod*
 backend/.env
 backend/.env.*
 front/.env

@@ -1,37 +1,67 @@
 import type { AuthSessionStore } from '../domain/AuthSessionStore';
 import { getRedisClient } from '../../../shared/infrastructure/redis/getRedisClient';
 
+type SessionRecord = {
+  refreshToken: string;
+  expiresAt: number;
+};
+
+const fallbackSessions = new Map<string, SessionRecord>();
+
 export class RedisAuthSessionStore implements AuthSessionStore {
   private buildKey(userId: string, sessionId: string) {
     return `auth:session:${userId}:${sessionId}`;
   }
 
-  async save(userId: string, sessionId: string, refreshToken: string, ttlSeconds: number) {
-    const client = await getRedisClient();
-    if (!client) {
-      throw new Error('Redis indisponible pour stocker la session');
+  private getFallbackRecord(key: string) {
+    const record = fallbackSessions.get(key);
+    if (!record) {
+      return null;
     }
 
-    await client.set(this.buildKey(userId, sessionId), refreshToken, {
-      EX: ttlSeconds,
+    if (record.expiresAt <= Date.now()) {
+      fallbackSessions.delete(key);
+      return null;
+    }
+
+    return record;
+  }
+
+  async save(userId: string, sessionId: string, refreshToken: string, ttlSeconds: number) {
+    const key = this.buildKey(userId, sessionId);
+    const client = await getRedisClient();
+    if (client) {
+      await client.set(key, refreshToken, {
+        EX: ttlSeconds,
+      });
+      fallbackSessions.delete(key);
+      return;
+    }
+
+    fallbackSessions.set(key, {
+      refreshToken,
+      expiresAt: Date.now() + ttlSeconds * 1000,
     });
   }
 
   async find(userId: string, sessionId: string) {
+    const key = this.buildKey(userId, sessionId);
     const client = await getRedisClient();
-    if (!client) {
-      return null;
+    if (client) {
+      return client.get(key);
     }
 
-    return client.get(this.buildKey(userId, sessionId));
+    return this.getFallbackRecord(key)?.refreshToken ?? null;
   }
 
   async delete(userId: string, sessionId: string) {
+    const key = this.buildKey(userId, sessionId);
     const client = await getRedisClient();
-    if (!client) {
+    if (client) {
+      await client.del(key);
       return;
     }
 
-    await client.del(this.buildKey(userId, sessionId));
+    fallbackSessions.delete(key);
   }
 }

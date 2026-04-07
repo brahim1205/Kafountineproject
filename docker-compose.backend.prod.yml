@@ -32,6 +32,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
     restart: unless-stopped
+    container_name: kafontine-backend
     environment:
       PORT: 3000
       NODE_ENV: production
@@ -70,6 +71,14 @@ services:
       retries: 20
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3010}:3000"
+    networks:
+      - default
+      - monitoring
 
 volumes:
   postgres_data:
+
+networks:
+  default:
+  monitoring:
+    name: kafontine-observability

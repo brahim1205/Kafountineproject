@@ -113,7 +113,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
     <>
       <div className="fixed inset-0 z-40" onClick={onClose}></div>
       
-      <div className="absolute right-0 top-16 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 max-h-[600px] flex flex-col animate-slideDown">
+      <div className="absolute right-0 top-16 z-50 flex max-h-[min(80vh,600px)] w-[min(24rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] flex-col rounded-lg border border-gray-200 bg-white shadow-2xl animate-slideDown max-sm:right-2">
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-teal-50 to-emerald-50">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -133,7 +133,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
             </button>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setFiltreType('toutes')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap cursor-pointer ${

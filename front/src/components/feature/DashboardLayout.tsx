@@ -59,6 +59,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Use year context
   const { selectedYear, setSelectedYear } = useYear();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => window.innerWidth < 768);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,6 +83,39 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const menuItems = useMemo(() => {
     return allMenuItems.filter(item => item.roles.includes(userRole));
   }, [userRole]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+
+    const handleViewportChange = (event: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobileViewport(event.matches);
+    };
+
+    handleViewportChange(mediaQuery);
+    const listener = (event: MediaQueryListEvent) => handleViewportChange(event);
+    mediaQuery.addEventListener('change', listener);
+
+    return () => mediaQuery.removeEventListener('change', listener);
+  }, []);
+
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+    setShowNotifications(false);
+    setShowUserMenu(false);
+    setShowSearchDropdown(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMobileViewport || !isMobileSidebarOpen) {
+      document.body.style.overflow = '';
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileSidebarOpen, isMobileViewport]);
 
   useEffect(() => {
     // Skip if no auth token (user logged out)
@@ -233,68 +268,108 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   };
 
+  const renderSidebarContent = (expanded: boolean, mobile = false) => (
+    <>
+      <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
+        {expanded ? (
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+              <i className="ri-government-line text-xl text-white"></i>
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-gray-900">Kafountine</h1>
+              <p className="text-xs text-gray-600">Gestion Municipale</p>
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+            <i className="ri-government-line text-xl text-white"></i>
+          </div>
+        )}
+
+        {mobile ? (
+          <button
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
+          >
+            <i className="ri-close-line text-xl"></i>
+          </button>
+        ) : null}
+      </div>
+
+      <nav className="space-y-1 overflow-y-auto p-4" style={{ height: 'calc(100vh - 64px)' }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
+
+          return (
+            <Link
+              key={`${mobile ? 'mobile' : 'desktop'}-${item.path}`}
+              to={item.path}
+              onClick={() => {
+                if (mobile) setIsMobileSidebarOpen(false);
+              }}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
+                isActive
+                  ? 'bg-teal-50 text-teal-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              } ${!expanded ? 'justify-center' : ''}`}
+              title={!expanded ? item.label : ''}
+            >
+              <i className={`${item.icon} flex-shrink-0 text-xl`}></i>
+              {expanded ? <span className="text-sm font-medium">{item.label}</span> : null}
+            </Link>
+          );
+        })}
+      </nav>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40 ${
-        isSidebarOpen ? 'w-64' : 'w-20'
-      }`}>
-        {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
-          {isSidebarOpen ? (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                <i className="ri-government-line text-white text-xl"></i>
-              </div>
-              <div>
-                <h1 className="text-sm font-bold text-gray-900">Kafountine</h1>
-                <p className="text-xs text-gray-600">Gestion Municipale</p>
-              </div>
-            </div>
-          ) : (
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto">
-              <i className="ri-government-line text-white text-xl"></i>
-            </div>
-          )}
-        </div>
+      {isMobileSidebarOpen ? (
+        <div
+          className="fixed inset-0 z-40 bg-gray-900/50 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        ></div>
+      ) : null}
 
-        {/* Menu */}
-        <nav className="p-4 space-y-1" style={{ height: 'calc(100vh - 64px)' }}>
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-teal-50 text-teal-700'
-                    : 'text-gray-700 hover:bg-gray-100'
-                } ${!isSidebarOpen && 'justify-center'}`}
-                title={!isSidebarOpen ? item.label : ''}
-              >
-                <i className={`${item.icon} text-xl flex-shrink-0`}></i>
-                {isSidebarOpen && <span className="text-sm font-medium">{item.label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] border-r border-gray-200 bg-white transition-transform duration-300 md:hidden ${
+          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {renderSidebarContent(true, true)}
+      </aside>
+
+      <aside
+        className={`fixed top-0 left-0 hidden h-full border-r border-gray-200 bg-white transition-all duration-300 md:block ${
+          isSidebarOpen ? 'w-64' : 'w-20'
+        }`}
+      >
+        {renderSidebarContent(isSidebarOpen)}
       </aside>
 
       {/* Main content */}
-      <div className={`min-w-0 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <div className={`min-w-0 transition-all duration-300 ${isSidebarOpen ? 'md:ml-64' : 'md:ml-20'}`}>
         {/* Top bar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
+        <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={() => {
+                if (isMobileViewport) {
+                  setIsMobileSidebarOpen(true);
+                  return;
+                }
+
+                setIsSidebarOpen(!isSidebarOpen);
+              }}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
             >
-              <i className={`${isSidebarOpen ? 'ri-menu-fold-line' : 'ri-menu-unfold-line'} text-xl`}></i>
+              <i className={`${isMobileViewport || isSidebarOpen ? 'ri-menu-fold-line' : 'ri-menu-unfold-line'} text-xl`}></i>
             </button>
 
             {/* Recherche globale */}
-            <div className="relative flex-1 max-w-xl min-w-0" ref={searchRef}>
+            <div className="relative order-3 w-full min-w-0 md:order-none md:max-w-xl" ref={searchRef}>
               <div className="relative">
                 <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input
@@ -309,7 +384,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
               {/* Dropdown des résultats */}
               {showSearchDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 z-50">
+                <div className="absolute top-full left-0 right-0 z-50 mt-2 max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
                   {searchResults.length > 0 ? (
                     <div className="py-2">
                       {searchResults.map((result) => (
@@ -345,11 +420,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <div className="relative">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors relative cursor-pointer"
+                className="relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 cursor-pointer"
               >
                 <i className="ri-notification-3-line text-xl text-gray-600"></i>
                 {notificationsNonLues > 0 && (
@@ -366,11 +441,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Sélecteur d'année */}
             <div className="flex items-center gap-2">
-              <i className="ri-calendar-line text-gray-500"></i>
+              <i className="ri-calendar-line hidden text-gray-500 sm:block"></i>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                className="cursor-pointer rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 sm:px-3"
               >
                 {AVAILABLE_YEARS.map((year) => (
                   <option key={year} value={year}>
@@ -383,7 +458,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                className="flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-gray-100 cursor-pointer sm:gap-3 sm:px-3"
               >
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm ${
                   userRole === 'admin' ? 'bg-teal-100 text-teal-700' :
@@ -394,7 +469,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 }`}>
                   {userInitials}
                 </div>
-                <div className="text-left">
+                <div className="hidden text-left sm:block">
                   <p className="text-sm font-medium text-gray-900">{userName}</p>
                   <p className="text-xs text-gray-600">{roleLabels[userRole]}</p>
                 </div>
@@ -437,7 +512,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-4 sm:p-6">
           {children}
         </main>
       </div>

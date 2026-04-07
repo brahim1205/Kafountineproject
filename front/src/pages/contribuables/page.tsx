@@ -177,7 +177,7 @@ export default function Contribuables() {
           {canManage && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 sm:w-auto"
             >
               <i className="ri-add-line text-lg"></i>
               Nouveau contribuable
@@ -185,7 +185,7 @@ export default function Contribuables() {
           )}
         </div>
 
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
@@ -197,7 +197,7 @@ export default function Contribuables() {
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
               />
             </div>
-            <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+            <div className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-100 p-1">
               <button
                 onClick={() => setStatusFilter('all')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
@@ -224,7 +224,7 @@ export default function Contribuables() {
               </button>
             </div>
           </div>
-          <div className="text-sm text-gray-600 mt-3">
+          <div className="mt-3 text-sm leading-6 text-gray-600">
             Total: <span className="font-semibold text-gray-900">{rows.length}</span> | 
             Actifs: <span className="font-semibold text-green-600">{rows.filter(r => r.status === 'Actif').length}</span> | 
             Inactifs: <span className="font-semibold text-gray-500">{rows.filter(r => r.status === 'Inactif').length}</span> | 
@@ -412,8 +412,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 p-4 sm:p-6">
+          <h2 className="pr-4 text-lg font-semibold text-gray-900 sm:text-xl">{title}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -421,7 +421,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
             <i className="ri-close-line text-xl"></i>
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-6">{children}</div>
       </div>
     </div>
   );
@@ -458,17 +458,17 @@ function Textarea({ label, name }: { label: string; name: string }) {
 
 function Actions({ onCancel, submitLabel }: { onCancel: () => void; submitLabel: string }) {
   return (
-    <div className="flex items-center justify-end gap-3 pt-4">
+    <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:items-center sm:justify-end">
       <button
         type="button"
         onClick={onCancel}
-        className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap"
+        className="w-full rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 whitespace-nowrap sm:w-auto"
       >
         Annuler
       </button>
       <button
         type="submit"
-        className="px-4 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap"
+        className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700 whitespace-nowrap sm:w-auto"
       >
         {submitLabel}
       </button>

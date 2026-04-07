@@ -537,6 +537,12 @@ Ce projet a deja une base:
 
 Mais sur un VPS avec Nginx systeme, il faut valider que cette couche tourne sans entrer en conflit avec les ports publics.
 
+Si le backend et la supervision tournent dans des `docker compose` differents, Prometheus ne doit pas scraper `host.docker.internal:3010`.
+
+- `127.0.0.1:3010` reste reserve au `nginx` de l'hote
+- Prometheus doit joindre le backend sur le reseau Docker partage `kafontine-observability`
+- la cible attendue est `kafontine-backend:3000`
+
 ## 12. Sauvegardes et restauration
 
 ### Minimum entreprise
@@ -719,4 +725,3 @@ curl http://127.0.0.1:3010/metrics
 curl -I http://127.0.0.1:8081
 curl -I https://www.orbyteconsulting.tech
 ```
-

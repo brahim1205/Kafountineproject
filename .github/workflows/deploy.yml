@@ -45,8 +45,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            front/package-lock.json
+
       - name: Validate production environment template
         run: bash ./scripts/validate-prod-env.sh --allow-placeholders .env.prod.example
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: front
+
+      - name: Audit backend production dependencies
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: backend
+
+      - name: Audit frontend production dependencies
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: front
 
       - name: Run Trivy vulnerability scanner on backend
         uses: aquasecurity/trivy-action@master
@@ -57,7 +82,7 @@ jobs:
           scan-ref: './backend'
           severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
           format: 'sarif'
           output: 'trivy-backend-results.sarif'
 
@@ -70,7 +95,7 @@ jobs:
           scan-ref: './front'
           severity: 'HIGH,CRITICAL'
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
           format: 'sarif'
           output: 'trivy-frontend-results.sarif'
 

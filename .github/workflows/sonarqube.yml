@@ -28,15 +28,29 @@ jobs:
   sonarqube:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
 
     steps:
+      - name: Check SonarQube secrets
+        id: sonar-check
+        run: |
+          if [ -n "${SONAR_TOKEN}" ] && [ -n "${SONAR_HOST_URL}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "SonarQube secrets are not configured. Skipping scan."
+          fi
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
       - name: Checkout code
+        if: steps.sonar-check.outputs.enabled == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
+        if: steps.sonar-check.outputs.enabled == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -46,30 +60,37 @@ jobs:
             front/package-lock.json
 
       - name: Install backend dependencies
+        if: steps.sonar-check.outputs.enabled == 'true'
         run: npm ci
         working-directory: backend
 
       - name: Install frontend dependencies
+        if: steps.sonar-check.outputs.enabled == 'true'
         run: npm ci
         working-directory: front
 
       - name: Build backend
+        if: steps.sonar-check.outputs.enabled == 'true'
         run: npm run build
         working-directory: backend
 
       - name: Lint frontend
+        if: steps.sonar-check.outputs.enabled == 'true'
         run: npm run lint
         working-directory: front
 
       - name: Build frontend
+        if: steps.sonar-check.outputs.enabled == 'true'
         run: npm run build
         working-directory: front
 
       - name: Run frontend tests with coverage
+        if: steps.sonar-check.outputs.enabled == 'true'
         run: npm run test:coverage
         working-directory: front
 
       - name: SonarQube Scan
+        if: steps.sonar-check.outputs.enabled == 'true'
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

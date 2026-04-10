@@ -89,7 +89,6 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     needs: security-scan
-    if: env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != ''
     timeout-minutes: 30
     permissions:
       contents: read
@@ -101,10 +100,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check registry credentials
+        id: registry-check
+        run: |
+          if [ -n "${DOCKER_USERNAME}" ] && [ -n "${DOCKER_PASSWORD}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Docker registry credentials are not configured. Skipping build-and-push."
+          fi
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Set up Docker Buildx
+        if: steps.registry-check.outputs.enabled == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Registry
+        if: steps.registry-check.outputs.enabled == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
@@ -112,6 +126,7 @@ jobs:
           password: ${{ env.DOCKER_PASSWORD }}
 
       - name: Extract metadata backend
+        if: steps.registry-check.outputs.enabled == 'true'
         id: meta-backend
         uses: docker/metadata-action@v5
         with:
@@ -122,6 +137,7 @@ jobs:
             type=raw,value=${{ github.ref_name }},enable={{is_default_branch}}
 
       - name: Extract metadata frontend
+        if: steps.registry-check.outputs.enabled == 'true'
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
@@ -132,6 +148,7 @@ jobs:
             type=raw,value=${{ github.ref_name }},enable={{is_default_branch}}
 
       - name: Build and push backend
+        if: steps.registry-check.outputs.enabled == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -144,6 +161,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push frontend
+        if: steps.registry-check.outputs.enabled == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./front
@@ -156,12 +174,14 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Store image tags
+        if: steps.registry-check.outputs.enabled == 'true'
         run: |
           echo "${{ github.sha }}" > deployment_version.txt
           echo "Backend: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}" >> deployment_version.txt
           echo "Frontend: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}" >> deployment_version.txt
           
       - name: Upload deployment artifact
+        if: steps.registry-check.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: deployment-info
@@ -171,7 +191,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name != 'pull_request' && env.DOCKER_USERNAME != '' && env.DOCKER_PASSWORD != ''
+    if: github.event_name != 'pull_request'
     environment: production
     timeout-minutes: 30
     
@@ -179,12 +199,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check deployment prerequisites
+        id: deploy-check
+        run: |
+          if [ -n "${DOCKER_USERNAME}" ] && [ -n "${DOCKER_PASSWORD}" ] && [ -n "${SSH_HOST}" ] && [ -n "${SSH_USERNAME}" ] && [ -n "${SSH_KEY}" ] && [ -n "${HEALTH_URL}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Deployment secrets are incomplete. Skipping deploy job."
+          fi
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+
       - name: Download deployment info
+        if: steps.deploy-check.outputs.enabled == 'true'
         uses: actions/download-artifact@v4
         with:
           name: deployment-info
 
       - name: Deploy to server
+        if: steps.deploy-check.outputs.enabled == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -209,9 +248,11 @@ jobs:
             docker system prune -f
 
       - name: Wait for deployment
+        if: steps.deploy-check.outputs.enabled == 'true'
         run: sleep 30
 
       - name: Health Check
+        if: steps.deploy-check.outputs.enabled == 'true'
         run: |
           curl -f --max-time 60 ${{ secrets.HEALTH_URL }} || {
             echo "Health check failed"
@@ -219,7 +260,7 @@ jobs:
           }
 
       - name: Notify deployment
-        if: always()
+        if: always() && steps.deploy-check.outputs.enabled == 'true'
         uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |

@@ -163,9 +163,9 @@ services:
     cap_drop:
       - ALL
     tmpfs:
-      - /var/cache/nginx
-      - /var/run
-      - /tmp
+      - /var/cache/nginx:uid=101,gid=101,mode=755
+      - /var/run:uid=101,gid=101,mode=755
+      - /tmp:uid=101,gid=101,mode=1777
     ports:
       - "127.0.0.1:${FRONT_PORT:-8081}:8080"
     healthcheck:

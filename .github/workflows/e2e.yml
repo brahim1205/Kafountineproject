@@ -23,6 +23,15 @@ env:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/vhm-finances?schema=public
+      JWT_SECRET: test-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      SEED_DEFAULT_PASSWORD: TestPassword123!
+      CORS_ORIGIN: http://localhost:4173
+      REDIS_URL: redis://127.0.0.1:6379
     
     services:
       postgres:
@@ -78,12 +87,6 @@ jobs:
           npm run build
           node dist/index.js > /tmp/kafontine-backend.log 2>&1 &
           sleep 10
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vhm-finances?schema=public
-          JWT_SECRET: test-secret
-          JWT_REFRESH_SECRET: test-refresh-secret
-          CORS_ORIGIN: http://localhost:4173
-          REDIS_URL: redis://localhost:6379
 
       - name: Start frontend for testing
         run: npm run preview -- --host 0.0.0.0 --port 4173 > /tmp/kafontine-front.log 2>&1 &

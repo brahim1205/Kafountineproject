@@ -1,0 +1,76 @@
+name: SonarQube
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'front/**'
+      - 'sonar-project.properties'
+      - '.github/workflows/sonarqube.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'front/**'
+      - 'sonar-project.properties'
+      - '.github/workflows/sonarqube.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonarqube-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            front/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: front
+
+      - name: Build backend
+        run: npm run build
+        working-directory: backend
+
+      - name: Lint frontend
+        run: npm run lint
+        working-directory: front
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: front
+
+      - name: Run frontend tests with coverage
+        run: npm run test:coverage
+        working-directory: front
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

@@ -1,4 +1,4 @@
-import { clearSession, getAuthToken, refreshAccessToken } from './auth';
+import { clearSession, getAuthToken, hasStoredSession, refreshAccessToken } from './auth';
 import { resolveApiBaseUrl } from './apiBaseUrl';
 
 type ApiEnvelope<T> = {
@@ -77,7 +77,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     clearTimeout(timeoutId);
 
     // Handle 401 with token refresh
-    if (response.status === 401 && auth) {
+    if (response.status === 401 && auth && hasStoredSession()) {
       const newToken = await refreshAccessToken();
       if (newToken) {
         requestHeaders.set('Authorization', `Bearer ${newToken}`);

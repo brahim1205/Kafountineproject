@@ -9,11 +9,13 @@ import { ConfirmPortalPaymentUseCase } from '../application/ConfirmPortalPayment
 import { RegisterPortalContribuableUseCase } from '../application/RegisterPortalContribuableUseCase';
 import { GetPortalTransactionsUseCase } from '../application/GetPortalTransactionsUseCase';
 import { GetPortalReceiptUseCase } from '../application/GetPortalReceiptUseCase';
+import { GetPortalProfileUseCase } from '../application/GetPortalProfileUseCase';
 
 export class PortalController {
   constructor(
     private readonly loginContribuableUseCase: PortalLoginContribuableUseCase,
     private readonly registerContribuableUseCase: RegisterPortalContribuableUseCase,
+    private readonly getPortalProfileUseCase: GetPortalProfileUseCase,
     private readonly getPortalTaxesUseCase: GetPortalTaxesUseCase,
     private readonly getPortalTransactionsUseCase: GetPortalTransactionsUseCase,
     private readonly initiatePortalPaymentUseCase: InitiatePortalPaymentUseCase,
@@ -44,6 +46,10 @@ export class PortalController {
 
     setPortalCookie(res, result.token);
     return res.status(201).json(result);
+  }
+
+  async me(req: AuthRequest, res: Response) {
+    return res.json(await this.getPortalProfileUseCase.execute(req.user!.userId));
   }
 
   async listTaxes(req: Request, res: Response) {

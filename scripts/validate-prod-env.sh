@@ -38,6 +38,7 @@ required_keys=(
 
 placeholder_patterns=(
   "CHANGE_ME"
+  "change-me"
   "your-domain.com"
   "example.com"
   "localhost"

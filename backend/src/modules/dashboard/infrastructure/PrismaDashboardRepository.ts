@@ -15,13 +15,25 @@ export class PrismaDashboardRepository implements DashboardRepository {
       where: { year },
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: { agent: true },
+      include: { agent: true, contribuable: true },
     });
 
     return items.map((item) => ({
       id: item.id,
       numero: item.numero,
       montant: item.montant,
+      categorie: item.categorie,
+      statut: item.statut,
+      createdAt: item.createdAt.toISOString(),
+      contribuable: item.contribuable
+        ? {
+            id: item.contribuable.id,
+            nom: item.contribuable.nom,
+            prenom: item.contribuable.prenom,
+            nin: item.contribuable.nin,
+            telephone: item.contribuable.telephone,
+          }
+        : null,
       agent: item.agent ? { nom: item.agent.nom, prenom: item.agent.prenom } : null,
     }));
   }

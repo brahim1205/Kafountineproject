@@ -182,7 +182,8 @@ export async function exportTransactions(format: 'pdf' | 'excel', filters?: {
   });
   
   if (!response.ok) {
-    throw new Error('Erreur lors de l\'export');
+    const json = await response.json().catch(() => null);
+    throw new Error(json?.message || 'Erreur lors de l\'export');
   }
   
   return response.blob();

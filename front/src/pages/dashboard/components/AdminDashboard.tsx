@@ -200,10 +200,22 @@ export default function AdminDashboard() {
     },
   ];
 
-  const alertes = [
-    { message: `En attente de validation: ${stats?.stats?.etatCivil?.enAttente || 0} dossiers d'état civil`, type: 'info', date: 'Il y a 1j', icon: 'ri-file-chart-line' },
-    { message: `${stats?.stats?.motos?.enRetard || 0} motos en retard de paiement depuis plus de 30 jours`, type: 'danger', date: 'Hier', icon: 'ri-motorbike-line' },
-  ];
+  const alertes = stats?.alertes?.length
+    ? stats.alertes.map((alerte) => ({
+        message: alerte.message,
+        type: alerte.type === 'danger' || alerte.type === 'warning' ? alerte.type : 'info',
+        date: alerte.timestamp ? new Date(alerte.timestamp).toLocaleString('fr-FR') : 'À l’instant',
+        icon:
+          alerte.type === 'danger'
+            ? 'ri-alert-line'
+            : alerte.type === 'warning'
+              ? 'ri-error-warning-line'
+              : 'ri-information-line',
+      }))
+    : [
+        { message: `En attente de validation: ${stats?.stats?.etatCivil?.enAttente || 0} dossiers d'état civil`, type: 'info', date: 'À l’instant', icon: 'ri-file-chart-line' },
+        { message: `${stats?.stats?.motos?.enRetard || 0} motos en retard de paiement depuis plus de 30 jours`, type: 'danger', date: 'À l’instant', icon: 'ri-motorbike-line' },
+      ];
 
   const raccourcis = [
     { label: 'Contribuables', icon: 'ri-user-line', link: '/contribuables', color: 'bg-teal-50 text-teal-600 hover:bg-teal-100' },

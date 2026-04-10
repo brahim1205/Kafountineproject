@@ -1,7 +1,7 @@
-import { lazy, type ReactNode } from 'react';
+import { lazy, type ReactNode, useEffect, useState } from 'react';
 import { RouteObject, Navigate } from 'react-router-dom';
-import { hasRole, isAuthenticated, type UiRole } from '../services/auth';
-import { isPortalAuthenticated } from '../services/portalAuth';
+import { getStoredUserRole, restoreSession, type UiRole } from '../services/auth';
+import { restorePortalSession } from '../services/portalAuth';
 
 const LoginPage = lazy(() => import('../pages/login/page'));
 const DashboardPage = lazy(() => import('../pages/dashboard/page'));
@@ -34,19 +34,110 @@ const PortalPayerPage = lazy(() => import('../pages/portal/payer/page'));
 const NotFoundPage = lazy(() => import('../pages/NotFound'));
 
 function protect(children: ReactNode) {
-  return isAuthenticated() ? children : <Navigate to="/login" replace />;
+  return <AuthGate>{children}</AuthGate>;
 }
 
 function protectRoles(roles: UiRole[], children: ReactNode) {
-  return isAuthenticated() && hasRole(roles) ? children : <Navigate to="/dashboard" replace />;
+  return <RoleGate roles={roles}>{children}</RoleGate>;
 }
 
 function protectPortal(children: ReactNode) {
-  return isPortalAuthenticated() ? children : <Navigate to="/portal/login" replace />;
+  return <PortalGate>{children}</PortalGate>;
 }
 
 function onlyPublic(children: ReactNode) {
-  return isAuthenticated() ? <Navigate to="/dashboard" replace /> : children;
+  return <PublicOnlyGate>{children}</PublicOnlyGate>;
+}
+
+function AuthGate({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    restoreSession()
+      .then((session) => {
+        if (mounted) setAuthenticated(Boolean(session));
+      })
+      .finally(() => {
+        if (mounted) setReady(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (!ready) return null;
+  return authenticated ? children : <Navigate to="/login" replace />;
+}
+
+function RoleGate({ roles, children }: { roles: UiRole[]; children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+  const [role, setRole] = useState<UiRole | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    restoreSession()
+      .then((session) => {
+        if (mounted) {
+          setRole(session?.userRole || getStoredUserRole());
+        }
+      })
+      .finally(() => {
+        if (mounted) setReady(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (!ready) return null;
+  if (!role) return <Navigate to="/login" replace />;
+  return roles.includes(role) ? children : <Navigate to="/dashboard" replace />;
+}
+
+function PortalGate({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    restorePortalSession()
+      .then((session) => {
+        if (mounted) setAuthenticated(Boolean(session));
+      })
+      .finally(() => {
+        if (mounted) setReady(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (!ready) return null;
+  return authenticated ? children : <Navigate to="/portal/login" replace />;
+}
+
+function PublicOnlyGate({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    restoreSession()
+      .then((session) => {
+        if (mounted) setAuthenticated(Boolean(session));
+      })
+      .finally(() => {
+        if (mounted) setReady(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (!ready) return null;
+  return authenticated ? <Navigate to="/dashboard" replace /> : children;
 }
 
 const routes: RouteObject[] = [

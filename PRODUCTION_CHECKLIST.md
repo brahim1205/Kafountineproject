@@ -2,6 +2,7 @@
 
 ## Obligatoire avant déploiement
 
+- [ ] Rotater tous les secrets déjà exposés localement ou dans un ancien dépôt (`POSTGRES_PASSWORD`, `JWT_*`, `REDIS_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `DATABASE_URL`)
 - [ ] Remplacer tous les placeholders de [`.env.prod`](./.env.prod)
 - [ ] Vérifier les secrets GitHub Actions: `SSH_HOST`, `SSH_USERNAME`, `SSH_KEY`, `DOCKER_USERNAME`, `DOCKER_PASSWORD`
 - [ ] Vérifier le domaine, DNS et les certificats HTTPS du reverse proxy réellement utilisé

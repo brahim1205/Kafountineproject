@@ -35,9 +35,9 @@ import { PortalController } from '../modules/portal/presentation/PortalControlle
 import { RegisterPortalContribuableUseCase } from '../modules/portal/application/RegisterPortalContribuableUseCase';
 import { GetPortalTransactionsUseCase } from '../modules/portal/application/GetPortalTransactionsUseCase';
 import { GetPortalReceiptUseCase } from '../modules/portal/application/GetPortalReceiptUseCase';
+import { GetPortalProfileUseCase } from '../modules/portal/application/GetPortalProfileUseCase';
 import { RedisPortalPaymentStore } from '../modules/portal/infrastructure/RedisPortalPaymentStore';
 import { PlaceholderController } from '../modules/placeholders/presentation/PlaceholderController';
-import { JsonPlaceholderStore } from '../modules/placeholders/infrastructure/JsonPlaceholderStore';
 
 export function buildContainer() {
   const tokenService = new JwtTokenService();
@@ -49,13 +49,12 @@ export function buildContainer() {
   const transactionRepository = new PrismaTransactionRepository();
   const taxCatalog = new InMemoryTaxCatalog();
   const dashboardRepository = new PrismaDashboardRepository();
-  const placeholderStore = new JsonPlaceholderStore();
   const portalPaymentStore = new RedisPortalPaymentStore();
 
   const authController = new AuthController(
     new LoginUseCase(userRepository, tokenService, authSessionStore),
     new GetCurrentUserUseCase(userRepository),
-    new RequestPasswordResetUseCase(),
+    new RequestPasswordResetUseCase(userRepository),
     new RefreshTokenUseCase(userRepository, tokenService, authSessionStore),
     new LogoutUseCase(authSessionStore)
   );
@@ -78,12 +77,13 @@ export function buildContainer() {
   );
 
   const dashboardController = new DashboardController(
-    new GetDashboardStatisticsUseCase(dashboardRepository, placeholderStore)
+    new GetDashboardStatisticsUseCase(dashboardRepository)
   );
 
   const portalController = new PortalController(
     new PortalLoginContribuableUseCase(contribuableRepository, tokenService),
     new RegisterPortalContribuableUseCase(contribuableRepository, tokenService),
+    new GetPortalProfileUseCase(contribuableRepository),
     new GetPortalTaxesUseCase(transactionRepository),
     new GetPortalTransactionsUseCase(transactionRepository),
     new InitiatePortalPaymentUseCase(transactionRepository, portalPaymentStore),
@@ -91,7 +91,7 @@ export function buildContainer() {
     new GetPortalReceiptUseCase(transactionRepository)
   );
 
-  const placeholderController = new PlaceholderController(placeholderStore);
+  const placeholderController = new PlaceholderController();
 
   return {
     tokenService,

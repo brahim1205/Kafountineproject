@@ -1,11 +1,14 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import path from 'node:path';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { buildContainer } from './shared/container';
 import { env } from './shared/config/env';
 import { errorHandler } from './shared/presentation/middleware/errorHandler';
+import { csrfProtection } from './shared/presentation/middleware/csrfProtection';
+import { rateLimit } from './shared/presentation/middleware/rateLimit';
 import { requestLogger } from './shared/presentation/middleware/requestLogger';
 import { buildAuthRoutes } from './modules/auth/presentation/auth.routes';
 import { buildContribuablesRoutes } from './modules/contribuables/presentation/contribuables.routes';
@@ -45,6 +48,13 @@ export function createApp() {
   app.use(requestLogger);
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+  app.use(csrfProtection);
+  app.use('/api', rateLimit({
+    keyPrefix: 'api-global',
+    windowMs: env.apiRateLimitWindowMs,
+    max: env.apiRateLimitMax,
+  }));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString(), service: 'kafountine-backend' });
@@ -60,9 +70,11 @@ export function createApp() {
     });
   });
 
-  app.get('/metrics', (_req, res) => {
-    res.type('text/plain').send(buildMetricsPayload());
-  });
+  if (env.enableMetrics) {
+    app.get('/metrics', (_req, res) => {
+      res.type('text/plain').send(buildMetricsPayload());
+    });
+  }
 
   const swaggerSpec = swaggerJsdoc({
     definition: {
@@ -81,7 +93,9 @@ export function createApp() {
     apis: ['./src/modules/**/presentation/*.routes.ts', './src/modules/**/presentation/*Controller.ts'],
   });
 
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  if (env.enableApiDocs) {
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  }
 
   app.use('/api/v1/auth', buildAuthRoutes(container.authController));
   app.use('/api/v1/contribuables', buildContribuablesRoutes(container.contribuablesController));

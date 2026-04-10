@@ -1,167 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../components/feature/DashboardLayout';
-import { getReportsOverview, getReportTransactions, type ReportsOverview } from '../../services/reports';
-import type { TransactionItem } from '../../services/taxes';
-import { useYear } from '../../contexts/YearContext';
-import { useToast } from '../../components/feature/Toast';
+import { ReportsOverviewCards } from './ReportsOverviewCards';
+import { ReportsTopContribuablesTable } from './ReportsTopContribuablesTable';
+import { useReportsPage } from './useReportsPage';
 
 export default function Rapports() {
-  const { selectedYear } = useYear();
-  const { showToast } = useToast();
-  const [overview, setOverview] = useState<ReportsOverview | null>(null);
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    Promise.all([getReportsOverview(selectedYear), getReportTransactions(800, selectedYear)])
-      .then(([ov, txs]) => {
-        if (!mounted) return;
-        setOverview(ov);
-        setTransactions(txs || []);
-      })
-      .catch(() => {
-        if (mounted) {
-          showToast('Erreur lors du chargement des donnees des rapports.', 'error');
-          setOverview(null);
-          setTransactions([]);
-        }
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [selectedYear, showToast]);
-
-  const moduleStats = useMemo(() => {
-    const taxes = Number(overview?.txStats?.annee?.total || overview?.txStats?.mois?.total || 0);
-    const motos = Number(overview?.motosStats?.recettesAnnee || overview?.motosStats?.recettesMois || 0);
-    const marche = Number(overview?.marcheStats?.recettesMois || 0);
-    const etatCivil = Number(overview?.etatCivilStats?.recettes || 0);
-    const urbanisme = Number(overview?.urbanismeStats?.recettes || 0);
-    const formations = Number(overview?.formationsStats?.budgetTotal || 0);
-
-    const tauxRecouvrement = (overview?.txStats?.annee?.transactions || 0) > 0 ? Math.round(((overview?.txStats?.annee?.transactions || 0) / (overview?.totalContribuables || 1)) * 100) : 0;
-
-    return [
-      { 
-        name: 'Taxes', 
-        amount: taxes, 
-        icon: 'ri-file-list-3-line', 
-        couleur: 'bg-teal-500', 
-        stats: {
-          transactions: overview?.txStats?.annee?.transactions || 0,
-          moyenne: taxes > 0 ? Math.round(taxes / (overview?.txStats?.annee?.transactions || 1)) : 0,
-          evolution: tauxRecouvrement,
-        }
-      },
-      { 
-        name: 'Marche', 
-        amount: marche, 
-        icon: 'ri-store-2-line', 
-        couleur: 'bg-cyan-500', 
-        stats: {
-          places: overview?.marcheStats?.placesTotales || 0,
-          occupancy: overview?.marcheStats?.tauxOccupation || 0,
-          evolution: overview?.marcheStats?.tauxOccupation || 0,
-        }
-      },
-      { 
-        name: 'Motos', 
-        amount: motos, 
-        icon: 'ri-motorbike-line', 
-        couleur: 'bg-orange-500', 
-        stats: {
-          totalMotos: overview?.motosStats?.total || 0,
-          tauxPaiement: overview?.motosStats?.tauxPaiement || 0,
-          evolution: overview?.motosStats?.tauxPaiement || 0,
-        }
-      },
-      { 
-        name: 'Etat Civil', 
-        amount: etatCivil, 
-        icon: 'ri-file-text-line', 
-        couleur: 'bg-amber-500', 
-        stats: {
-          actesDelivres: overview?.etatCivilStats?.demandesDelivrees || 0,
-          principalesDemandes: ['Naissance', 'Mariage', 'Deces', 'Certificat'],
-          evolution: overview?.etatCivilStats?.demandesEnAttente || 0,
-        }
-      },
-      { 
-        name: 'Urbanisme', 
-        amount: urbanisme, 
-        icon: 'ri-building-line', 
-        couleur: 'bg-rose-500', 
-        stats: {
-          permisDelivres: overview?.urbanismeStats?.dossiersValides || 0,
-          dossiers: overview?.urbanismeStats?.totalDossiers || 0,
-          evolution: overview?.urbanismeStats?.dossiersValides || 0,
-        }
-      },
-      { 
-        name: 'Formations', 
-        amount: formations, 
-        icon: 'ri-graduation-cap-line', 
-        couleur: 'bg-emerald-500', 
-        stats: {
-          jeunesFormes: overview?.formationsStats?.totalJeunesFormes || 0,
-          certifications: overview?.formationsStats?.totalCertifies || 0,
-          formationsActives: overview?.formationsStats?.totalFormations || 0,
-          budget: formations,
-          evolution: overview?.formationsStats?.totalCertifies || 0,
-        }
-      },
-    ];
-  }, [overview]);
-
-  const tauxRecouvrement = useMemo(() => {
-    return (overview?.txStats?.annee?.transactions || 0) > 0
-      ? Math.round(((overview?.txStats?.annee?.transactions || 0) / (overview?.totalContribuables || 1)) * 100)
-      : 0;
-  }, [overview]);
-
-  const evolutionMensuelle = useMemo(() => {
-    return overview?.evolutionSemaine || [];
-  }, [overview?.evolutionSemaine]);
-
-  const total = moduleStats.reduce((sum, m) => sum + m.amount, 0);
-  const maxMontant = Math.max(...evolutionMensuelle.map(e => e.montant), 1);
-
-  const topContribuables = useMemo(() => {
-    const map = new Map<string, number>();
-    transactions.forEach((tx) => {
-      const name = `${tx.contribuable?.prenom || ''} ${tx.contribuable?.nom || ''}`.trim() || '-';
-      map.set(name, (map.get(name) || 0) + Number(tx.montant || 0));
-    });
-    return Array.from(map.entries())
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 10);
-  }, [transactions]);
-
-  const exportCsv = () => {
-    const rows = [
-      ['Module', 'Montant (FCFA)', 'Evolution (%)'],
-      ...moduleStats.map((m) => [m.name, String(m.amount), String((m.stats as { evolution?: number }).evolution || 0)]),
-      ['TOTAL', String(total), ''],
-    ];
-    const csv = rows.map((r) => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `rapport-annuel-${selectedYear}.csv`;
-    link.click();
-    showToast('Rapport exporte en CSV', 'success');
-  };
-
-  const exportPdf = () => {
-    window.print();
-    showToast('Utilisez "Enregistrer en PDF" dans la boite de dialogue d\'impression.', 'info');
-  };
+  const { selectedYear, overview, loading, moduleStats, tauxRecouvrement, evolutionMensuelle, total, maxMontant, topContribuables, exportCsv, exportPdf } =
+    useReportsPage();
 
   return (
     <DashboardLayout>
@@ -195,48 +39,7 @@ export default function Rapports() {
 
         {!loading && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-5 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-teal-100 text-sm">Total annuel</p>
-                    <p className="text-3xl font-bold mt-1">{(total / 1000000).toFixed(1)}M</p>
-                    <p className="text-teal-100 text-xs mt-1">FCFA</p>
-                  </div>
-                  <i className="ri-money-dollar-circle-line text-4xl text-teal-200"></i>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 text-sm">Evolution</p>
-                    <p className="text-3xl font-bold mt-1">{tauxRecouvrement}%</p>
-                    <p className="text-purple-100 text-xs mt-1">taux de recouvrement</p>
-                  </div>
-                  <i className="ri-trending-up-line text-4xl text-purple-200"></i>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm">Transactions</p>
-                    <p className="text-3xl font-bold mt-1">{overview?.txStats?.annee?.transactions?.toLocaleString('fr-FR') || 0}</p>
-                    <p className="text-blue-100 text-xs mt-1">tickets emis</p>
-                  </div>
-                  <i className="ri-file-list-3-line text-4xl text-blue-200"></i>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-amber-100 text-sm">Contribuables</p>
-                    <p className="text-3xl font-bold mt-1">{overview?.totalContribuables?.toLocaleString('fr-FR') || 0}</p>
-                    <p className="text-amber-100 text-xs mt-1">inscrits</p>
-                  </div>
-                  <i className="ri-user-line text-4xl text-amber-200"></i>
-                </div>
-              </div>
-            </div>
+            <ReportsOverviewCards total={total} tauxRecouvrement={tauxRecouvrement} overview={overview} />
 
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-6">Evolution mensuelle des recettes</h3>
@@ -375,47 +178,7 @@ export default function Rapports() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Top 10 Contribuables</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Rang</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Contribuable</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase">Montant total</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase">% du total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topContribuables.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-gray-500">
-                          Aucune donnee disponible
-                        </td>
-                      </tr>
-                    )}
-                    {topContribuables.map((c, i) => (
-                      <tr key={`${c.name}-${i}`} className="border-b border-gray-100">
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            i === 0 ? 'bg-yellow-100 text-yellow-800' :
-                            i === 1 ? 'bg-gray-100 text-gray-800' :
-                            i === 2 ? 'bg-amber-100 text-amber-800' :
-                            'bg-gray-50 text-gray-600'
-                          }`}>
-                            #\{i + 1}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-900">{c.name}</td>
-                        <td className="py-3 px-4 text-sm font-medium text-gray-900 text-right">{c.amount.toLocaleString('fr-FR')} FCA</td>
-                        <td className="py-3 px-4 text-sm text-gray-600 text-right">{total > 0 ? ((c.amount / total) * 100).toFixed(1) : 0}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <ReportsTopContribuablesTable topContribuables={topContribuables} total={total} />
 
             <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white">
               <h3 className="text-lg font-semibold mb-4">Resume executif - Annee {selectedYear}</h3>

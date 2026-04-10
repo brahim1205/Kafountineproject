@@ -51,8 +51,8 @@ export class AuthController {
     return ok(res, data);
   }
 
-  async forgotPassword(_req: Request, res: Response) {
-    const text = await this.requestPasswordResetUseCase.execute();
+  async forgotPassword(req: Request, res: Response) {
+    const text = await this.requestPasswordResetUseCase.execute(String(req.body?.email || ''));
     return message(res, text);
   }
 }

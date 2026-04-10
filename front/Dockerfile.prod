@@ -24,9 +24,7 @@ FROM nginx:1.27-alpine
 RUN mkdir -p /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
     chown -R nginx:nginx /tmp && \
     chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
+    chown -R nginx:nginx /etc/nginx/conf.d
 
 # Copy built assets
 COPY --from=builder /app/out /usr/share/nginx/html

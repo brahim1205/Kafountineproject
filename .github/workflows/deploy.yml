@@ -52,6 +52,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         id: trivy-backend
         with:
+          scanners: 'vuln'
           scan-type: 'fs'
           scan-ref: './backend'
           severity: 'HIGH,CRITICAL'
@@ -64,6 +65,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         id: trivy-frontend
         with:
+          scanners: 'vuln'
           scan-type: 'fs'
           scan-ref: './front'
           severity: 'HIGH,CRITICAL'

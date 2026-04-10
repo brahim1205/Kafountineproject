@@ -457,6 +457,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-gray-100 cursor-pointer sm:gap-3 sm:px-3"
               >
@@ -498,6 +499,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     </Link>
                     <hr className="my-2 border-gray-200" />
                     <button
+                      type="button"
                       onClick={() => void handleLogout()}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                     >

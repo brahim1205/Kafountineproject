@@ -10,12 +10,15 @@ export const createTransactionSchema = z.object({
   modePaiement: z.enum(['ESPECE', 'VIREMENT', 'MOBILE_MONEY', 'CHEQUE']).optional().default('ESPECE'),
   statut: z.enum(['PAYE', 'EN_ATTENTE', 'ANNULE']).optional().default('PAYE'),
   date: optionalTrimmedString(50),
+  reference: optionalTrimmedString(120),
 }).strict();
 
 export const listTransactionsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(300).optional().default(20),
   search: optionalTrimmedString(100),
+  startDate: optionalTrimmedString(50),
+  endDate: optionalTrimmedString(50),
   categorie: optionalTrimmedString(100),
   statut: optionalTrimmedString(20),
   year: z.coerce.number().int().min(2000).max(2100).optional(),

@@ -52,7 +52,6 @@ model Contribuable {
   marketPlaces      MarketPlace[]
   ownedMotos        MotoRegistration[] @relation("MotoOwner")
   drivenMotos       MotoRegistration[] @relation("MotoDriver")
-  ownedBoats        FishingBoat[] @relation("FishingBoatOwner")
 }
 
 model Transaction {
@@ -340,7 +339,7 @@ model Fisherman {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  boats       FishingBoat[]
+  boats       FishingBoat[] @relation("FishingBoatOwner")
   commissions FishCommission[]
 
   @@index([year])

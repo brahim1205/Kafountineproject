@@ -164,6 +164,8 @@ services:
       - ALL
     cap_add:
       - CHOWN
+      - SETGID
+      - SETUID
     tmpfs:
       - /tmp:mode=1777
     ports:

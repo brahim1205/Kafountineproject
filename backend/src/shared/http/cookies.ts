@@ -16,9 +16,27 @@ function buildCookieOptions(maxAgeMs: number): CookieOptions {
   };
 }
 
+function parseExpiresInToMs(value: string, fallbackMs: number) {
+  const match = /^(\d+)([smhd])$/i.exec(value.trim());
+  if (!match) {
+    return fallbackMs;
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const multipliers: Record<string, number> = {
+    s: 1000,
+    m: 60_000,
+    h: 3_600_000,
+    d: 86_400_000,
+  };
+
+  return amount * multipliers[unit];
+}
+
 export function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
-  res.cookie(AUTH_TOKEN_COOKIE, accessToken, buildCookieOptions(24 * 60 * 60 * 1000));
-  res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, buildCookieOptions(7 * 24 * 60 * 60 * 1000));
+  res.cookie(AUTH_TOKEN_COOKIE, accessToken, buildCookieOptions(parseExpiresInToMs(env.jwtExpiresIn, 15 * 60 * 1000)));
+  res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, buildCookieOptions(parseExpiresInToMs(env.jwtRefreshExpiresIn, 7 * 24 * 60 * 60 * 1000)));
 }
 
 export function clearAuthCookies(res: Response) {

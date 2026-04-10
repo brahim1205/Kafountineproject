@@ -19,7 +19,11 @@ interface ListNotificationsParams {
 
 export async function listNotifications(params?: ListNotificationsParams) {
   const queryParams = params?.year ? `?year=${params.year}` : '';
-  return apiRequest<AppNotification[]>(`/notifications${queryParams}`);
+  try {
+    return await apiRequest<AppNotification[]>(`/notifications${queryParams}`);
+  } catch {
+    return [];
+  }
 }
 
 export async function markNotificationRead(id: string) {
@@ -29,4 +33,3 @@ export async function markNotificationRead(id: string) {
 export async function markAllNotificationsRead() {
   return apiRequest<{ message: string }>('/notifications/read-all', { method: 'PATCH' });
 }
-

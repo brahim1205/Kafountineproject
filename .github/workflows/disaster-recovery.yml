@@ -17,6 +17,8 @@ jobs:
   status:
     runs-on: ubuntu-latest
     if: github.event.inputs.action == 'status'
+    environment: production
+    timeout-minutes: 15
     
     steps:
       - name: Check server backup status
@@ -26,6 +28,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /opt/kafontine
             echo "=== Backup Status ==="
             ls -lt backups 2>/dev/null | head -10 || echo "No backup directory"
@@ -36,6 +39,8 @@ jobs:
   full-backup:
     runs-on: ubuntu-latest
     if: github.event.inputs.action == 'full-backup'
+    environment: production
+    timeout-minutes: 30
     env:
       BACKUP_FILENAME: disaster_recovery_${{ github.run_id }}_${{ github.run_attempt }}.dump
     
@@ -50,6 +55,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /opt/kafontine
             bash ./scripts/validate-prod-env.sh .env.prod
             set -a
@@ -88,6 +94,8 @@ jobs:
   restore-latest:
     runs-on: ubuntu-latest
     if: github.event.inputs.action == 'restore-latest'
+    environment: production
+    timeout-minutes: 30
     
     steps:
       - name: Checkout code
@@ -115,6 +123,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /opt/kafontine
             bash ./scripts/validate-prod-env.sh .env.prod
             set -a
@@ -138,6 +147,8 @@ jobs:
   restore-from-artifact:
     runs-on: ubuntu-latest
     if: github.event.inputs.action == 'restore-from-artifact'
+    environment: production
+    timeout-minutes: 30
     
     steps:
       - name: Checkout code
@@ -165,6 +176,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -euo pipefail
             cd /opt/kafontine
             bash ./scripts/validate-prod-env.sh .env.prod
             set -a

@@ -1,5 +1,4 @@
 import { apiRequest } from './api';
-import { getAuthToken } from './auth';
 import { resolveApiBaseUrl } from './apiBaseUrl';
 
 const API_BASE_URL = resolveApiBaseUrl();
@@ -62,18 +61,18 @@ export async function seedAuditLogs(): Promise<{ success: boolean; message: stri
 }
 
 export async function exportAuditLogs(year: number): Promise<Blob> {
-  const token = getAuthToken();
   const response = await fetch(`${API_BASE_URL}/audit/export`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
+    credentials: 'include',
     body: JSON.stringify({ year }),
   });
   
   if (!response.ok) {
-    throw new Error('Erreur lors de l\'export');
+    const json = await response.json().catch(() => null);
+    throw new Error(json?.message || 'Erreur lors de l\'export');
   }
   
   return response.blob();

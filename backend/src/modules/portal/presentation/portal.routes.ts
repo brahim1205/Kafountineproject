@@ -20,6 +20,7 @@ export function buildPortalRoutes(controller: PortalController) {
 
   router.post('/auth/contribuable', portalLoginRateLimit, validate(portalLoginSchema), asyncHandler((req, res) => controller.loginContribuable(req, res)));
   router.post('/auth/register', portalLoginRateLimit, validate(portalRegisterSchema), asyncHandler((req, res) => controller.registerContribuable(req, res)));
+  router.get('/auth/me', authenticatePortal, asyncHandler((req, res) => controller.me(req as never, res)));
   router.post('/auth/logout', authenticatePortal, asyncHandler((req, res) => controller.logout(req, res)));
   router.get('/contribuable/:id/taxes', authenticatePortal, asyncHandler((req, res) => controller.listTaxes(req, res)));
   router.get('/contribuable/:id/transactions', authenticatePortal, asyncHandler((req, res) => controller.listTransactions(req, res)));

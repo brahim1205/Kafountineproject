@@ -8,5 +8,6 @@ export type AuthenticatedUser = {
 };
 
 export type AuthRequest = Request & {
+  requestId?: string;
   user?: AuthenticatedUser;
 };

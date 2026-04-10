@@ -1,5 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { exportReceiptPdf, openPdfBlob, printPdfBlob } from '../../services/pdf';
+import { useToast } from './Toast';
+import { buildReceiptPayload, buildReceiptQrData, formatDateInFrench, normalizeRecuData, numberToWords } from './recuPdf.utils';
 
 interface RecuPDFProps {
   ticketNumber?: string;
@@ -32,51 +35,6 @@ interface RecuPDFProps {
   onClose: () => void;
 }
 
-const formatDateInFrench = (dateStr: string): string => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-  } catch {
-    return dateStr;
-  }
-};
-
-const numberToWords = (num: number): string => {
-  const units = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
-  const teens = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
-  const tens = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
-  
-  if (num === 0) return 'zéro';
-  if (num < 10) return units[num];
-  if (num < 20) return teens[num - 10];
-  if (num < 100) {
-    const ten = Math.floor(num / 10);
-    const unit = num % 10;
-    if (ten === 7 || ten === 9) {
-      return tens[ten - 1] + '-' + teens[unit];
-    }
-    return tens[ten] + (unit ? '-' + units[unit] : '');
-  }
-  if (num < 1000) {
-    const hundred = Math.floor(num / 100);
-    const rest = num % 100;
-    const hundredText = hundred === 1 ? 'cent' : units[hundred] + ' cent';
-    return hundredText + (rest ? ' ' + numberToWords(rest) : '');
-  }
-  if (num < 1000000) {
-    const thousand = Math.floor(num / 1000);
-    const rest = num % 1000;
-    const thousandText = thousand === 1 ? 'mille' : numberToWords(thousand) + ' mille';
-    return thousandText + (rest ? ' ' + numberToWords(rest) : '');
-  }
-  const million = Math.floor(num / 1000000);
-  const rest = num % 1000000;
-  const millionText = million === 1 ? 'un million' : numberToWords(million) + ' millions';
-  return millionText + (rest ? ' ' + numberToWords(rest) : '');
-};
-
 export default function RecuPDF({ 
   ticketNumber, 
   date, 
@@ -96,55 +54,31 @@ export default function RecuPDF({
   transaction,
   onClose 
 }: RecuPDFProps) {
-  // Uniformiser les données : accepter soit les props individuelles, soit l'objet transaction
-  const recuData = transaction ? {
-    ticketNumber: transaction.numero,
-    date: transaction.date,
-    time: transaction.heure,
-    contributor: transaction.contribuable,
-    type: transaction.type,
-    amount: transaction.montant,
-    agent: transaction.agent,
-    telephone: transaction.telephone || '',
-    nin: transaction.nin || '',
-    adresse: transaction.adresse || ''
-  } : {
-    ticketNumber: ticketNumber || numeroRecu || '',
-    date: date || '',
-    time: time || heure || '',
-    contributor: contributor || contribuable || '',
-    type: type || typeTaxe || '',
-    amount: amount || montant || 0,
-    agent: agent || '',
-    telephone: telephone || '',
-    nin: nin || '',
-    adresse: adresse || ''
-  };
+  const { showToast } = useToast();
+  const recuData = normalizeRecuData({
+    ticketNumber,
+    date,
+    time,
+    contributor,
+    type,
+    amount,
+    numeroRecu,
+    heure,
+    contribuable,
+    typeTaxe,
+    montant,
+    agent,
+    telephone,
+    nin,
+    adresse,
+    transaction,
+  });
 
   const formattedDate = formatDateInFrench(recuData.date);
 
-  // Generate QR code data with all transaction information
   const qrData = useMemo(() => {
-    return JSON.stringify({
-      recu: recuData.ticketNumber,
-      date: formattedDate,
-      heure: recuData.time,
-      contribuable: recuData.contributor,
-      nin: recuData.nin,
-      telephone: recuData.telephone,
-      adresse: recuData.adresse,
-      type: recuData.type,
-      montant: recuData.amount,
-      agent: recuData.agent,
-      commune: 'Kafountine',
-      verification: `https://kafountine.sn/verify?recu=${recuData.ticketNumber}`
-    });
+    return buildReceiptQrData(recuData, formattedDate);
   }, [recuData, formattedDate]);
-
-  // Generate QR code data URL for external use (used in handleDownload template)
-  const qrCodeDataUrl = useMemo(() => {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}&bgcolor=FFFFFF&color=0f766e`;
-  }, [qrData]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -154,264 +88,22 @@ export default function RecuPDF({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    try {
+      const blob = await exportReceiptPdf(buildReceiptPayload(recuData));
+      printPdfBlob(blob);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Impossible de générer le reçu.', 'error');
+    }
   };
 
-  const handleDownload = () => {
-    // Créer une nouvelle fenêtre pour l'impression/sauvegarde
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Veuillez autoriser les fenêtres popups pour télécharger le PDF');
-      return;
+  const handleDownload = async () => {
+    try {
+      const blob = await exportReceiptPdf(buildReceiptPayload(recuData));
+      openPdfBlob(blob, `recu-${recuData.ticketNumber}.pdf`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Impossible de générer le reçu.', 'error');
     }
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Reçu - ${recuData.ticketNumber}</title>
-        <meta charset="UTF-8">
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            padding: 40px;
-            max-width: 800px;
-            margin: 0 auto;
-            color: #1f2937;
-          }
-          .header {
-            text-align: center;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 24px;
-            margin-bottom: 24px;
-          }
-          .logo {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, #10b981, #0d9488);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 12px;
-            font-size: 32px;
-          }
-          h1 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 8px;
-          }
-          .flag {
-            width: 80px;
-            height: 48px;
-            margin: 0 auto 8px;
-            border-radius: 4px;
-            overflow: hidden;
-          }
-          .flag img, .flag svg {
-            width: 100%;
-            height: 100%;
-          }
-          .subtitle {
-            font-size: 14px;
-            color: #6b7280;
-          }
-          .title {
-            text-align: center;
-            margin-bottom: 24px;
-          }
-          .title h2 {
-            font-size: 20px;
-            color: #0f766e;
-            font-weight: 700;
-            margin-bottom: 8px;
-          }
-          .ticket-number {
-            display: inline-block;
-            background: #f0fdfa;
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid #ccfbf1;
-          }
-          .ticket-number span {
-            font-weight: 600;
-            color: #134e4a;
-          }
-          .info {
-            margin-bottom: 24px;
-          }
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f3f4f6;
-          }
-          .info-label {
-            font-size: 12px;
-            color: #6b7280;
-          }
-          .info-value {
-            font-weight: 600;
-          }
-          .amount-box {
-            background: #f0fdfa;
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid #ccfbf1;
-            text-align: center;
-            margin-bottom: 24px;
-          }
-          .amount-label {
-            font-size: 12px;
-            color: #6b7280;
-          }
-          .amount-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #0f766e;
-            margin: 4px 0;
-          }
-          .amount-words {
-            font-size: 12px;
-            font-style: italic;
-            color: #374151;
-          }
-          .agent {
-            margin-bottom: 24px;
-          }
-          .footer-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-top: 2px solid #e5e7eb;
-            padding-top: 24px;
-            margin-top: 24px;
-          }
-          .signature {
-            width: 200px;
-          }
-          .signature-line {
-            border-bottom: 1px solid #9ca3af;
-            height: 48px;
-            margin-bottom: 4px;
-          }
-          .signature-label {
-            font-size: 12px;
-            color: #6b7280;
-          }
-          .qr-section {
-            text-align: center;
-          }
-          .qr-section img {
-            width: 120px;
-            height: 120px;
-          }
-          .qr-label {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 8px;
-          }
-          .disclaimer {
-            margin-top: 24px;
-            padding-top: 16px;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-            font-size: 12px;
-            color: #6b7280;
-          }
-          @media print {
-            body { padding: 20px; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="logo">🏛️</div>
-          <h1>COMMUNE DE KAFOUNTINE</h1>
-          <div class="flag">
-            <svg viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
-              <rect width="900" height="600" fill="#007A3D"/>
-              <rect width="300" height="600" x="300" fill="#FDEF42"/>
-              <rect width="300" height="600" x="600" fill="#CE1126"/>
-            </svg>
-          </div>
-          <p class="subtitle">République du Sénégal</p>
-          <p class="subtitle" style="font-size: 12px;">Région de Ziguinchor - Département de Bignona</p>
-        </div>
-
-        <div class="title">
-          <h2>REÇU DE PAIEMENT</h2>
-          <div class="ticket-number">
-            <span>N° ${recuData.ticketNumber}</span>
-          </div>
-        </div>
-
-        <div class="info">
-          <div class="info-row">
-            <span class="info-label">Date</span>
-            <span class="info-value">${formattedDate}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Heure</span>
-            <span class="info-value">${recuData.time}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Reçu de</span>
-            <span class="info-value">${recuData.contributor}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Pour</span>
-            <span class="info-value">${recuData.type}</span>
-          </div>
-        </div>
-
-        <div class="amount-box">
-          <p class="amount-label">Montant</p>
-          <p class="amount-value">${recuData.amount.toLocaleString()} FCFA</p>
-          <p class="amount-words">Arrêté à la somme de : ${amountInWords} francs CFA</p>
-        </div>
-
-        <div class="agent">
-          <div class="info-row">
-            <span class="info-label">Agent collecteur</span>
-            <span class="info-value">${recuData.agent}</span>
-          </div>
-        </div>
-
-        <div class="footer-section">
-          <div class="signature">
-            <div class="signature-line"></div>
-            <p class="signature-label">Signature de l'agent</p>
-          </div>
-          <div class="qr-section">
-            <img src="${qrCodeDataUrl}" alt="QR Code" onerror="this.style.display='none'" />
-            <p class="qr-label">Scannez pour vérifier</p>
-          </div>
-        </div>
-
-        <div class="disclaimer">
-          <p>Ce reçu est valable et authentique. Pour toute vérification, contactez la mairie de Kafountine.</p>
-          <p style="margin-top: 4px;">Tél: +221 33 XXX XX XX | Email: mairie@kafountine.sn</p>
-        </div>
-
-        <script>
-          // Auto-trigger print dialog after a short delay
-          setTimeout(() => {
-            window.print();
-          }, 500);
-        </script>
-      </body>
-      </html>
-    `;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
   };
 
   const amountInWords = numberToWords(recuData.amount);

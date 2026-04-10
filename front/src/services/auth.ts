@@ -29,11 +29,18 @@ type StoredSession = {
   userInitials: string;
 };
 
+type AuthStateListener = (session: StoredSession | null) => void;
+
 export type CurrentUser = ApiAuthUser;
 export type UiRole = 'admin' | 'super_admin' | 'agent' | 'comptable' | 'service_finances' | 'quai_peche';
 
 const SESSION_STORAGE_KEY = 'auth_session';
 const API_BASE_URL = resolveApiBaseUrl();
+let currentSession: StoredSession | null = null;
+let pendingRestorePromise: Promise<StoredSession | null> | null = null;
+let lastRestoreFailureAt = 0;
+const RESTORE_RETRY_COOLDOWN_MS = 5000;
+const authStateListeners = new Set<AuthStateListener>();
 
 function roleToUiRole(role: string): UiRole {
   switch (role?.toUpperCase()) {
@@ -59,26 +66,39 @@ function getInitials(prenom: string, nom: string): string {
 }
 
 function readStoredSession(): StoredSession | null {
+  if (currentSession) {
+    return currentSession;
+  }
+
   const raw = localStorage.getItem(SESSION_STORAGE_KEY);
   if (!raw) {
     return null;
   }
 
   try {
-    return JSON.parse(raw) as StoredSession;
+    currentSession = JSON.parse(raw) as StoredSession;
+    return currentSession;
   } catch {
     localStorage.removeItem(SESSION_STORAGE_KEY);
     return null;
   }
 }
 
+function notifyAuthState() {
+  for (const listener of authStateListeners) {
+    listener(currentSession);
+  }
+}
+
 function writeStoredSession(value: StoredSession) {
+  currentSession = value;
   localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(value));
   localStorage.setItem('isAuthenticated', 'true');
   localStorage.setItem('userId', value.userId);
   localStorage.setItem('userRole', value.userRole);
   localStorage.setItem('userName', value.userName);
   localStorage.setItem('userInitials', value.userInitials);
+  notifyAuthState();
 }
 
 function storeCurrentUser(user: ApiAuthUser) {
@@ -124,6 +144,17 @@ export function getStoredUserInitials(): string {
 export function hasRole(roles: UiRole[]): boolean {
   const role = getStoredUserRole();
   return role ? roles.includes(role) : false;
+}
+
+export function hasStoredSession(): boolean {
+  return readStoredSession() !== null;
+}
+
+export function subscribeAuthState(listener: AuthStateListener): () => void {
+  authStateListeners.add(listener);
+  return () => {
+    authStateListeners.delete(listener);
+  };
 }
 
 export async function loginRequest(payload: LoginPayload): Promise<LoginResponse> {
@@ -214,14 +245,44 @@ export async function fetchCurrentUser(): Promise<CurrentUser> {
 }
 
 export function clearSession(): void {
+  currentSession = null;
   localStorage.removeItem(SESSION_STORAGE_KEY);
   localStorage.removeItem('isAuthenticated');
   localStorage.removeItem('userId');
   localStorage.removeItem('userRole');
   localStorage.removeItem('userName');
   localStorage.removeItem('userInitials');
+  notifyAuthState();
 }
 
 export function saveSession(session: LoginResponse): void {
   storeCurrentUser(session.user);
+}
+
+export async function restoreSession(): Promise<StoredSession | null> {
+  const existing = readStoredSession();
+  if (existing) {
+    return existing;
+  }
+
+  if (pendingRestorePromise) {
+    return pendingRestorePromise;
+  }
+
+  if (Date.now() - lastRestoreFailureAt < RESTORE_RETRY_COOLDOWN_MS) {
+    return null;
+  }
+
+  pendingRestorePromise = fetchCurrentUser()
+    .then(() => readStoredSession())
+    .catch(() => {
+      lastRestoreFailureAt = Date.now();
+      clearSession();
+      return null;
+    })
+    .finally(() => {
+      pendingRestorePromise = null;
+    });
+
+  return pendingRestorePromise;
 }

@@ -1,13 +1,36 @@
-/* eslint-disable no-console */
 import 'dotenv/config';
+import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
+const isProduction = process.env.NODE_ENV === 'production';
+
+function getSeedPassword(): string | null {
+  const configuredPassword = process.env.SEED_DEFAULT_PASSWORD?.trim();
+  if (configuredPassword) {
+    return configuredPassword;
+  }
+
+  if (isProduction) {
+    return null;
+  }
+
+  return null;
+}
 
 async function main() {
-  const password = await bcrypt.hash('password123', 10);
+  if (isProduction) {
+    throw new Error('Refusing to run demo seed in production. Use a dedicated migration/import process instead.');
+  }
+
+  const seedPassword = getSeedPassword();
+  if (!seedPassword) {
+    throw new Error('SEED_DEFAULT_PASSWORD is required to seed demo users safely.');
+  }
+
+  const password = await bcrypt.hash(seedPassword, 10);
 
   // ─── USERS ───────────────────────────────────────────────
   const admin = await prisma.user.upsert({
@@ -137,6 +160,273 @@ async function main() {
 
     await prisma.transaction.createMany({ data: txData, skipDuplicates: true });
     console.log(`  Created ${txData.length} transactions`);
+  }
+
+  const [budgetLineCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "BudgetLine"');
+  if (Number(budgetLineCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "BudgetLine" ("id", "code", "libelle", "description", "prevu", "depense", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($8,$9,$10,$11,$12,$13,$14,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($15,$16,$17,$18,$19,$20,$21,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($22,$23,$24,$25,$26,$27,$28,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)',
+      randomUUID(), 'FONC', 'Fonctionnement général', 'Charges courantes de la mairie', 15000000, 4200000, 2026,
+      randomUUID(), 'EQUI', 'Équipements municipaux', 'Maintenance et acquisition de matériel', 9000000, 2150000, 2026,
+      randomUUID(), 'SOC', 'Actions sociales', 'Aides et interventions sociales', 7000000, 1850000, 2026,
+      randomUUID(), 'VOIR', 'Voirie et assainissement', 'Travaux de voirie et entretien', 12500000, 3200000, 2026
+    );
+    console.log('  Created budget lines');
+  }
+
+  const [budgetRequestCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "BudgetRequest"');
+  if (Number(budgetRequestCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "BudgetRequest" ("id", "service", "description", "montant", "statut", "motif", "year", "requestedById", "approvedById", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($10,$11,$12,$13,$14,$15,$16,$17,$18,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($19,$20,$21,$22,$23,$24,$25,$26,$27,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)',
+      randomUUID(), 'Service technique', 'Réhabilitation de la voirie principale', 1800000, 'EN_ATTENTE', null, 2026, finances.id, null,
+      randomUUID(), 'Cabinet du maire', 'Achat de mobilier de bureau', 650000, 'APPROUVE', null, 2026, admin.id, superAdmin.id,
+      randomUUID(), 'Action sociale', 'Appui d’urgence pour ménages vulnérables', 400000, 'REJETE', 'Budget complémentaire non encore voté', 2026, agent.id, superAdmin.id
+    );
+    console.log('  Created budget requests');
+  }
+
+  const [auditLogCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "AuditLog"');
+  if (Number(auditLogCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "AuditLog" ("id", "userId", "userName", "role", "action", "module", "details", "status", "ipAddress", "year", "timestamp") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11), ($12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22), ($23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)',
+      randomUUID(), superAdmin.id, `${superAdmin.prenom} ${superAdmin.nom}`, superAdmin.role, 'Initialisation plateforme', 'Audit', 'Initialisation des journaux et paramètres techniques', 'success', null, 2026, new Date('2026-01-02T08:30:00.000Z'),
+      randomUUID(), admin.id, `${admin.prenom} ${admin.nom}`, admin.role, 'Création utilisateur', 'Utilisateurs', 'Création du compte comptable@kafountine.gouv.sn', 'success', null, 2026, new Date('2026-01-05T10:15:00.000Z'),
+      randomUUID(), finances.id, `${finances.prenom} ${finances.nom}`, finances.role, 'Création demande budgétaire', 'Budget', 'Demande de réhabilitation de la voirie principale', 'warning', null, 2026, new Date('2026-02-14T11:45:00.000Z')
+    );
+    console.log('  Created audit logs');
+  }
+
+  const [etatCivilCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "EtatCivilRequest"');
+  if (Number(etatCivilCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "EtatCivilRequest" ("id", "numero", "contribuableId", "agentId", "typeDocument", "exemplaires", "montant", "statut", "observations", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12), ($13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24), ($25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36)',
+      randomUUID(), 'EC-2026-00001', contribuables[0].id, agent.id, 'Extrait de naissance', 2, 1000, 'DELIVREE', 'Extraits délivrés le jour même', 2026, new Date('2026-01-12T09:10:00.000Z'), new Date('2026-01-12T09:10:00.000Z'),
+      randomUUID(), 'EC-2026-00002', contribuables[3].id, admin.id, 'Certificat de résidence', 1, 1000, 'EN_ATTENTE', 'Vérification de domicile en cours', 2026, new Date('2026-02-03T11:25:00.000Z'), new Date('2026-02-03T11:25:00.000Z'),
+      randomUUID(), 'EC-2026-00003', contribuables[5].id, agent.id, 'Certificat de vie', 1, 500, 'REJETEE', 'Pièce justificative manquante', 2026, new Date('2026-03-18T14:40:00.000Z'), new Date('2026-03-18T14:40:00.000Z')
+    );
+    console.log('  Created etat civil requests');
+  }
+
+  const [urbanismeCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "UrbanismeCase"');
+  if (Number(urbanismeCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "UrbanismeCase" ("id", "numero", "contribuableId", "agentId", "type", "description", "surface", "localisation", "nature", "montant", "statut", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14), ($15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28), ($29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)',
+      randomUUID(), 'URB-2026-00001', contribuables[2].id, agent.id, 'permis-construire', 'Construction d\'une annexe commerciale', 120, 'Zone urbaine - parcelle 14', 'Commercial', 600000, 'EN_ATTENTE', 2026, new Date('2026-01-20T10:00:00.000Z'), new Date('2026-01-20T10:00:00.000Z'),
+      randomUUID(), 'URB-2026-00002', contribuables[1].id, admin.id, 'autorisation-travaux', 'Réfection de façade et extension légère', null, 'Marché central', 'Réhabilitation', 2500, 'VALIDE', 2026, new Date('2026-02-11T08:45:00.000Z'), new Date('2026-02-15T16:20:00.000Z'),
+      randomUUID(), 'URB-2026-00003', contribuables[8].id, agent.id, 'titre-foncier', 'Régularisation foncière du terrain familial', null, 'Quartier plage sud', 'Foncier', 10000, 'REJETE', 2026, new Date('2026-03-04T13:15:00.000Z'), new Date('2026-03-09T10:30:00.000Z')
+    );
+    console.log('  Created urbanisme cases');
+  }
+
+  const [marketPlaceCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "MarketPlace"');
+  if (Number(marketPlaceCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "MarketPlace" ("id", "numeroPlace", "type", "zone", "occupantId", "activite", "telephone", "dateAttribution", "tarif", "periode", "statut", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14), ($15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28), ($29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)',
+      randomUUID(), 'A-01', 'Place de marché', 'Bloc A', contribuables[1].id, 'Fruits et légumes', '+221771000002', new Date('2026-01-08T08:00:00.000Z'), 5000, 'Janvier 2026', 'OCCUPEE', 2026, new Date('2026-01-08T08:00:00.000Z'), new Date('2026-01-08T08:00:00.000Z'),
+      randomUUID(), 'B-12', 'Boutique', 'Bloc B', contribuables[5].id, 'Textile', '+221771000006', new Date('2026-02-01T09:30:00.000Z'), 12000, 'Février 2026', 'OCCUPEE', 2026, new Date('2026-02-01T09:30:00.000Z'), new Date('2026-02-01T09:30:00.000Z'),
+      randomUUID(), 'C-05', 'Kiosque', 'Bloc C', null, null, null, null, 8000, 'Mars 2026', 'LIBRE', 2026, new Date('2026-03-01T08:30:00.000Z'), new Date('2026-03-01T08:30:00.000Z')
+    );
+    console.log('  Created market places');
+  }
+
+  const [marketPaymentCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "MarketPayment"');
+  if (Number(marketPaymentCount?.count || 0) === 0) {
+    const places = await prisma.$queryRawUnsafe<Array<{ id: string; numeroPlace: string }>>('SELECT "id", "numeroPlace" FROM "MarketPlace" ORDER BY "numeroPlace" ASC');
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10), ($11,$12,$13,$14,$15,$16,$17,$18,$19,$20)',
+      randomUUID(), places[0].id, 5000, 'MRC-2026-0001', 'Janvier 2026', 'PAYE', new Date('2026-01-08T08:15:00.000Z'), 2026, new Date('2026-01-08T08:15:00.000Z'), new Date('2026-01-08T08:15:00.000Z'),
+      randomUUID(), places[1].id, 12000, 'MRC-2026-0002', 'Février 2026', 'PAYE', new Date('2026-02-02T10:00:00.000Z'), 2026, new Date('2026-02-02T10:00:00.000Z'), new Date('2026-02-02T10:00:00.000Z')
+    );
+    console.log('  Created market payments');
+  }
+
+  const [motoCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "MotoRegistration"');
+  if (Number(motoCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "MotoRegistration" ("id", "matricule", "marque", "modele", "annee", "couleur", "proprietaireId", "conducteurId", "permis", "statut", "photo", "enRetard", "montantPenalite", "prochainPaiement", "dernierPaiement", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18), ($19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36), ($37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54)',
+      randomUUID(), 'DK-1234-AA', 'TVS', 'Jakarta', 2026, 'Noir', contribuables[4].id, contribuables[4].id, 'PRM-0001', 'ACTIVE', null, false, 250, new Date('2026-04-30T00:00:00.000Z'), new Date('2026-03-31T08:00:00.000Z'), 2026, new Date('2026-01-05T08:00:00.000Z'), new Date('2026-03-31T08:00:00.000Z'),
+      randomUUID(), 'DK-5678-BB', 'Bajaj', 'RE Compact', 2026, 'Bleu', contribuables[0].id, contribuables[6].id, 'PRM-0002', 'ACTIVE', null, true, 250, new Date('2026-03-15T00:00:00.000Z'), new Date('2026-02-15T09:00:00.000Z'), 2026, new Date('2026-01-12T10:00:00.000Z'), new Date('2026-03-20T10:00:00.000Z'),
+      randomUUID(), 'DK-9012-CC', 'Piaggio', 'Ape City', 2026, 'Rouge', contribuables[7].id, contribuables[7].id, 'PRM-0003', 'ACTIVE', null, false, 250, new Date('2026-04-28T00:00:00.000Z'), new Date('2026-03-28T11:00:00.000Z'), 2026, new Date('2026-02-01T11:00:00.000Z'), new Date('2026-03-28T11:00:00.000Z')
+    );
+    console.log('  Created motos');
+  }
+
+  const [motoPaymentCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "MotoPayment"');
+  if (Number(motoPaymentCount?.count || 0) === 0) {
+    const motos = await prisma.$queryRawUnsafe<Array<{ id: string; matricule: string }>>('SELECT "id", "matricule" FROM "MotoRegistration" ORDER BY "matricule" ASC');
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "MotoPayment" ("id", "motoId", "montant", "reference", "statut", "datePaiement", "mois", "numeroRecu", "agent", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12), ($13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)',
+      randomUUID(), motos[0].id, 1000, 'MOTO-2026-0001', 'PAYE', new Date('2026-03-31T08:00:00.000Z'), 'Mars 2026', 'MOTO-REC-0001', 'Agent Municipal', 2026, new Date('2026-03-31T08:00:00.000Z'), new Date('2026-03-31T08:00:00.000Z'),
+      randomUUID(), motos[1].id, 1250, 'MOTO-2026-0002', 'PAYE', new Date('2026-02-15T09:00:00.000Z'), 'Février 2026', 'MOTO-REC-0002', 'Agent Municipal', 2026, new Date('2026-02-15T09:00:00.000Z'), new Date('2026-02-15T09:00:00.000Z')
+    );
+    console.log('  Created moto payments');
+  }
+
+  const [trainingCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "TrainingProgram"');
+  if (Number(trainingCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "TrainingProgram" ("id","nom","domaine","duree","responsable","budget","dateDebut","dateFin","statut","year","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12), ($13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)',
+      randomUUID(), 'Formation en transformation halieutique', 'Pêche', '3 mois', 'Mme Diop', 2500000, new Date('2026-01-10T00:00:00.000Z'), new Date('2026-03-30T00:00:00.000Z'), 'TERMINEE', 2026, new Date('2026-01-01T08:00:00.000Z'), new Date('2026-03-30T18:00:00.000Z'),
+      randomUUID(), 'Initiation au numérique', 'Numérique', '2 mois', 'M. Fall', 1800000, new Date('2026-04-05T00:00:00.000Z'), new Date('2026-05-30T00:00:00.000Z'), 'EN_COURS', 2026, new Date('2026-03-20T08:00:00.000Z'), new Date('2026-04-05T08:00:00.000Z')
+    );
+    console.log('  Created training programs');
+  }
+
+  const [youthCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "YouthProfile"');
+  if (Number(youthCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "YouthProfile" ("id","nom","prenom","cni","telephone","adresse","niveauEtude","sexe","dateNaiss","photo","year","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13), ($14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26), ($27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39)',
+      randomUUID(), 'Coly', 'Awa', 'YTH-0001', '+221770100001', 'Quartier escale', 'BAC', 'F', new Date('2001-05-10T00:00:00.000Z'), null, 2026, new Date('2026-01-05T09:00:00.000Z'), new Date('2026-01-05T09:00:00.000Z'),
+      randomUUID(), 'Sambou', 'Moussa', 'YTH-0002', '+221770100002', 'Quartier mission', 'BFEM', 'M', new Date('2000-11-20T00:00:00.000Z'), null, 2026, new Date('2026-01-06T09:00:00.000Z'), new Date('2026-01-06T09:00:00.000Z'),
+      randomUUID(), 'Badji', 'Fatou', 'YTH-0003', '+221770100003', 'Quartier nord', 'Licence', 'F', new Date('1999-07-14T00:00:00.000Z'), null, 2026, new Date('2026-04-02T09:00:00.000Z'), new Date('2026-04-02T09:00:00.000Z')
+    );
+    console.log('  Created youth profiles');
+  }
+
+  const [enrollmentCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "YouthEnrollment"');
+  if (Number(enrollmentCount?.count || 0) === 0) {
+    const formations = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "TrainingProgram" ORDER BY "dateDebut" ASC');
+    const jeunes = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "YouthProfile" ORDER BY "createdAt" ASC');
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "YouthEnrollment" ("id","jeuneId","formationId","dateInscription","tauxAssiduite","statutFinal","presences","absences","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10), ($11,$12,$13,$14,$15,$16,$17,$18,$19,$20), ($21,$22,$23,$24,$25,$26,$27,$28,$29,$30)',
+      randomUUID(), jeunes[0].id, formations[0].id, new Date('2026-01-10T08:00:00.000Z'), 92, 'Certifié', 22, 2, new Date('2026-01-10T08:00:00.000Z'), new Date('2026-03-30T18:00:00.000Z'),
+      randomUUID(), jeunes[1].id, formations[0].id, new Date('2026-01-10T08:00:00.000Z'), 84, 'En cours', 20, 4, new Date('2026-01-10T08:00:00.000Z'), new Date('2026-03-20T18:00:00.000Z'),
+      randomUUID(), jeunes[2].id, formations[1].id, new Date('2026-04-05T08:00:00.000Z'), 78, 'En cours', 8, 1, new Date('2026-04-05T08:00:00.000Z'), new Date('2026-04-08T08:00:00.000Z')
+    );
+    console.log('  Created youth enrollments');
+  }
+
+  const [fishermanCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "Fisherman"');
+  if (Number(fishermanCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "Fisherman" ("id","nom","prenom","telephone","nin","adresse","statut","year","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10), ($11,$12,$13,$14,$15,$16,$17,$18,$19,$20), ($21,$22,$23,$24,$25,$26,$27,$28,$29,$30)',
+      randomUUID(), 'Sall', 'Moussa', '+221776000001', 'PCH-0001', 'Quai nord', 'ACTIF', 2026, new Date('2026-01-05T06:00:00.000Z'), new Date('2026-01-05T06:00:00.000Z'),
+      randomUUID(), 'Diop', 'Aliou', '+221776000002', 'PCH-0002', 'Quai centre', 'ACTIF', 2026, new Date('2026-01-06T06:00:00.000Z'), new Date('2026-01-06T06:00:00.000Z'),
+      randomUUID(), 'Touré', 'Mamadou', '+221776000003', 'PCH-0003', 'Quai sud', 'INACTIF', 2026, new Date('2026-01-07T06:00:00.000Z'), new Date('2026-01-07T06:00:00.000Z')
+    );
+    console.log('  Created fishermen');
+  }
+
+  const [boatCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "FishingBoat"');
+  if (Number(boatCount?.count || 0) === 0) {
+    const pecheurs = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "Fisherman" ORDER BY "createdAt" ASC');
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "FishingBoat" ("id","nom","immatriculation","type","taille","moteur","statut","pecheurId","year","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11), ($12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)',
+      randomUUID(), 'Aigle de mer', 'EMB-001', 'Pirogue', 12.5, 'Yamaha 40CV', 'ACTIF', pecheurs[0].id, 2026, new Date('2026-01-10T07:00:00.000Z'), new Date('2026-01-10T07:00:00.000Z'),
+      randomUUID(), 'Casamance I', 'EMB-002', 'Pirogue', 10.2, 'Suzuki 25CV', 'EN_MAINTENANCE', pecheurs[1].id, 2026, new Date('2026-01-11T07:00:00.000Z'), new Date('2026-01-11T07:00:00.000Z')
+    );
+    console.log('  Created fishing boats');
+  }
+
+  const [commissionCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "FishCommission"');
+  if (Number(commissionCount?.count || 0) === 0) {
+    const pecheurs = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "Fisherman" ORDER BY "createdAt" ASC');
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "FishCommission" ("id","numero","poids","typePoisson","temperatura","observations","statut","date","pecheurId","year","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12), ($13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)',
+      randomUUID(), 'CF-2026-001', 150, 'Maquereau', -5, 'Lot du matin', 'ENREGISTREE', new Date('2026-03-17T08:30:00.000Z'), pecheurs[0].id, 2026, new Date('2026-03-17T08:30:00.000Z'), new Date('2026-03-17T08:30:00.000Z'),
+      randomUUID(), 'CF-2026-002', 200, 'Sardine', -4, 'Qualité conforme', 'VALIDEE', new Date('2026-03-17T09:15:00.000Z'), pecheurs[1].id, 2026, new Date('2026-03-17T09:15:00.000Z'), new Date('2026-03-17T09:30:00.000Z')
+    );
+    console.log('  Created fish commissions');
+  }
+
+  const [truckCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "RefrigeratedTruck"');
+  if (Number(truckCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "RefrigeratedTruck" ("id","immatriculation","marque","modele","capacite","chauffeur","telephone","statut","year","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11), ($12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)',
+      randomUUID(), 'TRK-001', 'Mercedes', 'Actros', 12000, 'Ibrahima Ba', '+221775000001', 'ACTIF', 2026, new Date('2026-02-01T07:00:00.000Z'), new Date('2026-02-01T07:00:00.000Z'),
+      randomUUID(), 'TRK-002', 'Renault', 'Kerax', 9000, 'Seydou Diallo', '+221775000002', 'ACTIF', 2026, new Date('2026-02-02T07:00:00.000Z'), new Date('2026-02-02T07:00:00.000Z')
+    );
+    console.log('  Created refrigerated trucks');
+  }
+
+  const [expeditionCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "ShippingExpedition"');
+  if (Number(expeditionCount?.count || 0) === 0) {
+    const camions = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "RefrigeratedTruck" ORDER BY "createdAt" ASC');
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "ShippingExpedition" ("id","numero","date","poids","destination","montant","statut","observations","camionId","year","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12), ($13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)',
+      randomUUID(), 'EXP-2026-001', new Date('2026-03-18T06:00:00.000Z'), 800, 'Dakar', 450000, 'EXPEDIEE', 'Départ à l’aube', camions[0].id, 2026, new Date('2026-03-18T06:00:00.000Z'), new Date('2026-03-18T06:00:00.000Z'),
+      randomUUID(), 'EXP-2026-002', new Date('2026-03-19T06:00:00.000Z'), 620, 'Ziguinchor', 320000, 'PLANIFIEE', 'Chargement en attente', camions[1].id, 2026, new Date('2026-03-19T06:00:00.000Z'), new Date('2026-03-19T06:00:00.000Z')
+    );
+    console.log('  Created shipping expeditions');
+  }
+
+  const [settingsTariffCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "AppSettingTariff"');
+  if (Number(settingsTariffCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "AppSettingTariff" ("id", "categorie", "nom", "montant", "unite", "description", "actif", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($8,$9,$10,$11,$12,$13,$14,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($15,$16,$17,$18,$19,$20,$21,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($22,$23,$24,$25,$26,$27,$28,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)',
+      randomUUID(), 'État Civil', 'Extrait de naissance', 1000, 'FCFA', 'Délivrance standard d’un extrait', true,
+      randomUUID(), 'Urbanisme', 'Permis de construire', 600000, 'FCFA', 'Instruction complète du permis', true,
+      randomUUID(), 'Marché', 'Occupation place mensuelle', 5000, 'FCFA/mois', 'Place standard marché central', true,
+      randomUUID(), 'Transport', 'Licence moto-taxi', 1000, 'FCFA/mois', 'Paiement mensuel moto-taxi', true
+    );
+    console.log('  Created app setting tariffs');
+  }
+
+  const [settingsPenaltyCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "AppSettingPenalty"');
+  if (Number(settingsPenaltyCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "AppSettingPenalty" ("id", "type", "description", "montant", "delai", "actif", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($7,$8,$9,$10,$11,$12,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($13,$14,$15,$16,$17,$18,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)',
+      randomUUID(), 'Retard paiement marché', 'Majoration appliquée après échéance mensuelle', 1500, '5 jours après échéance', true,
+      randomUUID(), 'Retard dossier urbanisme', 'Frais complémentaires en cas de dossier incomplet prolongé', 5000, '10 jours après notification', true,
+      randomUUID(), 'Retard moto-taxi', 'Pénalité standard de régularisation', 250, 'Immédiatement après échéance', true
+    );
+    console.log('  Created app setting penalties');
+  }
+
+  const [settingsPermissionCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "AppSettingPermission"');
+  if (Number(settingsPermissionCount?.count || 0) === 0) {
+    const modules = [
+      'Dashboard',
+      'Contribuables',
+      'Recettes',
+      'Taxes',
+      'Utilisateurs',
+      'Audit',
+      'Budget',
+      'État civil',
+      'Urbanisme',
+      'Marché',
+      'Motos',
+      'Formations',
+      'Quai de pêche',
+      'Paramètres',
+    ];
+    const roles = ['AGENT', 'SUPERVISEUR', 'COMPTABLE', 'ADMIN', 'SUPER_ADMIN'];
+
+    for (const moduleName of modules) {
+      for (const role of roles) {
+        const enabled =
+          role === 'SUPER_ADMIN'
+            ? true
+            : role === 'ADMIN'
+              ? true
+              : role === 'COMPTABLE'
+                ? ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'Budget', 'Marché'].includes(moduleName)
+                : role === 'SUPERVISEUR'
+                  ? ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'État civil', 'Urbanisme'].includes(moduleName)
+                  : ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'État civil', 'Urbanisme', 'Marché', 'Motos', 'Formations', 'Quai de pêche'].includes(moduleName);
+
+        await prisma.$executeRawUnsafe(
+          'INSERT INTO "AppSettingPermission" ("id", "module", "role", "enabled", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)',
+          randomUUID(),
+          moduleName,
+          role,
+          enabled
+        );
+      }
+    }
+    console.log('  Created app setting permissions');
+  }
+
+  const [notificationCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "AppNotification"');
+  if (Number(notificationCount?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "AppNotification" ("id","userId","type","titre","message","montant","contribuable","agent","lu","readAt","year","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13), ($14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26), ($27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39)',
+      randomUUID(), admin.id, 'alerte', 'Suivi recouvrement', 'Vérifier les transactions en attente du mois courant.', null, null, `${admin.prenom} ${admin.nom}`, false, null, 2026, new Date('2026-04-01T08:00:00.000Z'), new Date('2026-04-01T08:00:00.000Z'),
+      randomUUID(), superAdmin.id, 'info', 'Sauvegarde recommandée', 'Planifier une sauvegarde applicative avant le prochain déploiement.', null, null, `${superAdmin.prenom} ${superAdmin.nom}`, false, null, 2026, new Date('2026-04-02T09:00:00.000Z'), new Date('2026-04-02T09:00:00.000Z'),
+      randomUUID(), finances.id, 'succes', 'Rapport mensuel prêt', 'Les indicateurs financiers du mois sont consolidés.', 1250000, null, `${finances.prenom} ${finances.nom}`, true, new Date('2026-04-03T10:00:00.000Z'), 2026, new Date('2026-04-03T10:00:00.000Z'), new Date('2026-04-03T10:00:00.000Z')
+    );
+    console.log('  Created app notifications');
   }
 
   console.log('Prisma seed done');

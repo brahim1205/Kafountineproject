@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 SAFE_DIR := /tmp/kafontine-gm
 
-.PHONY: help up down restart reset logs ps build check backend-check validate-prod-env prod-preflight prod-smoke up-prod down-prod logs-prod reset-prod up-dev down-dev logs-dev reset-dev bootstrap-dev-db dev-local backend-local backend-local-no-db front-local
+.PHONY: help up down restart reset logs ps build check backend-check validate-prod-env validate-prod-template prod-preflight prod-smoke up-prod down-prod logs-prod reset-prod up-dev down-dev logs-dev reset-dev bootstrap-dev-db dev-local backend-local backend-local-no-db front-local
 
 help:
 	@echo "Modes disponibles:"
@@ -11,6 +11,7 @@ help:
 	@echo "  make up-dev            -> démarre PostgreSQL et Redis de développement"
 	@echo "  make up-prod           -> démarre le stack production complet localement"
 	@echo "  make validate-prod-env -> vérifie que .env.prod ne contient pas de placeholders"
+	@echo "  make validate-prod-template -> vérifie seulement la structure du template .env.prod"
 	@echo "  make prod-preflight    -> lance les vérifications repo + build + tests avant prod"
 	@echo "  make prod-smoke URL=https://domaine -> lance le smoke test HTTP post-déploiement"
 	@echo "  make check            -> lance la vérification backend"
@@ -49,6 +50,9 @@ backend-check:
 	cd backend && npm run build
 
 validate-prod-env:
+	bash ./scripts/validate-prod-env.sh .env.prod
+
+validate-prod-template:
 	bash ./scripts/validate-prod-env.sh --allow-placeholders .env.prod
 
 prod-preflight:

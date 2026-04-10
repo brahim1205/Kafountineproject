@@ -7,7 +7,7 @@ import AgentDashboard from './components/AgentDashboard';
 import ComptableDashboard from './components/ComptableDashboard';
 import ServiceFinancesDashboard from './components/ServiceFinancesDashboard';
 import QuaiPecheDashboard from './components/QuaiPecheDashboard';
-import { clearSession, fetchCurrentUser, type CurrentUser } from '../../services/auth';
+import { clearSession, restoreSession } from '../../services/auth';
 
 export default function Dashboard() {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -19,13 +19,17 @@ export default function Dashboard() {
 
     const loadCurrentUser = async () => {
       try {
-        const user = await fetchCurrentUser();
+        const session = await restoreSession();
         if (!mounted) {
           return;
         }
 
-        const nextRole = mapRoleToUiRole(user);
-        setUserRole(nextRole);
+        if (!session) {
+          setSessionInvalid(true);
+          return;
+        }
+
+        setUserRole(session.userRole);
       } catch {
         clearSession();
         if (mounted) {
@@ -81,21 +85,4 @@ export default function Dashboard() {
       {renderDashboard()}
     </DashboardLayout>
   );
-}
-
-function mapRoleToUiRole(user: CurrentUser): string {
-  switch (user.role?.toUpperCase()) {
-    case 'SUPER_ADMIN':
-      return 'super_admin';
-    case 'ADMIN':
-      return 'admin';
-    case 'COMPTABLE':
-      return 'comptable';
-    case 'SERVICE_FINANCES':
-      return 'service_finances';
-    case 'QUAI_PECHE':
-      return 'quai_peche';
-    default:
-      return 'agent';
-  }
 }

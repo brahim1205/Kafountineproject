@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getContribuable, getPortalToken, logoutPortalRequest } from '../../../services/portalAuth';
+import { logoutPortalRequest, restorePortalSession } from '../../../services/portalAuth';
 
 interface Tax {
   id: string;
@@ -26,16 +26,23 @@ export default function PortalDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getPortalToken();
-    const contribData = getContribuable() as Contribuable | null;
-    
-    if (!token || !contribData) {
-      navigate('/portal/login');
-      return;
-    }
+    let mounted = true;
 
-    setContribuable(contribData);
-    loadTaxes(contribData.id);
+    restorePortalSession().then((contribData) => {
+      if (!mounted) return;
+
+      if (!contribData) {
+        navigate('/portal/login');
+        return;
+      }
+
+      setContribuable(contribData as Contribuable);
+      loadTaxes(contribData.id);
+    });
+
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   const loadTaxes = async (contribuableId: string) => {
@@ -43,18 +50,15 @@ export default function PortalDashboard() {
       const response = await fetch(`/api/v1/portal/contribuable/${contribuableId}/taxes`, {
         credentials: 'include',
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setTaxes(data);
+
+      if (!response.ok) {
+        throw new Error('Impossible de charger les taxes');
       }
+
+      const data = await response.json();
+      setTaxes(Array.isArray(data) ? data : []);
     } catch {
-      // Données de démo
-      setTaxes([
-        { id: '1', type: 'Impôt foncier', annee: 2025, montant: 25000, statut: 'PENDING', dateEcheance: '2025-12-31' },
-        { id: '2', type: 'Taxe marché', annee: 2025, montant: 12000, statut: 'PAID', dateEcheance: '2025-06-30' },
-        { id: '3', type: 'Redevance parking', annee: 2025, montant: 18000, statut: 'OVERDUE', dateEcheance: '2025-03-31' },
-      ]);
+      setTaxes([]);
     } finally {
       setLoading(false);
     }

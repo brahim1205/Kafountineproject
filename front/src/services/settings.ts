@@ -1,5 +1,4 @@
 import { apiRequest } from './api';
-import { getAuthToken } from './auth';
 
 export interface Tarif {
   id: string;
@@ -98,14 +97,13 @@ export async function restoreBackup(filename: string): Promise<{ message: string
 }
 
 export async function downloadBackup(filename: string): Promise<void> {
-  const token = getAuthToken();
   const response = await fetch(`/api/v1/settings/backups/${encodeURIComponent(filename)}/download`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
 
   if (!response.ok) {
-    throw new Error('Erreur lors du téléchargement de la sauvegarde');
+    const json = await response.json().catch(() => null);
+    throw new Error(json?.message || 'Erreur lors du téléchargement de la sauvegarde');
   }
 
   const blob = await response.blob();

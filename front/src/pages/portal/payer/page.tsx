@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useToast } from '../../../components/feature/Toast';
-import { getContribuable } from '../../../services/portalAuth';
+import { restorePortalSession } from '../../../services/portalAuth';
 
 interface Tax {
   id: string;
@@ -38,13 +38,21 @@ export default function PortalPayer() {
 
   // Charger les taxes à payer
   useEffect(() => {
-    const contribData = getContribuable() as { id: string } | null;
-    if (!contribData) {
-      navigate('/portal/login');
-      return;
-    }
+    let mounted = true;
 
-    void loadTaxes(contribData.id);
+    restorePortalSession().then((contribData) => {
+      if (!mounted) return;
+      if (!contribData) {
+        navigate('/portal/login');
+        return;
+      }
+
+      void loadTaxes(contribData.id);
+    });
+
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   const loadTaxes = async (contribuableId: string) => {

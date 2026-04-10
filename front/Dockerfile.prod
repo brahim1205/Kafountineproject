@@ -22,6 +22,7 @@ FROM nginx:1.27-alpine
 
 # Security: Remove default nginx user and use non-root
 RUN sed -i 's/^user .*/user nginx;/' /etc/nginx/nginx.conf && \
+    mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp /var/cache/nginx/fastcgi_temp /var/cache/nginx/uwsgi_temp /var/cache/nginx/scgi_temp && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
     chown -R nginx:nginx /etc/nginx/conf.d && \

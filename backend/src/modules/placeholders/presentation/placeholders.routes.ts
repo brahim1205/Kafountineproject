@@ -76,7 +76,7 @@ export function buildPlaceholderRoutes(controller: PlaceholderController) {
     backups: 'backups',
   } as const;
 
-  router.get('/formations', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.listFormations(req, res)));
+  router.get('/formations', authenticate, validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listFormations(req, res)));
   router.post('/formations', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(createFormationSchema), asyncHandler((req, res) => controller.createFormation(req, res)));
   router.put('/formations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(resourceIdParamsSchema, 'params'), validate(updateFormationSchema), asyncHandler((req, res) => controller.updateFormation(req, res)));
   router.delete('/formations/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteFormation(req, res)));
@@ -87,7 +87,7 @@ export function buildPlaceholderRoutes(controller: PlaceholderController) {
   router.delete('/jeunes/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteJeune(req, res)));
   router.post('/jeunes/:id/formations/:formationId', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(youthEnrollmentParamsSchema, 'params'), asyncHandler((req, res) => controller.inscrireJeuneFormation(req, res)));
 
-  router.get('/etat-civil', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.listEtatCivil(req, res)));
+  router.get('/etat-civil', authenticate, validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listEtatCivil(req, res)));
   router.get('/etat-civil/statistiques', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.etatCivilStats(req, res)));
   router.post('/etat-civil', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(createEtatCivilSchema), asyncHandler((req, res) => controller.createEtatCivil(req, res)));
   router.put('/etat-civil/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(resourceIdParamsSchema, 'params'), validate(updateEtatCivilSchema), asyncHandler((req, res) => controller.updateEtatCivil(req, res)));

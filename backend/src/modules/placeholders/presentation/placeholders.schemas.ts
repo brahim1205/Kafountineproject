@@ -35,13 +35,13 @@ export const yearQuerySchema = z.object({
 
 export const yearLimitQuerySchema = z.object({
   year: yearSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(300).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
 }).strict();
 
 export const yearSearchLimitQuerySchema = z.object({
   year: yearSchema.optional(),
   search: optionalTrimmedString(120),
-  limit: z.coerce.number().int().min(1).max(300).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
 }).strict();
 
 export const urbanismeListQuerySchema = z.object({

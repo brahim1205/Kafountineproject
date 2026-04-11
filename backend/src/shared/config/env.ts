@@ -22,6 +22,7 @@ export const env = {
   apiRateLimitWindowMs: Number(process.env.API_RATE_LIMIT_WINDOW_MS || 60_000),
   apiRateLimitMax: Number(process.env.API_RATE_LIMIT_MAX || 300),
   maxUploadFileSizeBytes: Number(process.env.MAX_UPLOAD_FILE_SIZE_BYTES || 5 * 1024 * 1024),
+  cookieDomain: (process.env.COOKIE_DOMAIN || '').trim(),
   corsOrigin: (process.env.CORS_ORIGIN || 'http://localhost:5173')
     .split(',')
     .map((value) => value.trim())

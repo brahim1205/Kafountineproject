@@ -6,6 +6,10 @@ export const AUTH_TOKEN_COOKIE = 'auth_token';
 export const REFRESH_TOKEN_COOKIE = 'refresh_token';
 export const PORTAL_TOKEN_COOKIE = 'portal_token';
 
+function getCookieDomain(): string | undefined {
+  return env.cookieDomain || undefined;
+}
+
 function buildCookieOptions(maxAgeMs: number): CookieOptions {
   return {
     httpOnly: true,
@@ -13,6 +17,7 @@ function buildCookieOptions(maxAgeMs: number): CookieOptions {
     sameSite: 'lax',
     path: '/',
     maxAge: maxAgeMs,
+    domain: getCookieDomain(),
   };
 }
 
@@ -40,8 +45,14 @@ export function setAuthCookies(res: Response, accessToken: string, refreshToken:
 }
 
 export function clearAuthCookies(res: Response) {
-  res.clearCookie(AUTH_TOKEN_COOKIE, { path: '/' });
-  res.clearCookie(REFRESH_TOKEN_COOKIE, { path: '/' });
+  const options = {
+    path: '/',
+    domain: getCookieDomain(),
+    secure: env.isProduction,
+    sameSite: 'lax' as const,
+  };
+  res.clearCookie(AUTH_TOKEN_COOKIE, options);
+  res.clearCookie(REFRESH_TOKEN_COOKIE, options);
 }
 
 export function setPortalCookie(res: Response, portalToken: string) {
@@ -49,7 +60,12 @@ export function setPortalCookie(res: Response, portalToken: string) {
 }
 
 export function clearPortalCookie(res: Response) {
-  res.clearCookie(PORTAL_TOKEN_COOKIE, { path: '/' });
+  res.clearCookie(PORTAL_TOKEN_COOKIE, {
+    path: '/',
+    domain: getCookieDomain(),
+    secure: env.isProduction,
+    sameSite: 'lax',
+  });
 }
 
 export function readCookie(req: Pick<Request, 'headers'>, name: string): string | null {

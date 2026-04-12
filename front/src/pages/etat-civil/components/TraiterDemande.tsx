@@ -4,6 +4,7 @@ import { createEtatCivilDemande } from '../../../services/etatCivil';
 import { ensureContribuableByIdentity } from '../../../services/contribuables';
 import { getTaxServices, type TaxService } from '../../../services/taxes';
 import { useToast } from '../../../components/feature/Toast';
+import { useYear } from '../../../contexts/YearContext';
 
 type ReceiptData = {
   numero: string;
@@ -17,6 +18,7 @@ type ReceiptData = {
 
 export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }) {
   const { showToast } = useToast();
+  const { selectedYear } = useYear();
   const [typeDocument, setTypeDocument] = useState('');
   const [showRecuPDF, setShowRecuPDF] = useState(false);
   const [transactionData, setTransactionData] = useState<ReceiptData | null>(null);
@@ -28,7 +30,8 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
     cni: '',
     telephone: '',
     adresse: '',
-    exemplaires: 1
+    exemplaires: 1,
+    observations: '',
   });
 
   useEffect(() => {
@@ -76,6 +79,9 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
         contribuableId: contribuable.id,
         typeDocument: typeDocument,
         exemplaires: exemplaire,
+        montant: montantTotal,
+        observations: formData.observations.trim() || undefined,
+        year: selectedYear,
       });
 
       const now = new Date();
@@ -111,13 +117,14 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
   const resetForm = () => {
     setTypeDocument('');
     setTransactionData(null);
-    setFormData({
-      nomComplet: '',
-      cni: '',
-      telephone: '',
-      adresse: '',
-      exemplaires: 1
-    });
+      setFormData({
+        nomComplet: '',
+        cni: '',
+        telephone: '',
+        adresse: '',
+        exemplaires: 1,
+        observations: '',
+      });
   };
 
   const selectedDoc = useMemo(() => typesDocuments.find(d => d.id === typeDocument), [typeDocument, typesDocuments]);
@@ -245,6 +252,8 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
               name="observations"
               rows={3}
               placeholder="Notes ou informations complémentaires..."
+              value={formData.observations}
+              onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
               className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
             ></textarea>
           </div>

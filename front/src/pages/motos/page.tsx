@@ -6,6 +6,7 @@ import { ensureContribuableByIdentity } from '../../services/contribuables';
 import { getStoredUserRole } from '../../services/auth';
 import { useYear } from '../../contexts/YearContext';
 import { useToast } from '../../components/feature/Toast';
+import { uploadImage } from '../../services/upload';
 
 type UiMoto = Moto & {
   photo: string;
@@ -225,12 +226,14 @@ export default function MotosPage() {
       let photoUrl: string | undefined;
       const photoInput = form.querySelector('input[name="photo"]') as HTMLInputElement;
       if (photoInput && photoInput.files && photoInput.files[0]) {
-        const file = photoInput.files[0];
-        photoUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
+        try {
+          const upload = await uploadImage(photoInput.files[0], 'motos');
+          photoUrl = upload.url;
+        } catch {
+          setError("Impossible d'uploader la photo.");
+          setIsSubmittingEnregistrement(false);
+          return;
+        }
       }
 
       // Create the moto - use selectedYear for consistency with current filter

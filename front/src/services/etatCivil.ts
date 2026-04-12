@@ -46,7 +46,9 @@ export async function createEtatCivilDemande(payload: {
   contribuableId: string;
   typeDocument: string;
   exemplaires: number;
-  montant?: number;
+  montant: number;
+  observations?: string;
+  year?: number;
 }): Promise<EtatCivilDemande> {
   return apiRequest<EtatCivilDemande>('/etat-civil', {
     method: 'POST',

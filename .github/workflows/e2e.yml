@@ -98,7 +98,15 @@ jobs:
         run: |
           sleep 10
           curl -f http://localhost:4173 || exit 1
-          curl -f http://localhost:3000/health || exit 1
+          for i in {1..30}; do
+            if curl -f http://localhost:3000/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to start. Last logs:" >&2
+          tail -n 200 /tmp/kafountine-backend.log >&2 || true
+          exit 1
 
       - name: Run E2E tests
         run: npx playwright test

@@ -29,7 +29,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafontine
+            cd /opt/kafountine/Kafountineproject
             echo "=== Backup Status ==="
             ls -lt backups 2>/dev/null | head -10 || echo "No backup directory"
             echo ""
@@ -56,7 +56,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafontine
+            cd /opt/kafountine/Kafountineproject
             bash ./scripts/validate-prod-env.sh .env.prod
             set -a
             source .env.prod
@@ -71,14 +71,14 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          source: /opt/kafontine/backups/${{ env.BACKUP_FILENAME }}
+          source: /opt/kafountine/Kafountineproject/backups/${{ env.BACKUP_FILENAME }}
           target: ./backups
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: disaster-recovery-backup
-          path: backups/opt/kafontine/backups/${{ env.BACKUP_FILENAME }}
+          path: backups/opt/kafountine/Kafountineproject/backups/${{ env.BACKUP_FILENAME }}
           retention-days: 30
 
       - name: Notify
@@ -86,7 +86,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "Disaster Recovery: Full backup completed for Kafontine"
+              "text": "Disaster Recovery: Full backup completed for Kafountine"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -114,7 +114,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           source: "./**/*.dump"
-          target: /opt/kafontine/backups/restore
+          target: /opt/kafountine/Kafountineproject/backups/restore
 
       - name: Restore database on server
         uses: appleboy/ssh-action@v1
@@ -124,7 +124,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafontine
+            cd /opt/kafountine/Kafountineproject
             bash ./scripts/validate-prod-env.sh .env.prod
             set -a
             source .env.prod
@@ -167,7 +167,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           source: "./**/*.dump"
-          target: /opt/kafontine/backups/restore
+          target: /opt/kafountine/Kafountineproject/backups/restore
 
       - name: Restore disaster recovery backup on server
         uses: appleboy/ssh-action@v1
@@ -177,7 +177,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafontine
+            cd /opt/kafountine/Kafountineproject
             bash ./scripts/validate-prod-env.sh .env.prod
             set -a
             source .env.prod

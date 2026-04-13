@@ -1,4 +1,3 @@
-
 name: Database Backup
 
 on:
@@ -40,7 +39,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafontine
+            cd /opt/kafountine/Kafountineproject
             bash ./scripts/validate-prod-env.sh .env.prod
             set -a
             source .env.prod
@@ -56,14 +55,14 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          source: /opt/kafontine/backups/${{ env.BACKUP_FILENAME }}
+          source: /opt/kafountine/Kafountineproject/backups/${{ env.BACKUP_FILENAME }}
           target: ./backups
 
       - name: Upload backup artifacts
         uses: actions/upload-artifact@v4
         with:
           name: database-backup
-          path: backups/opt/kafontine/backups/${{ env.BACKUP_FILENAME }}
+          path: backups/opt/kafountine/Kafountineproject/backups/${{ env.BACKUP_FILENAME }}
           retention-days: 30
 
       - name: Upload to S3 (if configured)
@@ -73,7 +72,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          aws s3 cp "backups/opt/kafontine/backups/${{ env.BACKUP_FILENAME }}" "s3://${AWS_S3_BUCKET}/$(date +%Y/%m/%d)/${{ env.BACKUP_FILENAME }}"
+          aws s3 cp "backups/opt/kafountine/Kafountineproject/backups/${{ env.BACKUP_FILENAME }}" "s3://${AWS_S3_BUCKET}/$(date +%Y/%m/%d)/${{ env.BACKUP_FILENAME }}"
 
       - name: Cleanup old backups from S3
         if: env.AWS_S3_BUCKET != ''

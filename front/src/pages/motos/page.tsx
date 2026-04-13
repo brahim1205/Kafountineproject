@@ -7,6 +7,11 @@ import { getStoredUserRole } from '../../services/auth';
 import { useYear } from '../../contexts/YearContext';
 import { useToast } from '../../components/feature/Toast';
 import { uploadImage } from '../../services/upload';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../utils/formValidation';
 
 type UiMoto = Moto & {
   photo: string;
@@ -173,13 +178,17 @@ export default function MotosPage() {
     e.preventDefault();
     setError('');
     setIsSubmittingEnregistrement(true);
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      setIsSubmittingEnregistrement(false);
+      return;
+    }
     
     try {
       const form = e.target as HTMLFormElement;
       const formData = new FormData(form);
       
       const matricule = (formData.get('matricule') as string) || '';
-      const permis = (formData.get('permis') as string) || '';
+      const permis = (formData.get('permisConducteur') as string) || '';
       
       // Validation des doublons côté frontend
       const { matriculeExists, permisExists } = await validateMotoDuplicates(matricule, permis);
@@ -246,7 +255,7 @@ export default function MotosPage() {
         couleur: formData.get('couleur') as string,
         proprietaireId: proprietaire.id,
         conducteurId: conducteurId,
-        permis: formData.get('permis') as string,
+        permis: permis || undefined,
         photo: photoUrl,
       });
 
@@ -278,8 +287,11 @@ export default function MotosPage() {
   const handleSubmitPaiement = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingPaiement(true);
-    
     if (!selectedMoto) return;
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      setIsSubmittingPaiement(false);
+      return;
+    }
 
     // Créer les données de transaction pour le reçu
     const now = new Date();
@@ -318,8 +330,8 @@ export default function MotosPage() {
         setShowSuccessMessage(false);
         setShowRecuPDF(true);
       }, 1000);
-    } catch {
-      showToast("Impossible d'enregistrer le paiement.", 'error');
+    } catch (error) {
+      showToast(getErrorMessage(error, "Impossible d'enregistrer le paiement."), 'error');
     } finally {
       setIsSubmittingPaiement(false);
     }
@@ -328,6 +340,9 @@ export default function MotosPage() {
   const handleSubmitChangement = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     
     try {
       const form = e.target as HTMLFormElement;
@@ -339,10 +354,6 @@ export default function MotosPage() {
       const nouveauTelephone = (formData.get('nouveauTelephone') as string) || '';
       const nouveauPermis = (formData.get('nouveauPermis') as string) || '';
       
-      if (!nouveauNom || !nouveauCNI || !nouveauTelephone) {
-        throw new Error('Le nom, le CNI et le téléphone sont requis');
-      }
-
       // Create or find the new personne
       const nouvellePersonne = await ensureContribuableByIdentity({
         cni: nouveauCNI,
@@ -754,7 +765,7 @@ export default function MotosPage() {
                 </button>
               </div>
               
-              <form onSubmit={handleSubmitEnregistrement} className="p-6">
+              <form onSubmit={handleSubmitEnregistrement} onInput={clearFieldValidationError} noValidate className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Informations Moto */}
                   <div className="md:col-span-2">
@@ -768,14 +779,14 @@ export default function MotosPage() {
                         <input
                           type="text"
                           name="matricule"
-                          required
+                          data-required="true"
                           placeholder="DK-1234-AB"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Marque *</label>
-                        <select name="marque" required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer">
+                        <select name="marque" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer">
                           <option value="">Sélectionner</option>
                           <option value="Honda">Honda</option>
                           <option value="Yamaha">Yamaha</option>
@@ -788,7 +799,7 @@ export default function MotosPage() {
                         <input
                           type="text"
                           name="modele"
-                          required
+                          data-required="true"
                           placeholder="CG 125"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         />
@@ -798,7 +809,7 @@ export default function MotosPage() {
                         <input
                           type="number"
                           name="annee"
-                          required
+                          data-required="true"
                           placeholder="2024"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         />
@@ -808,7 +819,7 @@ export default function MotosPage() {
                         <input
                           type="text"
                           name="couleur"
-                          required
+                          data-required="true"
                           placeholder="Rouge"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         />
@@ -837,7 +848,7 @@ export default function MotosPage() {
                         <input
                           type="text"
                           name="nomProprietaire"
-                          required
+                          data-required="true"
                           placeholder="Mamadou Diallo"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         />
@@ -847,7 +858,7 @@ export default function MotosPage() {
                         <input
                           type="text"
                           name="cniProprietaire"
-                          required
+                          data-required="true"
                           placeholder="1234567890123"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         />
@@ -857,7 +868,7 @@ export default function MotosPage() {
                         <input
                           type="tel"
                           name="telephoneProprietaire"
-                          required
+                          data-required="true"
                           placeholder="77 123 45 67"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         />
@@ -969,7 +980,7 @@ export default function MotosPage() {
                 <p className="text-sm text-emerald-100 mt-1">{selectedMoto.matricule}</p>
               </div>
               
-              <form onSubmit={handleSubmitPaiement} className="p-6 space-y-4">
+              <form onSubmit={handleSubmitPaiement} onInput={clearFieldValidationError} noValidate className="p-6 space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <img
@@ -1095,7 +1106,7 @@ export default function MotosPage() {
                 </button>
               </div>
               
-              <form id="form-changement" onSubmit={handleSubmitChangement} className="p-6 space-y-6">
+              <form id="form-changement" onSubmit={handleSubmitChangement} onInput={clearFieldValidationError} noValidate className="p-6 space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Type de changement</label>
                   <div className="grid grid-cols-2 gap-3">
@@ -1140,7 +1151,7 @@ export default function MotosPage() {
                       <input
                         type="text"
                         name="nouveauNom"
-                        required
+                        data-required="true"
                         placeholder="Nouveau nom"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />
@@ -1150,7 +1161,7 @@ export default function MotosPage() {
                       <input
                         type="text"
                         name="nouveauCNI"
-                        required
+                        data-required="true"
                         placeholder="1234567890123"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />
@@ -1160,7 +1171,7 @@ export default function MotosPage() {
                       <input
                         type="tel"
                         name="nouveauTelephone"
-                        required
+                        data-required="true"
                         placeholder="77 123 45 67"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       />

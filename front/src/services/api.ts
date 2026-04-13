@@ -117,7 +117,10 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       if (response.status === 403) {
         throw new Error(json?.message || 'Permissions insuffisantes pour cette action.');
       }
-      throw new Error(json?.message || `Erreur API (${response.status})`);
+      throw new Error(
+        json?.message ||
+          `L'action a échoué côté serveur (code ${response.status}). Veuillez vérifier les informations saisies.`,
+      );
     }
 
     return (json as ApiEnvelope<T>).data;
@@ -129,8 +132,8 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       // These are our custom handled errors - keep their messages
       if (error.message.includes('Session expirée') ||
           error.message.includes('données existent déjà') ||
-          error.message.includes('Erreur API') ||
-          error.message.includes('Permissions insuffisantes')) {
+          error.message.includes('Permissions insuffisantes') ||
+          error.message.includes('côté serveur')) {
         throw error;
       }
       
@@ -156,6 +159,8 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       throw new Error('Un contribuable avec ces coordonnées existe déjà.');
     }
     
-    throw new Error('Une erreur est survenue. Veuillez réessayer.');
+    throw new Error(
+      "L'action n'a pas pu être terminée. Vérifiez les informations saisies puis réessayez.",
+    );
   }
 }

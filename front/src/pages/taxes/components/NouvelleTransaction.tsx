@@ -5,6 +5,10 @@ import RecuPDF from '../../../components/feature/RecuPDF';
 import { ensureContribuableByIdentity } from '../../../services/contribuables';
 import { createTransaction, getTaxCategories, getTaxServices, type TaxCategory, type TaxService } from '../../../services/taxes';
 import { useToast } from '../../../components/feature/Toast';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 type ReceiptTransaction = {
   numero: string;
@@ -73,10 +77,19 @@ export default function NouvelleTransaction() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (etape === 1) {
+      if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+        return;
+      }
       setEtape(2);
     } else if (etape === 2) {
+      if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+        return;
+      }
       setEtape(3);
     } else {
+      if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+        return;
+      }
       try {
         setIsSubmitting(true);
         const contribuable = await ensureContribuableByIdentity({
@@ -209,7 +222,7 @@ export default function NouvelleTransaction() {
 
         {/* Formulaire ou Message de succès */}
         {!transactionValidee ? (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               {/* Étape 1 : Catégorie & Service */}
               {etape === 1 && (
@@ -222,7 +235,7 @@ export default function NouvelleTransaction() {
                       value={formData.categorie}
                       onChange={(e) => setFormData({ ...formData, categorie: e.target.value, service: '' })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
-                      required
+                      data-required="true"
                     >
                       <option value="">Sélectionner une catégorie</option>
                       {categories.map((cat) => (
@@ -240,7 +253,7 @@ export default function NouvelleTransaction() {
                         value={formData.service}
                         onChange={(e) => setFormData({ ...formData, service: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
-                        required
+                        data-required="true"
                       >
                         <option value="">Sélectionner un service</option>
                         {services.map((service) => (
@@ -263,7 +276,7 @@ export default function NouvelleTransaction() {
                         value={formData.quantite}
                         onChange={(e) => setFormData({ ...formData, quantite: parseInt(e.target.value) || 1 })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
-                        required
+                        data-required="true"
                       />
                       <div className="mt-4 p-4 bg-emerald-50 rounded-lg">
                         <div className="flex items-center justify-between">
@@ -291,7 +304,7 @@ export default function NouvelleTransaction() {
                       onChange={(e) => setFormData({ ...formData, contribuable: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
                       placeholder="Ex: Mamadou Diallo"
-                      required
+                      data-required="true"
                     />
                   </div>
 
@@ -306,7 +319,7 @@ export default function NouvelleTransaction() {
                         onChange={(e) => setFormData({ ...formData, cni: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
                         placeholder="1234567890123"
-                        required
+                        data-required="true"
                       />
                     </div>
 
@@ -320,7 +333,7 @@ export default function NouvelleTransaction() {
                         onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
                         placeholder="77 123 45 67"
-                        required
+                        data-required="true"
                       />
                     </div>
                   </div>

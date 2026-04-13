@@ -10,6 +10,11 @@ import {
 import { getStoredUserRole } from '../../../services/auth';
 import { useYear } from '../../../contexts/YearContext';
 import { useToast } from '../../../components/feature/Toast';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 type PaymentStatusLabel = 'Payé' | 'En attente' | 'En retard';
 
@@ -108,6 +113,9 @@ export default function SuiviPaiements() {
   const handleSubmitPaiement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPaiement) return;
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     
     try {
       await createPaiementMarche({
@@ -134,8 +142,8 @@ export default function SuiviPaiements() {
         setShowSuccessMessage(false);
         setShowRecuPDF(true);
       }, 1000);
-    } catch {
-      showToast("Impossible d'enregistrer le paiement.", 'error');
+    } catch (error) {
+      showToast(getErrorMessage(error, "Impossible d'enregistrer le paiement."), 'error');
     }
   };
 
@@ -307,7 +315,7 @@ export default function SuiviPaiements() {
               <p className="text-sm text-cyan-100 mt-1">Place {selectedPaiement.numero}</p>
             </div>
 
-            <form onSubmit={handleSubmitPaiement} className="p-6 space-y-4">
+            <form onSubmit={handleSubmitPaiement} onInput={clearFieldValidationError} noValidate className="p-6 space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Occupant</span>
@@ -332,7 +340,7 @@ export default function SuiviPaiements() {
                   Mode de paiement <span className="text-red-500">*</span>
                 </label>
                 <select
-                  required
+                  data-required="true"
                   className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer"
                 >
                   <option value="">Sélectionnez</option>
@@ -349,7 +357,7 @@ export default function SuiviPaiements() {
                 </label>
                 <input
                   type="date"
-                  required
+                  data-required="true"
                   defaultValue={new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                 />

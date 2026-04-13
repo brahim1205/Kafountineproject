@@ -3,6 +3,11 @@ import DashboardLayout from '../../components/feature/DashboardLayout';
 import { createUser, deleteUser, listUsers, updateUser } from '../../services/users';
 import { useYear } from '../../contexts/YearContext';
 import { useToast } from '../../components/feature/Toast';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../utils/formValidation';
 
 type UiUser = {
   id: string;
@@ -62,6 +67,9 @@ export default function Utilisateurs() {
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget)) {
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     const fullName = String(fd.get('name') || '').trim();
     const parts = fullName.split(/\s+/).filter(Boolean);
@@ -79,14 +87,20 @@ export default function Utilisateurs() {
       });
       setShowAddModal(false);
       await loadData();
-    } catch {
-      showToast("Erreur lors de la création de l'utilisateur.", 'error');
+    } catch (error) {
+      showToast(
+        getErrorMessage(error, "La création de l'utilisateur a échoué."),
+        'error',
+      );
     }
   };
 
   const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedUser) return;
+    if (!validateFormElement(e.currentTarget)) {
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     const fullName = String(fd.get('name') || '').trim();
     const parts = fullName.split(/\s+/).filter(Boolean);
@@ -104,8 +118,11 @@ export default function Utilisateurs() {
       setShowEditModal(false);
       setSelectedUser(null);
       await loadData();
-    } catch {
-      showToast("Erreur lors de la mise à jour de l'utilisateur.", 'error');
+    } catch (error) {
+      showToast(
+        getErrorMessage(error, "La mise à jour de l'utilisateur a échoué."),
+        'error',
+      );
     }
   };
 
@@ -343,7 +360,7 @@ function UserForm({
   defaultValues?: { name?: string; email?: string; role?: string; phone?: string; status?: string };
 }) {
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} onInput={clearFieldValidationError} noValidate className="space-y-4">
       {/* Première ligne: Nom complet + Email */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="Nom complet" name="name" required defaultValue={defaultValues?.name} />
@@ -416,7 +433,7 @@ function Field({
       <input
         name={name}
         type={type}
-        required={required}
+        data-required={required ? 'true' : undefined}
         defaultValue={defaultValue}
         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
       />

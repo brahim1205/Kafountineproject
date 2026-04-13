@@ -2,6 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useYear } from '../../../contexts/YearContext';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
 import { listCamions, createCamion, deleteCamion, listExpeditions, createExpedition, type CamionFrigorifique, type Expedition } from '../../../services/quai-peche';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 export default function CamionsPage() {
   const [camionsList, setCamionsList] = useState<CamionFrigorifique[]>([]);
@@ -98,6 +102,9 @@ export default function CamionsPage() {
 
   const handleSubmitCamion = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       setErrorMsg('');
       await createCamion({
@@ -114,6 +121,9 @@ export default function CamionsPage() {
 
   const handleSubmitExpedition = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       setErrorMsg('');
       await createExpedition({
@@ -477,13 +487,13 @@ export default function CamionsPage() {
                 </button>
               </div>
             </div>
-            <form onSubmit={handleSubmitCamion}>
+            <form onSubmit={handleSubmitCamion} onInput={clearFieldValidationError} noValidate>
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Immatriculation *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       placeholder="Ex: DK 1234 A"
                       value={camionForm.immatriculation}
@@ -494,7 +504,7 @@ export default function CamionsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Marque *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       placeholder="Ex: Renault"
                       value={camionForm.marque}
@@ -574,12 +584,12 @@ export default function CamionsPage() {
                 </button>
               </div>
             </div>
-            <form onSubmit={handleSubmitExpedition}>
+            <form onSubmit={handleSubmitExpedition} onInput={clearFieldValidationError} noValidate>
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Camion *</label>
                   <select
-                    required
+                    data-required="true"
                     value={expeditionForm.camionId}
                     onChange={(e) => setExpeditionForm({ ...expeditionForm, camionId: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
@@ -594,7 +604,7 @@ export default function CamionsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Poids (kg) *</label>
                     <input
-                      required
+                      data-required="true"
                       type="number"
                       min="0"
                       step="0.1"

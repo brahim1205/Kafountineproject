@@ -1,6 +1,11 @@
 
 import React, { useState } from 'react';
 import type { FormationType, JeuneType } from '../page';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 interface InscriptionJeuneProps {
   formations: FormationType[];
@@ -36,10 +41,7 @@ export default function InscriptionJeune({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Basic validation – ensure a formation is selected
-    if (!formData.formationId) {
-      setErrorMsg('Veuillez sélectionner une formation.');
+    if (!validateFormElement(e.currentTarget)) {
       return;
     }
 
@@ -69,8 +71,10 @@ export default function InscriptionJeune({
       setErrorMsg('');
       onAdd(newJeune);
       onClose();
-    } catch {
-      setErrorMsg('Une erreur est survenue. Veuillez réessayer.');
+    } catch (error) {
+      setErrorMsg(
+        getErrorMessage(error, "L'inscription du jeune a échoué."),
+      );
     }
   };
 
@@ -108,7 +112,7 @@ export default function InscriptionJeune({
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6">
+            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate className="p-6">
               {errorMsg && (
                 <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {errorMsg}
@@ -121,7 +125,7 @@ export default function InscriptionJeune({
                     Formation *
                   </label>
                   <select
-                    required
+                    data-required="true"
                     value={formData.formationId}
                     onChange={(e) =>
                       setFormData({ ...formData, formationId: e.target.value })
@@ -149,7 +153,7 @@ export default function InscriptionJeune({
                   </label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={formData.prenom}
                     onChange={(e) =>
                       setFormData({ ...formData, prenom: e.target.value })
@@ -166,7 +170,7 @@ export default function InscriptionJeune({
                   </label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={formData.nom}
                     onChange={(e) =>
                       setFormData({ ...formData, nom: e.target.value })
@@ -183,7 +187,7 @@ export default function InscriptionJeune({
                   </label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={formData.cni}
                     onChange={(e) =>
                       setFormData({ ...formData, cni: e.target.value })
@@ -200,7 +204,7 @@ export default function InscriptionJeune({
                   </label>
                   <input
                     type="tel"
-                    required
+                    data-required="true"
                     value={formData.telephone}
                     onChange={(e) =>
                       setFormData({ ...formData, telephone: e.target.value })
@@ -219,7 +223,7 @@ export default function InscriptionJeune({
                   </label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={formData.adresse}
                     onChange={(e) =>
                       setFormData({ ...formData, adresse: e.target.value })
@@ -235,7 +239,7 @@ export default function InscriptionJeune({
                     Niveau d’étude *
                   </label>
                   <select
-                    required
+                    data-required="true"
                     value={formData.niveauEtude}
                     onChange={(e) =>
                       setFormData({ ...formData, niveauEtude: e.target.value })
@@ -257,7 +261,7 @@ export default function InscriptionJeune({
                     Sexe *
                   </label>
                   <select
-                    required
+                    data-required="true"
                     value={formData.sexe}
                     onChange={(e) =>
                       setFormData({ ...formData, sexe: e.target.value })
@@ -277,7 +281,7 @@ export default function InscriptionJeune({
                   </label>
                   <input
                     type="date"
-                    required
+                    data-required="true"
                     value={formData.dateNaissance}
                     onChange={(e) =>
                       setFormData({ ...formData, dateNaissance: e.target.value })

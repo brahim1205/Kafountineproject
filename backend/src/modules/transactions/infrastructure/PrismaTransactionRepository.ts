@@ -38,8 +38,27 @@ export class PrismaTransactionRepository implements TransactionRepository {
 
   async createWithAtomicNumero(payload: Omit<CreateTransactionPayload, 'numero'>) {
     return prisma.$transaction(async (tx) => {
-      const count = await tx.transaction.count({ where: { year: payload.year } });
-      const numero = `TX-${payload.year}-${String(count + 1).padStart(3, '0')}`;
+      // Serialize numero generation per year to avoid unique constraint collisions.
+      const lockKey = Number(`${payload.year}`.slice(-4));
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
+
+      const last = await tx.transaction.findFirst({
+        where: { year: payload.year },
+        orderBy: { numero: 'desc' },
+        select: { numero: true },
+      });
+
+      let nextNumber = 1;
+      if (last?.numero) {
+        const parts = last.numero.split('-');
+        const tail = parts[parts.length - 1];
+        const parsed = Number(tail);
+        if (!Number.isNaN(parsed)) {
+          nextNumber = parsed + 1;
+        }
+      }
+
+      const numero = `TX-${payload.year}-${String(nextNumber).padStart(3, '0')}`;
 
       return tx.transaction.create({
         data: {

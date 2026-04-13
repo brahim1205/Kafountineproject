@@ -3,6 +3,10 @@ import { useYear } from '../../../contexts/YearContext';
 import { useToast } from '../../../components/feature/Toast';
 import { apiRequest } from '../../../services/api';
 import { getStoredUserName, getStoredUserRole } from '../../../services/auth';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 type LigneBudgetaire = {
   id: string;
@@ -117,6 +121,9 @@ export default function ServiceFinancesDashboard() {
 
   const handleAddLigneBudgetaire = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       await apiRequest<LigneBudgetaire>('/budget/lignes', {
         method: 'POST',
@@ -138,6 +145,9 @@ export default function ServiceFinancesDashboard() {
 
   const handleAddDepense = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       await apiRequest<DemandeDepense>('/budget/demandes', {
         method: 'POST',
@@ -423,12 +433,12 @@ export default function ServiceFinancesDashboard() {
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <form onSubmit={handleAddLigneBudgetaire} className="space-y-4">
+              <form onSubmit={handleAddLigneBudgetaire} onInput={clearFieldValidationError} noValidate className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Code budgétaire</label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={newLigneBudget.code}
                     onChange={(e) => setNewLigneBudget({ ...newLigneBudget, code: e.target.value })}
                     placeholder="Ex: 601"
@@ -439,7 +449,7 @@ export default function ServiceFinancesDashboard() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Libellé</label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={newLigneBudget.libelle}
                     onChange={(e) => setNewLigneBudget({ ...newLigneBudget, libelle: e.target.value })}
                     placeholder="Ex: Salaires & Indemnités"
@@ -450,7 +460,7 @@ export default function ServiceFinancesDashboard() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Montant prévu (FCFA)</label>
                   <input
                     type="number"
-                    required
+                    data-required="true"
                     min="0"
                     value={newLigneBudget.prevu || ''}
                     onChange={(e) => setNewLigneBudget({ ...newLigneBudget, prevu: parseInt(e.target.value) || 0 })}
@@ -495,11 +505,11 @@ export default function ServiceFinancesDashboard() {
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <form onSubmit={handleAddDepense} className="space-y-4">
+              <form onSubmit={handleAddDepense} onInput={clearFieldValidationError} noValidate className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Service demandeur</label>
                   <select
-                    required
+                    data-required="true"
                     value={newDepense.service}
                     onChange={(e) => setNewDepense({ ...newDepense, service: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm"
@@ -516,7 +526,7 @@ export default function ServiceFinancesDashboard() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description de la dépense</label>
                   <textarea
-                    required
+                    data-required="true"
                     rows={3}
                     value={newDepense.description}
                     onChange={(e) => setNewDepense({ ...newDepense, description: e.target.value })}
@@ -528,7 +538,7 @@ export default function ServiceFinancesDashboard() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Montant (FCFA)</label>
                   <input
                     type="number"
-                    required
+                    data-required="true"
                     min="0"
                     value={newDepense.montant || ''}
                     onChange={(e) => setNewDepense({ ...newDepense, montant: parseInt(e.target.value) || 0 })}

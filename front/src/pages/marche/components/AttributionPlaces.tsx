@@ -8,6 +8,10 @@ import {
 import { ensureContribuableByIdentity } from '../../../services/contribuables';
 import { getStoredUserRole } from '../../../services/auth';
 import { useYear } from '../../../contexts/YearContext';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 type PlaceStatusLabel = 'Occupée' | 'Disponible';
 
@@ -69,6 +73,10 @@ export default function AttributionPlaces() {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      setIsSubmitting(false);
+      return;
+    }
     
     try {
       const form = e.target as HTMLFormElement;
@@ -467,7 +475,7 @@ export default function AttributionPlaces() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Type d'attribution */}
                 <div className="md:col-span-2">
@@ -476,7 +484,7 @@ export default function AttributionPlaces() {
                   </label>
                   <select
                     name="attributionType"
-                    required
+                    data-required="true"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer"
                   >
                     <option value="nouveau">Créer une nouvelle place</option>
@@ -492,7 +500,7 @@ export default function AttributionPlaces() {
                   <input
                     type="text"
                     name="newPlaceNumber"
-                    required
+                    data-required="true"
                     placeholder="Ex: A-001, B-012"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   />
@@ -523,7 +531,7 @@ export default function AttributionPlaces() {
                   </label>
                   <select
                     name="type"
-                    required
+                    data-required="true"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer"
                   >
                     <option value="">Sélectionnez</option>
@@ -541,7 +549,7 @@ export default function AttributionPlaces() {
                   </label>
                   <select
                     name="zone"
-                    required
+                    data-required="true"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer"
                   >
                     <option value="">Sélectionnez</option>
@@ -561,7 +569,7 @@ export default function AttributionPlaces() {
                   <input
                     type="number"
                     name="tarif"
-                    required
+                    data-required="true"
                     placeholder="Ex: 25000"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   />
@@ -574,7 +582,7 @@ export default function AttributionPlaces() {
                   </label>
                   <select
                     name="periode"
-                    required
+                    data-required="true"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer"
                   >
                     <option value="">Sélectionnez</option>
@@ -597,7 +605,7 @@ export default function AttributionPlaces() {
                   <input
                     type="text"
                     name="nomComplet"
-                    required
+                    data-required="true"
                     placeholder="Ex: Fatou Diallo"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   />
@@ -610,7 +618,7 @@ export default function AttributionPlaces() {
                   <input
                     type="text"
                     name="cni"
-                    required
+                    data-required="true"
                     placeholder="Ex: 1234567890123"
                     maxLength={13}
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
@@ -624,7 +632,7 @@ export default function AttributionPlaces() {
                   <input
                     type="tel"
                     name="telephone"
-                    required
+                    data-required="true"
                     placeholder="Ex: 77 123 45 67"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   />
@@ -636,7 +644,7 @@ export default function AttributionPlaces() {
                   </label>
                   <select
                     name="activite"
-                    required
+                    data-required="true"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   >
                     <option value="">Sélectionnez</option>
@@ -672,7 +680,7 @@ export default function AttributionPlaces() {
                   <input
                     type="date"
                     name="dateDebut"
-                    required
+                    data-required="true"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   />
                 </div>
@@ -684,7 +692,7 @@ export default function AttributionPlaces() {
                   </label>
                   <select
                     name="duree"
-                    required
+                    data-required="true"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   >
                     <option value="1">1 mois</option>

@@ -5,6 +5,10 @@ import { ensureContribuableByIdentity } from '../../../services/contribuables';
 import { getTaxServices, type TaxService } from '../../../services/taxes';
 import { useToast } from '../../../components/feature/Toast';
 import { useYear } from '../../../contexts/YearContext';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 type ReceiptData = {
   numero: string;
@@ -55,6 +59,10 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      setIsSubmitting(false);
+      return;
+    }
     
     try {
       const selectedDoc = typesDocuments.find(d => d.id === typeDocument);
@@ -131,7 +139,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Type de document */}
           <div className="md:col-span-2">
@@ -139,7 +147,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
               Type de document <span className="text-red-500">*</span>
             </label>
             <select
-              required
+              data-required="true"
               value={typeDocument}
               onChange={(e) => setTypeDocument(e.target.value)}
               className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -159,7 +167,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
             <input
               type="text"
               name="nomComplet"
-              required
+              data-required="true"
               placeholder="Ex: Mamadou Diallo"
               value={formData.nomComplet}
               onChange={(e) => setFormData({...formData, nomComplet: e.target.value})}
@@ -174,7 +182,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
             <input
               type="text"
               name="cni"
-              required
+              data-required="true"
               placeholder="Ex: 1234567890123"
               maxLength={13}
               value={formData.cni}
@@ -190,7 +198,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
             <input
               type="tel"
               name="telephone"
-              required
+              data-required="true"
               placeholder="Ex: 77 123 45 67"
               value={formData.telephone}
               onChange={(e) => setFormData({...formData, telephone: e.target.value})}
@@ -220,7 +228,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
             <input
               type="number"
               name="exemplaires"
-              required
+              data-required="true"
               min="1"
               value={formData.exemplaires}
               onChange={(e) => setFormData({...formData, exemplaires: parseInt(e.target.value) || 1})}
@@ -234,7 +242,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
             </label>
             <select
               name="modePaiement"
-              required
+              data-required="true"
               className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="especes">Espèces</option>

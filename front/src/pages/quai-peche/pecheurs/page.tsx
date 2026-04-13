@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useYear } from '../../../contexts/YearContext';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
 import { listPecheurs, createPecheur, updatePecheur, deletePecheur, type Pecheur } from '../../../services/quai-peche';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 export default function PecheursPage() {
   const [pecheurs, setPecheurs] = useState<Pecheur[]>([]);
@@ -75,6 +79,9 @@ export default function PecheursPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       setErrorMsg('');
       await createPecheur(formData);
@@ -89,6 +96,9 @@ export default function PecheursPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPecheur) return;
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       setErrorMsg('');
       await updatePecheur(selectedPecheur.id, formData);
@@ -310,13 +320,13 @@ export default function PecheursPage() {
                 </button>
               </div>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate>
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       placeholder="Ex: Sall"
                       value={formData.nom}
@@ -327,7 +337,7 @@ export default function PecheursPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       placeholder="Ex: Moussa"
                       value={formData.prenom}
@@ -394,13 +404,13 @@ export default function PecheursPage() {
                 </button>
               </div>
             </div>
-            <form onSubmit={handleUpdate}>
+            <form onSubmit={handleUpdate} onInput={clearFieldValidationError} noValidate>
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       value={formData.nom}
                       onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
@@ -410,7 +420,7 @@ export default function PecheursPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       value={formData.prenom}
                       onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}

@@ -11,6 +11,11 @@ import {
 import { getStoredUserRole } from '../../services/auth';
 import { useYear } from '../../contexts/YearContext';
 import { useToast } from '../../components/feature/Toast';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../utils/formValidation';
 
 type UiContribuable = {
   id: string;
@@ -78,6 +83,9 @@ export default function Contribuables() {
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget)) {
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     const fullName = String(fd.get('name') || '').trim();
     const chunks = fullName.split(/\s+/).filter(Boolean);
@@ -117,13 +125,13 @@ export default function Contribuables() {
       await loadData();
     } catch (error) {
       // Gestion des erreurs venant du backend
-      const message = error instanceof Error ? error.message : '';
+      const message = getErrorMessage(error, 'La création du contribuable a échoué.');
       if (message.includes('NIN') || message.includes('carte d\'identité')) {
         showToast('Ce numéro de carte d\'identité (NIN) est déjà utilisé par un autre contribuable.', 'error');
       } else if (message.includes('téléphone')) {
         showToast('Ce numéro de téléphone est déjà utilisé par un autre contribuable.', 'error');
       } else {
-        showToast('Erreur lors de la création du contribuable.', 'error');
+        showToast(message, 'error');
       }
     }
   };
@@ -131,6 +139,9 @@ export default function Contribuables() {
   const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedContribuable) return;
+    if (!validateFormElement(e.currentTarget)) {
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     const fullName = String(fd.get('name') || '').trim();
     const chunks = fullName.split(/\s+/).filter(Boolean);
@@ -149,8 +160,8 @@ export default function Contribuables() {
       setShowEditModal(false);
       setSelectedContribuable(null);
       await loadData();
-    } catch {
-      showToast('Erreur lors de la modification.', 'error');
+    } catch (error) {
+      showToast(getErrorMessage(error, 'La modification du contribuable a échoué.'), 'error');
     }
   };
 
@@ -295,7 +306,7 @@ export default function Contribuables() {
 
       {canManage && showAddModal && (
         <Modal title="Nouveau contribuable" onClose={() => setShowAddModal(false)}>
-          <form onSubmit={handleCreate} className="space-y-4">
+          <form onSubmit={handleCreate} onInput={clearFieldValidationError} noValidate className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input label="Nom complet *" name="name" required />
               <Input label="NIN (Numéro ID) *" name="nin" required placeholder="ex: 1234567890" />
@@ -338,7 +349,7 @@ export default function Contribuables() {
             setSelectedContribuable(null);
           }}
         >
-          <form onSubmit={handleEdit} className="space-y-4">
+          <form onSubmit={handleEdit} onInput={clearFieldValidationError} noValidate className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input label="Nom complet *" name="name" defaultValue={selectedContribuable.name} required />
               <Input label="NIN (Numéro ID) *" name="nin" defaultValue={selectedContribuable.nin} required placeholder="ex: 1234567890" />
@@ -433,7 +444,7 @@ function Input({ label, name, required, defaultValue, type, placeholder }: { lab
       <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
       <input
         name={name}
-        required={required}
+        data-required={required ? 'true' : undefined}
         defaultValue={defaultValue}
         type={type || 'text'}
         placeholder={placeholder}

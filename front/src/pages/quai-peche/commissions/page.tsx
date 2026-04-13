@@ -3,6 +3,10 @@ import { useYear } from '../../../contexts/YearContext';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
 import { listCommissions, validateCommission, createCommission, type Commission, type Pecheur } from '../../../services/quai-peche';
 import { listPecheurs } from '../../../services/quai-peche';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 export default function CommissionsPage() {
   const { selectedYear } = useYear();
@@ -82,6 +86,9 @@ export default function CommissionsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       setErrorMsg('');
       await createCommission({
@@ -306,12 +313,12 @@ isCurrentYear && (
                 </button>
               </div>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate>
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pêcheur *</label>
                   <select
-                    required
+                    data-required="true"
                     value={formData.pecheurId}
                     onChange={(e) => setFormData({ ...formData, pecheurId: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
@@ -326,7 +333,7 @@ isCurrentYear && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Poids (kg) *</label>
                     <input
-                      required
+                      data-required="true"
                       type="number"
                       min="0"
                       step="0.1"
@@ -339,7 +346,7 @@ isCurrentYear && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type de Poisson *</label>
                     <select
-                      required
+                      data-required="true"
                       value={formData.typePoisson}
                       onChange={(e) => setFormData({ ...formData, typePoisson: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"

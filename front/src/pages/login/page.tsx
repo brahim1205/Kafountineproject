@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import { loginRequest, requestPasswordReset, saveSession } from '../../services/auth';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../utils/formValidation';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -32,6 +37,9 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     await authenticate(formData.email, formData.password);
   };
 
@@ -64,10 +72,13 @@ export default function Login() {
                 <input
                   type="email"
                   value={forgotPasswordEmail}
-                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  onChange={(e) => {
+                    e.currentTarget.setCustomValidity('');
+                    setForgotPasswordEmail(e.target.value);
+                  }}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm"
                   placeholder="exemple@kafountine.gouv.sn"
-                  required
+                  data-required="true"
                 />
               </div>
               {forgotPasswordMessage && (
@@ -88,10 +99,33 @@ export default function Login() {
                   onClick={async () => {
                     try {
                       setForgotPasswordMessage('');
+                      const emailField = document.querySelector<HTMLInputElement>('input[type="email"]');
+                      if (emailField) {
+                        emailField.setCustomValidity('');
+                        const emailValue = forgotPasswordEmail.trim();
+                        if (!emailValue) {
+                          emailField.setCustomValidity("Veuillez renseigner l'adresse email de réinitialisation.");
+                          emailField.reportValidity();
+                          emailField.focus();
+                          return;
+                        }
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(emailValue)) {
+                          emailField.setCustomValidity('Veuillez saisir une adresse email valide.');
+                          emailField.reportValidity();
+                          emailField.focus();
+                          return;
+                        }
+                      }
                       const message = await requestPasswordReset(forgotPasswordEmail);
                       setForgotPasswordMessage(message);
                     } catch (error) {
-                      setForgotPasswordMessage(error instanceof Error ? error.message : 'Une erreur est survenue lors de la reinitialisation');
+                      setForgotPasswordMessage(
+                        getErrorMessage(
+                          error,
+                          "La demande de réinitialisation n'a pas pu être envoyée.",
+                        ),
+                      );
                     }
                   }}
                   className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-3 rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all cursor-pointer"
@@ -101,7 +135,12 @@ export default function Login() {
               </div>
             </div>
           ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form
+            onSubmit={handleSubmit}
+            onInput={clearFieldValidationError}
+            noValidate
+            className="space-y-5"
+          >
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Adresse email
@@ -113,7 +152,7 @@ export default function Login() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm"
                 placeholder="exemple@kafountine.gouv.sn"
-                required
+                data-required="true"
               />
             </div>
 
@@ -128,7 +167,7 @@ export default function Login() {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-sm"
                 placeholder="••••••••"
-                required
+                data-required="true"
               />
               <button
                 type="button"

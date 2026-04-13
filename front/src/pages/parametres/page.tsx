@@ -8,6 +8,10 @@ import {
   seedSettings,
   type Tarif, type Penalite, type Permission, type BackupFile
 } from '../../services/settings';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../utils/formValidation';
 
 interface TarifConfig extends Tarif {
   modifiable: boolean;
@@ -65,6 +69,9 @@ export default function Parametres() {
 
   const handleSaveTarif = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       if (selectedTarif) {
         await updateTarif(selectedTarif.id, {
@@ -84,6 +91,9 @@ export default function Parametres() {
 
   const handleAddTarif = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget)) {
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     try {
       await createTarif({
@@ -130,6 +140,9 @@ export default function Parametres() {
   const handleSavePenalite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPenalite) return;
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
 
     try {
       await updatePenalite(selectedPenalite.id, {
@@ -160,6 +173,9 @@ export default function Parametres() {
 
   const handleAddPenalite = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget)) {
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     try {
       await createPenalite({
@@ -666,11 +682,11 @@ export default function Parametres() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Nouveau tarif</h3>
-              <form onSubmit={handleAddTarif}>
+              <form onSubmit={handleAddTarif} onInput={clearFieldValidationError} noValidate>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                    <select name="categorie" required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                    <select name="categorie" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
                       <option value="État Civil">État Civil</option>
                       <option value="Urbanisme">Urbanisme</option>
                       <option value="Marché">Marché</option>
@@ -680,15 +696,15 @@ export default function Parametres() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom du tarif</label>
-                    <input name="nom" type="text" required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    <input name="nom" type="text" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Montant</label>
-                    <input name="montant" type="number" required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    <input name="montant" type="number" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
-                    <select name="unite" required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
+                    <select name="unite" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
                       <option value="FCFA">FCFA</option>
                       <option value="FCFA/mois">FCFA/mois</option>
                       <option value="FCFA/an">FCFA/an</option>
@@ -713,19 +729,19 @@ export default function Parametres() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Nouvelle pénalité</h3>
-              <form onSubmit={handleAddPenalite}>
+              <form onSubmit={handleAddPenalite} onInput={clearFieldValidationError} noValidate>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                    <input name="type" type="text" required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    <input name="type" type="text" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Montant</label>
-                    <input name="montant" type="number" required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    <input name="montant" type="number" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Délai d'application</label>
-                    <input name="delai" type="text" required placeholder="Ex: 5 jours après échéance" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    <input name="delai" type="text" data-required="true" placeholder="Ex: 5 jours après échéance" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -746,7 +762,7 @@ export default function Parametres() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Modifier le tarif</h3>
-              <form onSubmit={handleSaveTarif}>
+              <form onSubmit={handleSaveTarif} onInput={clearFieldValidationError} noValidate>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom du tarif</label>
@@ -793,7 +809,7 @@ export default function Parametres() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Modifier la pénalité</h3>
-              <form onSubmit={handleSavePenalite}>
+              <form onSubmit={handleSavePenalite} onInput={clearFieldValidationError} noValidate>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>

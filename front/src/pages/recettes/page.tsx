@@ -6,6 +6,11 @@ import { createTransaction, getTransactions, type TransactionItem } from '../../
 import { getStoredUserName, getStoredUserRole } from '../../services/auth';
 import { useYear } from '../../contexts/YearContext';
 import { useToast } from '../../components/feature/Toast';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../utils/formValidation';
 
 type RecetteRow = {
   id: string;
@@ -107,17 +112,15 @@ export default function Recettes() {
 
   const handleSubmitTicket = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget)) {
+      return;
+    }
     const form = e.currentTarget;
     const formData = new FormData(form);
     const reference = `REC-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
     const contributorId = String(formData.get('contributorId') || '');
     const type = String(formData.get('type') || '');
     const amount = Number(formData.get('amount') || 0);
-
-    if (!contributorId || !type || !amount) {
-      showToast('Veuillez renseigner les champs obligatoires.', 'error');
-      return;
-    }
 
     try {
       const created = await createTransaction({
@@ -145,8 +148,8 @@ export default function Recettes() {
       setNewTicketData(newTicket);
       setTicketSubmitted(true);
       await loadData();
-    } catch {
-      showToast("Impossible d'enregistrer le ticket.", 'error');
+    } catch (error) {
+      showToast(getErrorMessage(error, "Impossible d'enregistrer le ticket."), 'error');
     }
   };
 
@@ -296,12 +299,12 @@ export default function Recettes() {
             </div>
             <div className="p-6">
               {!ticketSubmitted ? (
-                <form onSubmit={handleSubmitTicket} className="space-y-4">
+                <form onSubmit={handleSubmitTicket} onInput={clearFieldValidationError} noValidate className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Type de taxe</label>
                     <input
                       name="type"
-                      required
+                      data-required="true"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
                       placeholder="Ex: Ticket journalier"
                     />
@@ -310,7 +313,7 @@ export default function Recettes() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Contribuable</label>
                     <select
                       name="contributorId"
-                      required
+                      data-required="true"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
                     >
                       <option value="">Sélectionner un contribuable</option>
@@ -326,7 +329,7 @@ export default function Recettes() {
                     <input
                       type="number"
                       name="amount"
-                      required
+                      data-required="true"
                       min="1"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
                     />

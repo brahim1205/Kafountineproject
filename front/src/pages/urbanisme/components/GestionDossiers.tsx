@@ -5,6 +5,10 @@ import { ensureContribuableByIdentity } from '../../../services/contribuables';
 import { useYear } from '../../../contexts/YearContext';
 import { getTaxServices, type TaxService } from '../../../services/taxes';
 import { getStoredUserRole } from '../../../services/auth';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 type ReceiptData = {
   numero: string;
@@ -111,6 +115,10 @@ export default function GestionDossiers() {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      setIsSubmitting(false);
+      return;
+    }
     
     try {
       const form = e.target as HTMLFormElement;
@@ -441,7 +449,7 @@ export default function GestionDossiers() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Type de permis */}
                 <div className="md:col-span-2">
@@ -449,7 +457,7 @@ export default function GestionDossiers() {
                     Type de permis <span className="text-red-500">*</span>
                   </label>
                   <select
-                    required
+                    data-required="true"
                     value={typePermis}
                     onChange={(e) => setTypePermis(e.target.value)}
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
@@ -471,7 +479,7 @@ export default function GestionDossiers() {
                   <input
                     type="text"
                     name="nomComplet"
-                    required
+                    data-required="true"
                     placeholder="Ex: Ibrahima Sarr"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
@@ -484,7 +492,7 @@ export default function GestionDossiers() {
                   <input
                     type="text"
                     name="cni"
-                    required
+                    data-required="true"
                     placeholder="Ex: 1234567890123"
                     maxLength={13}
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
@@ -498,7 +506,7 @@ export default function GestionDossiers() {
                   <input
                     type="tel"
                     name="telephone"
-                    required
+                    data-required="true"
                     placeholder="Ex: 77 123 45 67"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
@@ -511,7 +519,7 @@ export default function GestionDossiers() {
                   <input
                     type="text"
                     name="adresse"
-                    required
+                    data-required="true"
                     placeholder="Ex: Quartier Nord, Kafountine"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
@@ -525,7 +533,7 @@ export default function GestionDossiers() {
                   <input
                     type="text"
                     name="localisation"
-                    required
+                    data-required="true"
                     placeholder="Ex: Parcelle 123, Quartier Nord"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
@@ -539,7 +547,7 @@ export default function GestionDossiers() {
                     <input
                       type="number"
                       name="surface"
-                      required
+                      data-required="true"
                       min="1"
                       placeholder="Ex: 150"
                       className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
@@ -553,7 +561,7 @@ export default function GestionDossiers() {
                   </label>
                   <select
                     name="nature"
-                    required
+                    data-required="true"
                     className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   >
                     <option value="">Sélectionnez</option>

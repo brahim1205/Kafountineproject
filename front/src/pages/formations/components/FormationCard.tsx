@@ -1,6 +1,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { FormationType } from '../page';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 interface FormationCardProps {
   formation: FormationType;
@@ -55,6 +59,9 @@ export default function FormationCard({
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       setErrorMsg('');
       onEdit(editData);
@@ -218,7 +225,7 @@ export default function FormationCard({
                     <i className="ri-close-line text-xl"></i>
                   </button>
                 </div>
-                <form onSubmit={handleEditSubmit} className="p-6">
+                <form onSubmit={handleEditSubmit} onInput={clearFieldValidationError} noValidate className="p-6">
                   {errorMsg && (
                     <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                       {errorMsg}
@@ -231,7 +238,7 @@ export default function FormationCard({
                       </label>
                       <input
                         type="text"
-                        required
+                        data-required="true"
                         value={editData.nom}
                         onChange={(e) =>
                           setEditData({ ...editData, nom: e.target.value })
@@ -244,7 +251,7 @@ export default function FormationCard({
                         Domaine *
                       </label>
                       <select
-                        required
+                        data-required="true"
                         value={editData.domaine}
                         onChange={(e) =>
                           setEditData({ ...editData, domaine: e.target.value })
@@ -265,7 +272,7 @@ export default function FormationCard({
                       </label>
                       <input
                         type="text"
-                        required
+                        data-required="true"
                         value={editData.duree}
                         onChange={(e) =>
                           setEditData({ ...editData, duree: e.target.value })
@@ -279,7 +286,7 @@ export default function FormationCard({
                       </label>
                       <input
                         type="text"
-                        required
+                        data-required="true"
                         value={editData.responsable}
                         onChange={(e) =>
                           setEditData({
@@ -296,7 +303,7 @@ export default function FormationCard({
                       </label>
                       <input
                         type="number"
-                        required
+                        data-required="true"
                         value={editData.budget}
                         onChange={(e) =>
                           setEditData({
@@ -313,7 +320,7 @@ export default function FormationCard({
                       </label>
                       <input
                         type="date"
-                        required
+                        data-required="true"
                         value={editData.dateDebut}
                         onChange={(e) =>
                           setEditData({ ...editData, dateDebut: e.target.value })
@@ -327,7 +334,7 @@ export default function FormationCard({
                       </label>
                       <input
                         type="date"
-                        required
+                        data-required="true"
                         value={editData.dateFin}
                         onChange={(e) =>
                           setEditData({ ...editData, dateFin: e.target.value })

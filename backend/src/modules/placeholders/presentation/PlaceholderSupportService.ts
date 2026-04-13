@@ -174,12 +174,13 @@ export class PlaceholderSupportService {
       }
     }
 
-    const dbColumns = await prisma.$queryRawUnsafe<Array<{ tableName: string; columnName: string }>>(
-      `SELECT "table_name" AS "tableName", "column_name" AS "columnName"
+    const dbColumns = await prisma.$queryRawUnsafe<Array<{ tableName: string; columnName: string; dataType: string }>>(
+      `SELECT "table_name" AS "tableName", "column_name" AS "columnName", "data_type" AS "dataType"
        FROM "information_schema"."columns"
        WHERE "table_schema" = 'public'`
     );
     const allowedColumnsByTable = new Map<string, Set<string>>();
+    const columnTypesByTable = new Map<string, Map<string, string>>();
     for (const row of dbColumns) {
       if (!allowedTableNames.has(row.tableName)) {
         continue;
@@ -187,6 +188,9 @@ export class PlaceholderSupportService {
       const columns = allowedColumnsByTable.get(row.tableName) || new Set<string>();
       columns.add(row.columnName);
       allowedColumnsByTable.set(row.tableName, columns);
+      const columnTypes = columnTypesByTable.get(row.tableName) || new Map<string, string>();
+      columnTypes.set(row.columnName, row.dataType);
+      columnTypesByTable.set(row.tableName, columnTypes);
     }
 
     const deleteOrder = [
@@ -268,7 +272,23 @@ export class PlaceholderSupportService {
 
           const columns = entries.map(([key]) => quoteIdentifier(key)).join(', ');
           const placeholders = entries.map((_, index) => `$${index + 1}`).join(', ');
-          const values = entries.map(([, value]) => value);
+          const columnTypes = columnTypesByTable.get(table);
+          const values = entries.map(([key, value]) => {
+            if (value === null || value === undefined) {
+              return value;
+            }
+            const dataType = columnTypes?.get(key);
+            if (typeof value === 'string' && dataType) {
+              const normalizedType = dataType.toLowerCase();
+              if (normalizedType.includes('timestamp') || normalizedType === 'date') {
+                const parsed = new Date(value);
+                if (!Number.isNaN(parsed.getTime())) {
+                  return parsed;
+                }
+              }
+            }
+            return value;
+          });
 
           await tx.$executeRawUnsafe(
             `INSERT INTO ${quoteIdentifier(table)} (${columns}) VALUES (${placeholders})`,

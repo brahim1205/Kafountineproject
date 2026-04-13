@@ -1,6 +1,11 @@
 
 import React, { useState } from 'react';
 import type { FormationType } from '../page';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 interface NouvelleFormationProps {
   onClose: () => void;
@@ -24,18 +29,7 @@ export default function NouvelleFormation({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Basic validation (optional but improves robustness)
-    if (
-      !formData.nom ||
-      !formData.domaine ||
-      !formData.duree ||
-      !formData.responsable ||
-      !formData.budget ||
-      !formData.dateDebut ||
-      !formData.dateFin
-    ) {
-      setErrorMsg('Veuillez remplir tous les champs obligatoires.');
+    if (!validateFormElement(e.currentTarget)) {
       return;
     }
 
@@ -59,8 +53,10 @@ export default function NouvelleFormation({
       setErrorMsg('');
       onAdd(newFormation);
       onClose();
-    } catch {
-      setErrorMsg('Une erreur est survenue. Veuillez réessayer.');
+    } catch (error) {
+      setErrorMsg(
+        getErrorMessage(error, 'La création de la formation a échoué.'),
+      );
     }
   };
 
@@ -89,7 +85,7 @@ export default function NouvelleFormation({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6">
+            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate className="p-6">
               {errorMsg && (
                 <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {errorMsg}
@@ -102,7 +98,7 @@ export default function NouvelleFormation({
                   </label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={formData.nom}
                     onChange={(e) =>
                       setFormData({ ...formData, nom: e.target.value })
@@ -117,7 +113,7 @@ export default function NouvelleFormation({
                     Domaine *
                   </label>
                   <select
-                    required
+                    data-required="true"
                     value={formData.domaine}
                     onChange={(e) =>
                       setFormData({ ...formData, domaine: e.target.value })
@@ -140,7 +136,7 @@ export default function NouvelleFormation({
                   </label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={formData.duree}
                     onChange={(e) =>
                       setFormData({ ...formData, duree: e.target.value })
@@ -156,7 +152,7 @@ export default function NouvelleFormation({
                   </label>
                   <input
                     type="text"
-                    required
+                    data-required="true"
                     value={formData.responsable}
                     onChange={(e) =>
                       setFormData({ ...formData, responsable: e.target.value })
@@ -172,7 +168,7 @@ export default function NouvelleFormation({
                   </label>
                   <input
                     type="number"
-                    required
+                    data-required="true"
                     value={formData.budget}
                     onChange={(e) =>
                       setFormData({ ...formData, budget: e.target.value })
@@ -188,7 +184,7 @@ export default function NouvelleFormation({
                   </label>
                   <input
                     type="date"
-                    required
+                    data-required="true"
                     value={formData.dateDebut}
                     onChange={(e) =>
                       setFormData({ ...formData, dateDebut: e.target.value })
@@ -203,7 +199,7 @@ export default function NouvelleFormation({
                   </label>
                   <input
                     type="date"
-                    required
+                    data-required="true"
                     value={formData.dateFin}
                     onChange={(e) =>
                       setFormData({ ...formData, dateFin: e.target.value })

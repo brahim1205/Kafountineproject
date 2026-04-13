@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useYear } from "../../../contexts/YearContext";
 import DashboardLayout from '../../../components/feature/DashboardLayout';
 import { listEmbarcations, listPecheurs, createEmbarcation, updateEmbarcation, deleteEmbarcation, type Embarcation, type Pecheur } from '../../../services/quai-peche';
+import {
+  clearFieldValidationError,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 export default function EmbarcationsPage() {
   const [embarcations, setEmbarcations] = useState<Embarcation[]>([]);
@@ -82,6 +86,9 @@ export default function EmbarcationsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       setErrorMsg('');
       await createEmbarcation({
@@ -99,6 +106,9 @@ export default function EmbarcationsPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEmbarcation) return;
+    if (!validateFormElement(e.currentTarget as HTMLFormElement)) {
+      return;
+    }
     try {
       setErrorMsg('');
       await updateEmbarcation(selectedEmbarcation.id, {
@@ -325,13 +335,13 @@ export default function EmbarcationsPage() {
                 </button>
               </div>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate>
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       placeholder="Ex: Bateau A"
                       value={formData.nom}
@@ -342,7 +352,7 @@ export default function EmbarcationsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Immatriculation *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       placeholder="Ex: KP-001"
                       value={formData.immatriculation}
@@ -355,7 +365,7 @@ export default function EmbarcationsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
                     <select
-                      required
+                      data-required="true"
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
@@ -431,13 +441,13 @@ export default function EmbarcationsPage() {
                 </button>
               </div>
             </div>
-            <form onSubmit={handleUpdate}>
+            <form onSubmit={handleUpdate} onInput={clearFieldValidationError} noValidate>
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       value={formData.nom}
                       onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
@@ -447,7 +457,7 @@ export default function EmbarcationsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Immatriculation *</label>
                     <input
-                      required
+                      data-required="true"
                       type="text"
                       value={formData.immatriculation}
                       onChange={(e) => setFormData({ ...formData, immatriculation: e.target.value })}
@@ -459,7 +469,7 @@ export default function EmbarcationsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
                     <select
-                      required
+                      data-required="true"
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"

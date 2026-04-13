@@ -90,15 +90,23 @@ function buildValidationMessage(field: FieldElement, label: string): string | nu
     }
   }
 
-  if (field.minLength > 0 && value.length < field.minLength) {
+  if (
+    (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) &&
+    field.minLength > 0 &&
+    value.length < field.minLength
+  ) {
     return `${label} doit contenir au moins ${field.minLength} caractères.`;
   }
 
-  if (field.maxLength > 0 && value.length > field.maxLength) {
+  if (
+    (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) &&
+    field.maxLength > 0 &&
+    value.length > field.maxLength
+  ) {
     return `${label} ne doit pas dépasser ${field.maxLength} caractères.`;
   }
 
-  if (field.pattern) {
+  if (field instanceof HTMLInputElement && field.pattern) {
     const regex = new RegExp(field.pattern);
     if (!regex.test(value)) {
       return field.dataset.patternMessage || `Le format saisi pour ${label.toLowerCase()} n'est pas valide.`;

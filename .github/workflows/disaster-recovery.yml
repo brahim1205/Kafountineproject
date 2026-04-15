@@ -29,7 +29,15 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafountine/Kafountineproject
+            if [ -d /opt/kafountine/Kafountineproject ]; then
+              APP_DIR=/opt/kafountine/Kafountineproject
+            elif [ -d /opt/kafountine ]; then
+              APP_DIR=/opt/kafountine
+            else
+              echo "Application directory not found" >&2
+              exit 1
+            fi
+            cd "$APP_DIR"
             echo "=== Backup Status ==="
             ls -lt backups 2>/dev/null | head -10 || echo "No backup directory"
             echo ""
@@ -56,14 +64,19 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafountine/Kafountineproject
+            if [ -d /opt/kafountine/Kafountineproject ]; then
+              APP_DIR=/opt/kafountine/Kafountineproject
+            elif [ -d /opt/kafountine ]; then
+              APP_DIR=/opt/kafountine
+            else
+              echo "Application directory not found" >&2
+              exit 1
+            fi
+            cd "$APP_DIR"
             bash ./scripts/validate-prod-env.sh .env.prod
-            set -a
-            source .env.prod
-            set +a
             mkdir -p backups
             docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
-              pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc > "backups/${{ env.BACKUP_FILENAME }}"
+              sh -lc 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "backups/${{ env.BACKUP_FILENAME }}"
 
       - name: Download backup artifact from server
         uses: appleboy/scp-action@v0.1.7
@@ -78,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: disaster-recovery-backup
-          path: backups/opt/kafountine/Kafountineproject/backups/${{ env.BACKUP_FILENAME }}
+          path: backups/opt/kafountine/backups/${{ env.BACKUP_FILENAME }}
           retention-days: 30
 
       - name: Notify
@@ -124,15 +137,20 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafountine/Kafountineproject
+            if [ -d /opt/kafountine/Kafountineproject ]; then
+              APP_DIR=/opt/kafountine/Kafountineproject
+            elif [ -d /opt/kafountine ]; then
+              APP_DIR=/opt/kafountine
+            else
+              echo "Application directory not found" >&2
+              exit 1
+            fi
+            cd "$APP_DIR"
             bash ./scripts/validate-prod-env.sh .env.prod
-            set -a
-            source .env.prod
-            set +a
             LATEST=$(find backups/restore -name "*.dump" | sort | tail -1)
             test -n "$LATEST"
-            cat "$LATEST" | docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
-              pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
+              sh -lc 'exec pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$LATEST"
 
       - name: Notify
         uses: slackapi/slack-github-action@v1.25.0
@@ -177,15 +195,20 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/kafountine/Kafountineproject
+            if [ -d /opt/kafountine/Kafountineproject ]; then
+              APP_DIR=/opt/kafountine/Kafountineproject
+            elif [ -d /opt/kafountine ]; then
+              APP_DIR=/opt/kafountine
+            else
+              echo "Application directory not found" >&2
+              exit 1
+            fi
+            cd "$APP_DIR"
             bash ./scripts/validate-prod-env.sh .env.prod
-            set -a
-            source .env.prod
-            set +a
             LATEST=$(find backups/restore -name "*.dump" | sort | tail -1)
             test -n "$LATEST"
-            cat "$LATEST" | docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
-              pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
+              sh -lc 'exec pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$LATEST"
 
       - name: Notify
         uses: slackapi/slack-github-action@v1.25.0

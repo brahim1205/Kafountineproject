@@ -16,6 +16,7 @@ import { buildTransactionsRoutes } from './modules/transactions/presentation/tra
 import { buildDashboardRoutes } from './modules/dashboard/presentation/dashboard.routes';
 import { buildPortalRoutes } from './modules/portal/presentation/portal.routes';
 import { buildPlaceholderRoutes } from './modules/placeholders/presentation/placeholders.routes';
+import { swaggerSpec } from './config/swagger';
 
 function buildMetricsPayload() {
   const memoryUsage = process.memoryUsage();
@@ -75,23 +76,6 @@ export function createApp() {
       res.type('text/plain').send(buildMetricsPayload());
     });
   }
-
-  const swaggerSpec = swaggerJsdoc({
-    definition: {
-      openapi: '3.0.0',
-      info: { title: 'Kafountine Backend API', version: '1.0.0' },
-      components: {
-        securitySchemes: {
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
-          },
-        },
-      },
-    },
-    apis: ['./src/modules/**/presentation/*.routes.ts', './src/modules/**/presentation/*Controller.ts'],
-  });
 
   if (env.enableApiDocs) {
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

@@ -58,6 +58,920 @@ import {
   youthEnrollmentParamsSchema,
 } from './placeholders.schemas';
 
+/**
+ * @swagger
+ * /formations:
+ *   get:
+ *     tags: [Formations]
+ *     summary: Liste des formations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/year'
+ *       - $ref: '#/components/parameters/limit'
+ *     responses:
+ *       200:
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *   post:
+ *     tags: [Formations]
+ *     summary: Créer une formation
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ * /formations/{id}:
+ *   put:
+ *     tags: [Formations]
+ *     summary: Modifier une formation
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *       400:
+ *       401:
+ *       403:
+ *   delete:
+ *     tags: [Formations]
+ *     summary: Supprimer une formation
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *       401:
+ *       403:
+ *
+ * /formations/statistiques:
+ *   get:
+ *     tags: [Formations]
+ *     summary: Statistiques des formations
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /jeunes:
+ *   get:
+ *     tags: [Jeunes]
+ *     summary: Liste des jeunes
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Jeunes]
+ *     summary: Créer un jeune
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *   delete:
+ *     tags: [Jeunes]
+ *     summary: Supprimer un jeune
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /jeunes/{id}/formations/{formationId}:
+ *   post:
+ *     tags: [Jeunes]
+ *     summary: Inscrire un jeune à une formation
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /etat-civil:
+ *   get:
+ *     tags: [État Civil]
+ *     summary: Liste des documents d'état civil
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [État Civil]
+ *     summary: Créer un document
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /etat-civil/{id}:
+ *   put:
+ *     tags: [État Civil]
+ *     summary: Modifier un document
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /etat-civil/statistiques:
+ *   get:
+ *     tags: [État Civil]
+ *     summary: Statistiques état civil
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /urbanisme:
+ *   get:
+ *     tags: [Urbanisme]
+ *     summary: Liste des permis d'urbanisme
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Urbanisme]
+ *     summary: Créer un permis
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /urbanisme/{id}:
+ *   get:
+ *     tags: [Urbanisme]
+ *     summary: Détail d'un permis
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   put:
+ *     tags: [Urbanisme]
+ *     summary: Modifier un permis
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Urbanisme]
+ *     summary: Supprimer un permis
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /urbanisme/statistiques:
+ *   get:
+ *     tags: [Urbanisme]
+ *     summary: Statistiques urbanisme
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /marche/places:
+ *   get:
+ *     tags: [Marché]
+ *     summary: Liste des places du marché
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Marché]
+ *     summary: Créer une place
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /marche/places/{id}:
+ *   put:
+ *     tags: [Marché]
+ *     summary: Modifier une place
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /marche/paiements:
+ *   get:
+ *     tags: [Marché]
+ *     summary: Liste des paiements
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Marché]
+ *     summary: Enregistrer un paiement
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /marche/statistiques:
+ *   get:
+ *     tags: [Marché]
+ *     summary: Statistiques du marché
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /motos:
+ *   get:
+ *     tags: [Motos]
+ *     summary: Liste des motocyclettes
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Motos]
+ *     summary: Créer une moto
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /motos/{id}:
+ *   put:
+ *     tags: [Motos]
+ *     summary: Modifier une moto
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /motos/{id}/changement-conducteur:
+ *   post:
+ *     tags: [Motos]
+ *     summary: Changer le conducteur
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /motos/statistiques:
+ *   get:
+ *     tags: [Motos]
+ *     summary: Statistiques motos
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /motos/configuration:
+ *   get:
+ *     tags: [Motos]
+ *     summary: Configuration taxes
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /motos/paiements:
+ *   get:
+ *     tags: [Motos]
+ *     summary: Liste des paiements motos
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Motos]
+ *     summary: Enregistrer un paiement moto
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /audit:
+ *   get:
+ *     tags: [Audit]
+ *     summary: Liste des audits
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Audit]
+ *     summary: Seed audit
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /audit/export:
+ *   post:
+ *     tags: [Audit]
+ *     summary: Exporter les audits
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /notifications:
+ *   get:
+ *     tags: [Notifications]
+ *     summary: Liste des notifications
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /notifications/{id}/read:
+ *   patch:
+ *     tags: [Notifications]
+ *     summary: Marquer comme lu
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /notifications/read-all:
+ *   patch:
+ *     tags: [Notifications]
+ *     summary: Tout marquer comme lu
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /users:
+ *   get:
+ *     tags: [Utilisateurs]
+ *     summary: Liste des utilisateurs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Utilisateurs]
+ *     summary: Créer un utilisateur
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /users/{id}:
+ *   put:
+ *     tags: [Utilisateurs]
+ *     summary: Modifier un utilisateur
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Utilisateurs]
+ *     summary: Supprimer un utilisateur
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /quai-peche/pecheurs:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Liste des pêcheurs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Quai Pêche]
+ *     summary: Créer un pêcheur
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /quai-peche/pecheurs/{id}:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Détail pêcheur
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   put:
+ *     tags: [Quai Pêche]
+ *     summary: Modifier pêcheur
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Quai Pêche]
+ *     summary: Supprimer pêcheur
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /quai-peche/embarcations:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Liste des embarcations
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Quai Pêche]
+ *     summary: Créer une embarcation
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /quai-peche/embarcations/{id}:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Détail embarcation
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   put:
+ *     tags: [Quai Pêche]
+ *     summary: Modifier embarcation
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Quai Pêche]
+ *     summary: Supprimer embarcation
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /quai-peche/commissions:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Liste des commissions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Quai Pêche]
+ *     summary: Créer une commission
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /quai-peche/commissions/{id}:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Détail commission
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   put:
+ *     tags: [Quai Pêche]
+ *     summary: Modifier commission
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Quai Pêche]
+ *     summary: Supprimer commission
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /quai-peche/camions:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Liste des camions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Quai Pêche]
+ *     summary: Créer un camion
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /quai-peche/camions/{id}:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Détail camion
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   put:
+ *     tags: [Quai Pêche]
+ *     summary: Modifier camion
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Quai Pêche]
+ *     summary: Supprimer camion
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /quai-peche/expeditions:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Liste des expéditions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Quai Pêche]
+ *     summary: Créer une expédition
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /quai-peche/expeditions/{id}:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Détail expédition
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   put:
+ *     tags: [Quai Pêche]
+ *     summary: Modifier expédition
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Quai Pêche]
+ *     summary: Supprimer expédition
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /quai-peche/statistiques:
+ *   get:
+ *     tags: [Quai Pêche]
+ *     summary: Statistiques quai de pêche
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /settings/tarifs:
+ *   get:
+ *     tags: [Paramètres]
+ *     summary: Liste des tarifs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Créer un tarif
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /settings/tarifs/{id}:
+ *   put:
+ *     tags: [Paramètres]
+ *     summary: Modifier un tarif
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Paramètres]
+ *     summary: Supprimer un tarif
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /settings/penalites:
+ *   get:
+ *     tags: [Paramètres]
+ *     summary: Liste des pénalités
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Créer une pénalité
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /settings/penalites/{id}:
+ *   put:
+ *     tags: [Paramètres]
+ *     summary: Modifier une pénalité
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Paramètres]
+ *     summary: Supprimer une pénalité
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /settings/permissions:
+ *   get:
+ *     tags: [Paramètres]
+ *     summary: Liste des permissions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Mettre à jour les permissions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /settings/seed:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Seed paramètres
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /settings/backups:
+ *   get:
+ *     tags: [Paramètres]
+ *     summary: Liste des backups
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Créer un backup
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /settings/backups/restore:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Restaurer un backup
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /settings/backups/{filename}/download:
+ *   get:
+ *     tags: [Paramètres]
+ *     summary: Télécharger un backup
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *
+ * /years:
+ *   get:
+ *     tags: [Paramètres]
+ *     summary: Liste des années
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /years/current:
+ *   get:
+ *     tags: [Paramètres]
+ *     summary: Année actuelle
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /years/auto-create:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Créer année automatiquement
+ *     responses:
+ *       200:
+ *
+ * /upload/image:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Upload d'image
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /upload/image/{publicId}:
+ *   delete:
+ *     tags: [Paramètres]
+ *     summary: Supprimer une image
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: publicId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *
+ * /exports/receipt.pdf:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Exporter reçu PDF
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /exports/report.pdf:
+ *   post:
+ *     tags: [Paramètres]
+ *     summary: Exporter rapport PDF
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /budget/lignes:
+ *   get:
+ *     tags: [Budget]
+ *     summary: Liste des lignes budgétaires
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Budget]
+ *     summary: Créer une ligne budgétaire
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /budget/lignes/{id}:
+ *   put:
+ *     tags: [Budget]
+ *     summary: Modifier une ligne
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *   delete:
+ *     tags: [Budget]
+ *     summary: Supprimer une ligne
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ *
+ * /budget/stats:
+ *   get:
+ *     tags: [Budget]
+ *     summary: Statistiques budget
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *
+ * /budget/demandes:
+ *   get:
+ *     tags: [Budget]
+ *     summary: Liste des demandes budget
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *   post:
+ *     tags: [Budget]
+ *     summary: Créer une demande
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *
+ * /budget/demandes/{id}:
+ *   put:
+ *     tags: [Budget]
+ *     summary: Modifier une demande
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/id'
+ *     responses:
+ *       200:
+ */
+
 export function buildPlaceholderRoutes(controller: PlaceholderController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());

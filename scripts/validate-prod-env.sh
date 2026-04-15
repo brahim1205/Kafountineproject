@@ -36,6 +36,10 @@ required_keys=(
   GRAFANA_ADMIN_PASSWORD
 )
 
+optional_placeholder_checked_keys=(
+  GRAFANA_ROOT_URL
+)
+
 placeholder_patterns=(
   "CHANGE_ME"
   "change-me"
@@ -79,6 +83,20 @@ for key in "${required_keys[@]}"; do
     done
   fi
 done
+
+if [[ "$STRICT_MODE" -eq 1 ]]; then
+  for key in "${optional_placeholder_checked_keys[@]}"; do
+    if value="$(get_value "$key")"; then
+      for pattern in "${placeholder_patterns[@]}"; do
+        if [[ "$value" == *"$pattern"* ]]; then
+          echo "Placeholder detected for $key: $value" >&2
+          failures=1
+          break
+        fi
+      done
+    fi
+  done
+fi
 
 if [[ "$failures" -ne 0 ]]; then
   echo "Production environment validation failed for $ENV_FILE" >&2

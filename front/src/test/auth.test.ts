@@ -57,8 +57,8 @@ describe('Auth Service', () => {
 
       saveSession(session);
 
-      expect(localStorage.getItem('isAuthenticated')).toBe('true');
-      expect(localStorage.getItem('userRole')).toBe('admin');
+    expect(sessionStorage.getItem('isAuthenticated')).toBe('true');
+    expect(sessionStorage.getItem('userRole')).toBe('admin');
     });
   });
 

@@ -70,7 +70,7 @@ function readStoredSession(): StoredSession | null {
     return currentSession;
   }
 
-  const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+  const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
   if (!raw) {
     return null;
   }
@@ -79,7 +79,7 @@ function readStoredSession(): StoredSession | null {
     currentSession = JSON.parse(raw) as StoredSession;
     return currentSession;
   } catch {
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
     return null;
   }
 }
@@ -92,12 +92,12 @@ function notifyAuthState() {
 
 function writeStoredSession(value: StoredSession) {
   currentSession = value;
-  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(value));
-  localStorage.setItem('isAuthenticated', 'true');
-  localStorage.setItem('userId', value.userId);
-  localStorage.setItem('userRole', value.userRole);
-  localStorage.setItem('userName', value.userName);
-  localStorage.setItem('userInitials', value.userInitials);
+  sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(value));
+  sessionStorage.setItem('isAuthenticated', 'true');
+  sessionStorage.setItem('userId', value.userId);
+  sessionStorage.setItem('userRole', value.userRole);
+  sessionStorage.setItem('userName', value.userName);
+  sessionStorage.setItem('userInitials', value.userInitials);
   notifyAuthState();
 }
 
@@ -246,12 +246,12 @@ export async function fetchCurrentUser(): Promise<CurrentUser> {
 
 export function clearSession(): void {
   currentSession = null;
-  localStorage.removeItem(SESSION_STORAGE_KEY);
-  localStorage.removeItem('isAuthenticated');
-  localStorage.removeItem('userId');
-  localStorage.removeItem('userRole');
-  localStorage.removeItem('userName');
-  localStorage.removeItem('userInitials');
+  sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  sessionStorage.removeItem('isAuthenticated');
+  sessionStorage.removeItem('userId');
+  sessionStorage.removeItem('userRole');
+  sessionStorage.removeItem('userName');
+  sessionStorage.removeItem('userInitials');
   notifyAuthState();
 }
 

@@ -32,7 +32,28 @@ jobs:
       - name: Validate production environment template
         run: bash ./scripts/validate-prod-env.sh --allow-placeholders .env.prod.example
 
+      - name: Check backup prerequisites
+        id: backup-check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          missing=0
+          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required production secret: $key" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Backup prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
       - name: Create backup on server
+        if: steps.backup-check.outputs.enabled == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -56,6 +77,7 @@ jobs:
             find backups -name "kafontine_*.dump" -mtime +"${BACKUP_RETENTION_DAYS:-14}" -delete
 
       - name: Download backup from server
+        if: steps.backup-check.outputs.enabled == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -65,6 +87,7 @@ jobs:
           target: ./backups
 
       - name: Upload backup artifacts
+        if: steps.backup-check.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: database-backup
@@ -72,7 +95,7 @@ jobs:
           retention-days: 30
 
       - name: Upload to S3 (if configured)
-        if: env.AWS_S3_BUCKET != ''
+        if: steps.backup-check.outputs.enabled == 'true' && env.AWS_S3_BUCKET != ''
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -81,7 +104,7 @@ jobs:
           aws s3 cp "./backups/${{ env.BACKUP_FILENAME }}" "s3://${AWS_S3_BUCKET}/$(date +%Y/%m/%d)/${{ env.BACKUP_FILENAME }}"
 
       - name: Cleanup old backups from S3
-        if: env.AWS_S3_BUCKET != ''
+        if: steps.backup-check.outputs.enabled == 'true' && env.AWS_S3_BUCKET != ''
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

@@ -21,7 +21,28 @@ jobs:
     timeout-minutes: 15
     
     steps:
+      - name: Check disaster recovery prerequisites
+        id: dr-status-check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          missing=0
+          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required production secret: $key" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Disaster recovery prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
       - name: Check server backup status
+        if: steps.dr-status-check.outputs.enabled == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -56,7 +77,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check disaster recovery prerequisites
+        id: dr-full-backup-check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          missing=0
+          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required production secret: $key" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Disaster recovery prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
       - name: Create full backup on server
+        if: steps.dr-full-backup-check.outputs.enabled == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -79,6 +121,7 @@ jobs:
               sh -lc 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "backups/${{ env.BACKUP_FILENAME }}"
 
       - name: Download backup artifact from server
+        if: steps.dr-full-backup-check.outputs.enabled == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -88,6 +131,7 @@ jobs:
           target: ./backups
 
       - name: Upload backup artifact
+        if: steps.dr-full-backup-check.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: disaster-recovery-backup
@@ -114,13 +158,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check disaster recovery prerequisites
+        id: dr-restore-latest-check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          missing=0
+          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required production secret: $key" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Disaster recovery prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
       - name: Download latest backup
+        if: steps.dr-restore-latest-check.outputs.enabled == 'true'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: backup.yml
           name: database-backup
 
       - name: Upload backup to server
+        if: steps.dr-restore-latest-check.outputs.enabled == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -130,6 +196,7 @@ jobs:
           target: /opt/kafountine/Kafountineproject/backups/restore
 
       - name: Restore database on server
+        if: steps.dr-restore-latest-check.outputs.enabled == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -172,13 +239,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check disaster recovery prerequisites
+        id: dr-restore-artifact-check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          missing=0
+          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required production secret: $key" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Disaster recovery prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
       - name: Download disaster recovery backup
+        if: steps.dr-restore-artifact-check.outputs.enabled == 'true'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: disaster-recovery.yml
           name: disaster-recovery-backup
 
       - name: Upload disaster recovery backup to server
+        if: steps.dr-restore-artifact-check.outputs.enabled == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -188,6 +277,7 @@ jobs:
           target: /opt/kafountine/Kafountineproject/backups/restore
 
       - name: Restore disaster recovery backup on server
+        if: steps.dr-restore-artifact-check.outputs.enabled == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}

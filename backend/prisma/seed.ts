@@ -229,18 +229,23 @@ async function main() {
   const [marketPlaceCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "MarketPlace"');
   if (Number(marketPlaceCount?.count || 0) === 0) {
     await prisma.$executeRawUnsafe(
-      'INSERT INTO "MarketPlace" ("id", "numeroPlace", "type", "zone", "occupantId", "activite", "telephone", "dateAttribution", "tarif", "periode", "statut", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14), ($15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28), ($29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42), ($43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55,$56), ($57,$58,$59,$60,$61,$62,$63,$64,$65,$66,$67,$68,$69,$70), ($71,$72,$73,$74,$75,$76,$77,$78,$79,$80,$81,$82,$83,$84), ($85,$86,$87,$88,$89,$90,$91,$92,$93,$94,$95,$96,$97,$98), ($99,$100,$101,$102,$103,$104,$105,$106,$107,$108,$109,$110,$111,$112)',
+      'INSERT INTO "MarketPlace" ("id", "numeroPlace", "type", "zone", "occupantId", "activite", "telephone", "dateAttribution", "tarif", "periode", "statut", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14), ($15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28), ($29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)',
       randomUUID(), 'A-01', 'Place', 'Bloc A', contribuables[1].id, 'Fruits et légumes', '+221771000002', new Date('2026-01-08T08:00:00.000Z'), 5000, 'Janvier 2026', 'OCCUPEE', 2026, new Date('2026-01-08T08:00:00.000Z'), new Date('2026-01-08T08:00:00.000Z'),
       randomUUID(), 'A-02', 'Place', 'Bloc A', contribuables[4].id, 'Poissons frais', '+221771000005', new Date('2026-01-10T07:00:00.000Z'), 6000, 'Janvier 2026', 'OCCUPEE', 2026, new Date('2026-01-10T07:00:00.000Z'), new Date('2026-01-10T07:00:00.000Z'),
-      randomUUID(), 'A-03', 'Place', 'Bloc A', null, null, null, null, 4500, 'Janvier 2026', 'LIBRE', 2026, new Date('2026-01-05T08:00:00.000Z'), new Date('2026-01-05T08:00:00.000Z'),
-      randomUUID(), 'B-10', 'Boutique', 'Bloc B', contribuables[8].id, 'Bijouterie', '+221771000009', new Date('2026-01-15T10:00:00.000Z'), 15000, 'Janvier 2026', 'OCCUPEE', 2026, new Date('2026-01-15T10:00:00.000Z'), new Date('2026-01-15T10:00:00.000Z'),
-      randomUUID(), 'B-11', 'Boutique', 'Bloc B', contribuables[3].id, ' Restauration', '+221771000004', new Date('2026-02-01T09:00:00.000Z'), 18000, 'Février 2026', 'OCCUPEE', 2026, new Date('2026-02-01T09:00:00.000Z'), new Date('2026-02-01T09:00:00.000Z'),
-      randomUUID(), 'B-12', 'Boutique', 'Bloc B', contribuables[5].id, 'Textile', '+221771000006', new Date('2026-02-01T09:30:00.000Z'), 12000, 'Février 2026', 'OCCUPEE', 2026, new Date('2026-02-01T09:30:00.000Z'), new Date('2026-02-01T09:30:00.000Z'),
-      randomUUID(), 'B-13', 'Boutique', 'Bloc B', null, null, null, null, 10000, 'Mars 2026', 'LIBRE', 2026, new Date('2026-03-01T08:00:00.000Z'), new Date('2026-03-01T08:00:00.000Z'),
-      randomUUID(), 'C-01', 'Kiosque', 'Bloc C', contribuables[14].id, 'Boissons', '+221771000014', new Date('2026-01-20T08:00:00.000Z'), 7000, 'Janvier 2026', 'OCCUPEE', 2026, new Date('2026-01-20T08:00:00.000Z'), new Date('2026-01-20T08:00:00.000Z'),
-      randomUUID(), 'C-05', 'Kiosque', 'Bloc C', null, null, null, null, 8000, 'Mars 2026', 'LIBRE', 2026, new Date('2026-03-01T08:30:00.000Z'), new Date('2026-03-01T08:30:00.000Z')
+      randomUUID(), 'B-10', 'Boutique', 'Bloc B', contribuables[8].id, 'Bijouterie', '+221771000009', new Date('2026-01-15T10:00:00.000Z'), 15000, 'Janvier 2026', 'OCCUPEE', 2026, new Date('2026-01-15T10:00:00.000Z'), new Date('2026-01-15T10:00:00.000Z')
     );
     console.log('  Created market places');
+  }
+
+  const [marketPlaceCount2] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "MarketPlace" WHERE "numeroPlace" = $1', 'B-11');
+  if (Number(marketPlaceCount2?.count || 0) === 0) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "MarketPlace" ("id", "numeroPlace", "type", "zone", "occupantId", "activite", "telephone", "dateAttribution", "tarif", "periode", "statut", "year", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14), ($15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28), ($29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)',
+      randomUUID(), 'B-11', 'Boutique', 'Bloc B', contribuables[3].id, 'Restauration', '+221771000004', new Date('2026-02-01T09:00:00.000Z'), 18000, 'Février 2026', 'OCCUPEE', 2026, new Date('2026-02-01T09:00:00.000Z'), new Date('2026-02-01T09:00:00.000Z'),
+      randomUUID(), 'B-12', 'Boutique', 'Bloc B', contribuables[5].id, 'Textile', '+221771000006', new Date('2026-02-01T09:30:00.000Z'), 12000, 'Février 2026', 'OCCUPEE', 2026, new Date('2026-02-01T09:30:00.000Z'), new Date('2026-02-01T09:30:00.000Z'),
+      randomUUID(), 'C-01', 'Kiosque', 'Bloc C', contribuables[14].id, 'Boissons', '+221771000014', new Date('2026-01-20T08:00:00.000Z'), 7000, 'Janvier 2026', 'OCCUPEE', 2026, new Date('2026-01-20T08:00:00.000Z'), new Date('2026-01-20T08:00:00.000Z')
+    );
+    console.log('  Created market places (batch 2)');
   }
 
   const [marketPaymentCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "MarketPayment"');

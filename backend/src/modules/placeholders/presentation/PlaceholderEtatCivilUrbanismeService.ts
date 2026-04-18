@@ -329,10 +329,12 @@ export class PlaceholderEtatCivilUrbanismeService {
     }
 
     const year = new Date().getFullYear();
+    const actorRole = String(req.user?.role || '').trim().toUpperCase();
+    const defaultStatus = actorRole === 'ADMIN' || actorRole === 'SUPER_ADMIN' ? 'VALIDE' : 'EN_ATTENTE';
     const numero = payload.numero
       ? String(payload.numero).trim()
       : `URB-${year}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
-    const statut = payload.statut ? this.normalizeUrbanismeStatus(String(payload.statut)) : 'EN_ATTENTE';
+    const statut = payload.statut ? this.normalizeUrbanismeStatus(String(payload.statut)) : defaultStatus;
 
     const [created] = await prisma.$queryRawUnsafe<UrbanismeCaseRow[]>(
       `INSERT INTO "UrbanismeCase" ("id", "numero", "contribuableId", "agentId", "type", "description", "surface", "localisation", "nature", "montant", "statut", "year", "createdAt", "updatedAt")

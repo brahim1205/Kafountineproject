@@ -95,7 +95,7 @@ async function main() {
     { nin: 'SN-2024-020', nom: 'Sow', prenom: 'Rokhaya', dateNaiss: '1989-08-16', lieuNaiss: 'Kafountine', adresse: 'Avenue Lamine', telephone: '+221771000020', profession: 'Comptable', typeContribuable: 'PARTICULIER', zone: 'Zone Commerciale', montantImpot: 6500 },
   ];
 
-  const contribuables: Array<{ id: string }> = [];
+  const contribuables: Array<{ id: string; nin: string; nom: string; prenom: string; telephone: string }> = [];
   for (const c of contribuablesData) {
     const contribuable = await prisma.contribuable.upsert({
       where: { nin: c.nin },
@@ -105,8 +105,15 @@ async function main() {
         dateNaiss: new Date(c.dateNaiss),
       },
     });
-    contribuables.push(contribuable);
+    contribuables.push({
+      id: contribuable.id,
+      nin: contribuable.nin,
+      nom: contribuable.nom,
+      prenom: contribuable.prenom,
+      telephone: contribuable.telephone,
+    });
   }
+  const contribuableByNin = new Map(contribuables.map((item) => [item.nin, item]));
 
   // ─── TRANSACTIONS ────────────────────────────────────────
   const categories = ['TAXE', 'ETAT_CIVIL', 'URBANISME', 'MARCHE', 'TRANSPORT', 'AUTRE'];
@@ -327,6 +334,473 @@ async function main() {
       randomUUID(), jeunes[2].id, formations[1].id, new Date('2026-04-05T08:00:00.000Z'), 78, 'En cours', 8, 1, new Date('2026-04-05T08:00:00.000Z'), new Date('2026-04-08T08:00:00.000Z')
     );
     console.log('  Created youth enrollments');
+  }
+
+  const extraEtatCivilRecords = [
+    {
+      numero: 'EC-2026-00008',
+      contribuableNin: 'SN-2024-017',
+      agentId: admin.id,
+      typeDocument: 'Certificat de résidence',
+      exemplaires: 2,
+      montant: 1500,
+      statut: 'DELIVREE',
+      observations: 'Retiré au guichet principal',
+      createdAt: new Date('2026-04-12T09:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T11:00:00.000Z'),
+    },
+    {
+      numero: 'EC-2026-00009',
+      contribuableNin: 'SN-2024-018',
+      agentId: agent.id,
+      typeDocument: 'Acte de mariage',
+      exemplaires: 1,
+      montant: 2000,
+      statut: 'EN_ATTENTE',
+      observations: 'Validation du registre en cours',
+      createdAt: new Date('2026-04-14T10:20:00.000Z'),
+      updatedAt: new Date('2026-04-14T10:20:00.000Z'),
+    },
+    {
+      numero: 'EC-2026-00010',
+      contribuableNin: 'SN-2024-020',
+      agentId: admin.id,
+      typeDocument: 'Extrait de naissance',
+      exemplaires: 3,
+      montant: 1500,
+      statut: 'DELIVREE',
+      observations: 'Copies conformes imprimées',
+      createdAt: new Date('2026-04-16T08:45:00.000Z'),
+      updatedAt: new Date('2026-04-16T09:10:00.000Z'),
+    },
+  ] as const;
+
+  for (const record of extraEtatCivilRecords) {
+    const contribuable = contribuableByNin.get(record.contribuableNin);
+    if (!contribuable) continue;
+    await prisma.$executeRaw`
+      INSERT INTO "EtatCivilRequest" ("id", "numero", "contribuableId", "agentId", "typeDocument", "exemplaires", "montant", "statut", "observations", "year", "createdAt", "updatedAt")
+      VALUES (${randomUUID()}, ${record.numero}, ${contribuable.id}, ${record.agentId}, ${record.typeDocument}, ${record.exemplaires}, ${record.montant}, ${record.statut}, ${record.observations}, ${2026}, ${record.createdAt}, ${record.updatedAt})
+      ON CONFLICT ("numero") DO UPDATE SET
+        "contribuableId" = EXCLUDED."contribuableId",
+        "agentId" = EXCLUDED."agentId",
+        "typeDocument" = EXCLUDED."typeDocument",
+        "exemplaires" = EXCLUDED."exemplaires",
+        "montant" = EXCLUDED."montant",
+        "statut" = EXCLUDED."statut",
+        "observations" = EXCLUDED."observations",
+        "year" = EXCLUDED."year",
+        "createdAt" = EXCLUDED."createdAt",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `;
+  }
+
+  const extraUrbanismeCases = [
+    {
+      numero: 'URB-2026-00008',
+      contribuableNin: 'SN-2024-015',
+      agentId: admin.id,
+      type: 'permis-construire',
+      description: 'Construction de deux salles de classe en banco stabilisé',
+      surface: 240,
+      localisation: 'Kafountine extension, îlot 8',
+      nature: 'Éducation',
+      montant: 960000,
+      statut: 'VALIDE',
+      createdAt: new Date('2026-04-10T08:15:00.000Z'),
+      updatedAt: new Date('2026-04-10T10:00:00.000Z'),
+    },
+    {
+      numero: 'URB-2026-00009',
+      contribuableNin: 'SN-2024-016',
+      agentId: agent.id,
+      type: 'autorisation-travaux',
+      description: 'Aménagement d une devanture commerciale au marché central',
+      surface: 28,
+      localisation: 'Marché central bloc B',
+      nature: 'Commercial',
+      montant: 35000,
+      statut: 'EN_ATTENTE',
+      createdAt: new Date('2026-04-13T09:25:00.000Z'),
+      updatedAt: new Date('2026-04-13T09:25:00.000Z'),
+    },
+    {
+      numero: 'URB-2026-00010',
+      contribuableNin: 'SN-2024-019',
+      agentId: superAdmin.id,
+      type: 'certificat-conformite',
+      description: 'Contrôle final d un dépôt de matériaux',
+      surface: 110,
+      localisation: 'Route nationale sortie sud',
+      nature: 'Industriel',
+      montant: 5000,
+      statut: 'VALIDE',
+      createdAt: new Date('2026-04-17T07:50:00.000Z'),
+      updatedAt: new Date('2026-04-17T08:40:00.000Z'),
+    },
+  ] as const;
+
+  for (const record of extraUrbanismeCases) {
+    const contribuable = contribuableByNin.get(record.contribuableNin);
+    if (!contribuable) continue;
+    await prisma.$executeRaw`
+      INSERT INTO "UrbanismeCase" ("id", "numero", "contribuableId", "agentId", "type", "description", "surface", "localisation", "nature", "montant", "statut", "year", "createdAt", "updatedAt")
+      VALUES (${randomUUID()}, ${record.numero}, ${contribuable.id}, ${record.agentId}, ${record.type}, ${record.description}, ${record.surface}, ${record.localisation}, ${record.nature}, ${record.montant}, ${record.statut}, ${2026}, ${record.createdAt}, ${record.updatedAt})
+      ON CONFLICT ("numero") DO UPDATE SET
+        "contribuableId" = EXCLUDED."contribuableId",
+        "agentId" = EXCLUDED."agentId",
+        "type" = EXCLUDED."type",
+        "description" = EXCLUDED."description",
+        "surface" = EXCLUDED."surface",
+        "localisation" = EXCLUDED."localisation",
+        "nature" = EXCLUDED."nature",
+        "montant" = EXCLUDED."montant",
+        "statut" = EXCLUDED."statut",
+        "year" = EXCLUDED."year",
+        "createdAt" = EXCLUDED."createdAt",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `;
+  }
+
+  const extraMarketPlaces = [
+    {
+      numeroPlace: 'C-02',
+      type: 'Kiosque',
+      zone: 'Bloc C',
+      occupantNin: 'SN-2024-016',
+      activite: 'Produits céréaliers',
+      tarif: 8000,
+      periode: 'Avril 2026',
+      statut: 'OCCUPEE',
+      createdAt: new Date('2026-04-01T08:15:00.000Z'),
+      updatedAt: new Date('2026-04-01T08:15:00.000Z'),
+    },
+    {
+      numeroPlace: 'C-03',
+      type: 'Étal',
+      zone: 'Bloc C',
+      occupantNin: 'SN-2024-018',
+      activite: 'Tissus et accessoires',
+      tarif: 6500,
+      periode: 'Avril 2026',
+      statut: 'OCCUPEE',
+      createdAt: new Date('2026-04-02T09:10:00.000Z'),
+      updatedAt: new Date('2026-04-02T09:10:00.000Z'),
+    },
+    {
+      numeroPlace: 'D-01',
+      type: 'Boutique',
+      zone: 'Bloc D',
+      occupantNin: 'SN-2024-020',
+      activite: 'Quincaillerie',
+      tarif: 16000,
+      periode: 'Avril 2026',
+      statut: 'OCCUPEE',
+      createdAt: new Date('2026-04-03T07:40:00.000Z'),
+      updatedAt: new Date('2026-04-03T07:40:00.000Z'),
+    },
+  ] as const;
+
+  for (const place of extraMarketPlaces) {
+    const occupant = contribuableByNin.get(place.occupantNin);
+    if (!occupant) continue;
+    await prisma.$executeRaw`
+      INSERT INTO "MarketPlace" ("id", "numeroPlace", "type", "zone", "occupantId", "activite", "telephone", "dateAttribution", "tarif", "periode", "statut", "year", "createdAt", "updatedAt")
+      VALUES (${randomUUID()}, ${place.numeroPlace}, ${place.type}, ${place.zone}, ${occupant.id}, ${place.activite}, ${occupant.telephone}, ${place.createdAt}, ${place.tarif}, ${place.periode}, ${place.statut}, ${2026}, ${place.createdAt}, ${place.updatedAt})
+      ON CONFLICT ("numeroPlace", "year") DO UPDATE SET
+        "type" = EXCLUDED."type",
+        "zone" = EXCLUDED."zone",
+        "occupantId" = EXCLUDED."occupantId",
+        "activite" = EXCLUDED."activite",
+        "telephone" = EXCLUDED."telephone",
+        "dateAttribution" = EXCLUDED."dateAttribution",
+        "tarif" = EXCLUDED."tarif",
+        "periode" = EXCLUDED."periode",
+        "statut" = EXCLUDED."statut",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `;
+  }
+
+  const extraMarketPayments = [
+    { numeroPlace: 'C-02', reference: 'MRC-2026-0003', montant: 8000, periode: 'Avril 2026', datePaiement: new Date('2026-04-02T08:30:00.000Z') },
+    { numeroPlace: 'C-03', reference: 'MRC-2026-0004', montant: 6500, periode: 'Avril 2026', datePaiement: new Date('2026-04-04T10:00:00.000Z') },
+    { numeroPlace: 'D-01', reference: 'MRC-2026-0005', montant: 16000, periode: 'Avril 2026', datePaiement: new Date('2026-04-05T11:15:00.000Z') },
+  ] as const;
+
+  for (const payment of extraMarketPayments) {
+    const [place] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      'SELECT "id" FROM "MarketPlace" WHERE "numeroPlace" = $1 AND "year" = $2 LIMIT 1',
+      payment.numeroPlace,
+      2026
+    );
+    if (!place) continue;
+    const [existingPayment] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      'SELECT "id" FROM "MarketPayment" WHERE "reference" = $1 LIMIT 1',
+      payment.reference
+    );
+    if (!existingPayment) {
+      await prisma.$executeRaw`
+        INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "createdAt", "updatedAt")
+        VALUES (${randomUUID()}, ${place.id}, ${payment.montant}, ${payment.reference}, ${payment.periode}, ${'PAYE'}, ${payment.datePaiement}, ${2026}, ${payment.datePaiement}, ${payment.datePaiement})
+      `;
+    }
+  }
+
+  const extraMotoRecords = [
+    {
+      matricule: 'DK-2211-GG',
+      marque: 'TVS',
+      modele: 'HLX 150',
+      annee: 2025,
+      couleur: 'Vert',
+      proprietaireNin: 'SN-2024-002',
+      conducteurNin: 'SN-2024-017',
+      permis: 'PRM-0007',
+      photo: 'https://images.unsplash.com/photo-1517846693594-1567da72af75?w=400&h=300&fit=crop',
+      enRetard: false,
+      prochainPaiement: new Date('2026-05-18T00:00:00.000Z'),
+      dernierPaiement: new Date('2026-04-18T09:00:00.000Z'),
+      createdAt: new Date('2026-04-06T08:00:00.000Z'),
+      updatedAt: new Date('2026-04-18T09:00:00.000Z'),
+    },
+    {
+      matricule: 'DK-3344-HH',
+      marque: 'Bajaj',
+      modele: 'Boxer 150',
+      annee: 2024,
+      couleur: 'Jaune',
+      proprietaireNin: 'SN-2024-014',
+      conducteurNin: 'SN-2024-020',
+      permis: 'PRM-0008',
+      photo: 'https://images.unsplash.com/photo-1543508282-6319a3e2621f?w=400&h=300&fit=crop',
+      enRetard: true,
+      prochainPaiement: new Date('2026-04-25T00:00:00.000Z'),
+      dernierPaiement: new Date('2026-02-25T09:45:00.000Z'),
+      createdAt: new Date('2026-03-02T07:30:00.000Z'),
+      updatedAt: new Date('2026-04-10T11:30:00.000Z'),
+    },
+  ] as const;
+
+  const motoCorrections = [
+    { matricule: 'DK-1234-AA', conducteurNin: 'SN-2024-017', photo: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&h=300&fit=crop' },
+    { matricule: 'DK-5678-BB', conducteurNin: 'SN-2024-011', photo: 'https://images.unsplash.com/photo-1529429611270-78cb79042b09?w=400&h=300&fit=crop' },
+    { matricule: 'DK-9012-CC', conducteurNin: 'SN-2024-018', photo: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&h=300&fit=crop' },
+    { matricule: 'DK-3456-DD', conducteurNin: 'SN-2024-020', photo: 'https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=400&h=300&fit=crop' },
+    { matricule: 'DK-7890-EE', conducteurNin: 'SN-2024-016', photo: 'https://images.unsplash.com/photo-1515777315835-281b94c9589f?w=400&h=300&fit=crop' },
+    { matricule: 'DK-1122-FF', conducteurNin: 'SN-2024-001', photo: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop' },
+  ] as const;
+
+  for (const correction of motoCorrections) {
+    const conducteur = contribuableByNin.get(correction.conducteurNin);
+    if (!conducteur) continue;
+    await prisma.$executeRaw`
+      UPDATE "MotoRegistration"
+      SET "conducteurId" = ${conducteur.id}, "photo" = ${correction.photo}, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "matricule" = ${correction.matricule}
+    `;
+  }
+
+  for (const moto of extraMotoRecords) {
+    const proprietaire = contribuableByNin.get(moto.proprietaireNin);
+    const conducteur = contribuableByNin.get(moto.conducteurNin);
+    if (!proprietaire || !conducteur) continue;
+    await prisma.$executeRaw`
+      INSERT INTO "MotoRegistration" ("id", "matricule", "marque", "modele", "annee", "couleur", "proprietaireId", "conducteurId", "permis", "statut", "photo", "enRetard", "montantPenalite", "prochainPaiement", "dernierPaiement", "year", "createdAt", "updatedAt")
+      VALUES (${randomUUID()}, ${moto.matricule}, ${moto.marque}, ${moto.modele}, ${moto.annee}, ${moto.couleur}, ${proprietaire.id}, ${conducteur.id}, ${moto.permis}, ${'ACTIVE'}, ${moto.photo}, ${moto.enRetard}, ${250}, ${moto.prochainPaiement}, ${moto.dernierPaiement}, ${2026}, ${moto.createdAt}, ${moto.updatedAt})
+      ON CONFLICT ("matricule") DO UPDATE SET
+        "marque" = EXCLUDED."marque",
+        "modele" = EXCLUDED."modele",
+        "annee" = EXCLUDED."annee",
+        "couleur" = EXCLUDED."couleur",
+        "proprietaireId" = EXCLUDED."proprietaireId",
+        "conducteurId" = EXCLUDED."conducteurId",
+        "permis" = EXCLUDED."permis",
+        "statut" = EXCLUDED."statut",
+        "photo" = EXCLUDED."photo",
+        "enRetard" = EXCLUDED."enRetard",
+        "montantPenalite" = EXCLUDED."montantPenalite",
+        "prochainPaiement" = EXCLUDED."prochainPaiement",
+        "dernierPaiement" = EXCLUDED."dernierPaiement",
+        "year" = EXCLUDED."year",
+        "createdAt" = EXCLUDED."createdAt",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `;
+  }
+
+  const extraTrainingPrograms = [
+    {
+      nom: 'Initiation a la transformation de fruits locaux',
+      domaine: 'Agroalimentaire',
+      duree: '2 mois',
+      responsable: 'Mme Ndeye Diatta',
+      budget: 1600000,
+      dateDebut: new Date('2026-05-10T00:00:00.000Z'),
+      dateFin: new Date('2026-07-10T00:00:00.000Z'),
+      statut: 'PLANIFIEE',
+      createdAt: new Date('2026-04-18T08:00:00.000Z'),
+      updatedAt: new Date('2026-04-18T08:00:00.000Z'),
+    },
+    {
+      nom: 'Maintenance solaire pour jeunes artisans',
+      domaine: 'Energie',
+      duree: '3 mois',
+      responsable: 'M. Pape Seck',
+      budget: 2900000,
+      dateDebut: new Date('2026-04-20T00:00:00.000Z'),
+      dateFin: new Date('2026-07-20T00:00:00.000Z'),
+      statut: 'EN_COURS',
+      createdAt: new Date('2026-04-10T08:00:00.000Z'),
+      updatedAt: new Date('2026-04-20T08:00:00.000Z'),
+    },
+    {
+      nom: 'Coupe et couture moderne',
+      domaine: 'Artisanat',
+      duree: '3 mois',
+      responsable: 'Mme Sokhna Faye',
+      budget: 1750000,
+      dateDebut: new Date('2026-03-15T00:00:00.000Z'),
+      dateFin: new Date('2026-06-15T00:00:00.000Z'),
+      statut: 'EN_COURS',
+      createdAt: new Date('2026-03-01T08:00:00.000Z'),
+      updatedAt: new Date('2026-03-15T08:00:00.000Z'),
+    },
+  ] as const;
+
+  for (const training of extraTrainingPrograms) {
+    const [existingTraining] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      'SELECT "id" FROM "TrainingProgram" WHERE "nom" = $1 AND "year" = $2 LIMIT 1',
+      training.nom,
+      2026
+    );
+    if (!existingTraining) {
+      await prisma.$executeRaw`
+        INSERT INTO "TrainingProgram" ("id","nom","domaine","duree","responsable","budget","dateDebut","dateFin","statut","year","createdAt","updatedAt")
+        VALUES (${randomUUID()}, ${training.nom}, ${training.domaine}, ${training.duree}, ${training.responsable}, ${training.budget}, ${training.dateDebut}, ${training.dateFin}, ${training.statut}, ${2026}, ${training.createdAt}, ${training.updatedAt})
+      `;
+    }
+  }
+
+  const extraYouthProfiles = [
+    {
+      cni: 'YTH-0010',
+      nom: 'Diatta',
+      prenom: 'Aissatou',
+      telephone: '+221770100010',
+      adresse: 'Kandialang extension',
+      niveauEtude: 'BEP',
+      sexe: 'F',
+      dateNaiss: new Date('2002-07-08T00:00:00.000Z'),
+      photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
+      createdAt: new Date('2026-04-09T09:00:00.000Z'),
+    },
+    {
+      cni: 'YTH-0011',
+      nom: 'Ndao',
+      prenom: 'Cheikh',
+      telephone: '+221770100011',
+      adresse: 'Quartier Escale',
+      niveauEtude: 'Terminale',
+      sexe: 'M',
+      dateNaiss: new Date('2001-09-21T00:00:00.000Z'),
+      photo: 'https://images.unsplash.com/photo-1500648767791-00bcc4452b71?w=200&h=200&fit=crop',
+      createdAt: new Date('2026-04-09T09:10:00.000Z'),
+    },
+    {
+      cni: 'YTH-0012',
+      nom: 'Seck',
+      prenom: 'Khady',
+      telephone: '+221770100012',
+      adresse: 'Quartier Mission',
+      niveauEtude: 'BAC',
+      sexe: 'F',
+      dateNaiss: new Date('2000-12-03T00:00:00.000Z'),
+      photo: 'https://images.unsplash.com/photo-1544005313-94d997028b09?w=200&h=200&fit=crop',
+      createdAt: new Date('2026-04-09T09:20:00.000Z'),
+    },
+    {
+      cni: 'YTH-0013',
+      nom: 'Mbaye',
+      prenom: 'Mame Mor',
+      telephone: '+221770100013',
+      adresse: 'Quartier Nord',
+      niveauEtude: 'CAP',
+      sexe: 'M',
+      dateNaiss: new Date('2003-04-18T00:00:00.000Z'),
+      photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop',
+      createdAt: new Date('2026-04-09T09:30:00.000Z'),
+    },
+    {
+      cni: 'YTH-0014',
+      nom: 'Cisse',
+      prenom: 'Rokhaya',
+      telephone: '+221770100014',
+      adresse: 'Zone portuaire',
+      niveauEtude: 'Licence',
+      sexe: 'F',
+      dateNaiss: new Date('1999-02-14T00:00:00.000Z'),
+      photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop',
+      createdAt: new Date('2026-04-09T09:40:00.000Z'),
+    },
+  ] as const;
+
+  for (const youth of extraYouthProfiles) {
+    await prisma.$executeRaw`
+      INSERT INTO "YouthProfile" ("id","nom","prenom","cni","telephone","adresse","niveauEtude","sexe","dateNaiss","photo","year","createdAt","updatedAt")
+      VALUES (${randomUUID()}, ${youth.nom}, ${youth.prenom}, ${youth.cni}, ${youth.telephone}, ${youth.adresse}, ${youth.niveauEtude}, ${youth.sexe}, ${youth.dateNaiss}, ${youth.photo}, ${2026}, ${youth.createdAt}, ${youth.createdAt})
+      ON CONFLICT ("cni") DO UPDATE SET
+        "nom" = EXCLUDED."nom",
+        "prenom" = EXCLUDED."prenom",
+        "telephone" = EXCLUDED."telephone",
+        "adresse" = EXCLUDED."adresse",
+        "niveauEtude" = EXCLUDED."niveauEtude",
+        "sexe" = EXCLUDED."sexe",
+        "dateNaiss" = EXCLUDED."dateNaiss",
+        "photo" = EXCLUDED."photo",
+        "year" = EXCLUDED."year",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `;
+  }
+
+  const formationsByName = new Map(
+    (await prisma.$queryRawUnsafe<Array<{ id: string; nom: string }>>(
+      'SELECT "id", "nom" FROM "TrainingProgram" WHERE "year" = $1',
+      2026
+    )).map((item) => [item.nom, item.id])
+  );
+  const youthByCni = new Map(
+    (await prisma.$queryRawUnsafe<Array<{ id: string; cni: string }>>(
+      'SELECT "id", "cni" FROM "YouthProfile" WHERE "year" = $1',
+      2026
+    )).map((item) => [item.cni, item.id])
+  );
+
+  const extraEnrollments = [
+    { cni: 'YTH-0004', formationNom: 'Maçonnerie générale', dateInscription: new Date('2026-03-03T08:00:00.000Z'), tauxAssiduite: 88, statutFinal: 'En cours', presences: 18, absences: 2 },
+    { cni: 'YTH-0005', formationNom: 'Coupe et couture moderne', dateInscription: new Date('2026-03-18T08:00:00.000Z'), tauxAssiduite: 93, statutFinal: 'En cours', presences: 17, absences: 1 },
+    { cni: 'YTH-0006', formationNom: 'Réparation moteur motorcycles', dateInscription: new Date('2026-04-15T08:00:00.000Z'), tauxAssiduite: 82, statutFinal: 'En cours', presences: 9, absences: 2 },
+    { cni: 'YTH-0007', formationNom: 'Initiation au numérique', dateInscription: new Date('2026-04-06T08:00:00.000Z'), tauxAssiduite: 86, statutFinal: 'En cours', presences: 10, absences: 1 },
+    { cni: 'YTH-0010', formationNom: 'Maintenance solaire pour jeunes artisans', dateInscription: new Date('2026-04-21T08:00:00.000Z'), tauxAssiduite: 91, statutFinal: 'En cours', presences: 7, absences: 0 },
+    { cni: 'YTH-0011', formationNom: 'Maçonnerie générale', dateInscription: new Date('2026-03-05T08:00:00.000Z'), tauxAssiduite: 79, statutFinal: 'En cours', presences: 15, absences: 4 },
+    { cni: 'YTH-0012', formationNom: 'Coupe et couture moderne', dateInscription: new Date('2026-03-18T08:05:00.000Z'), tauxAssiduite: 95, statutFinal: 'En cours', presences: 18, absences: 1 },
+    { cni: 'YTH-0013', formationNom: 'Réparation moteur motorcycles', dateInscription: new Date('2026-04-16T08:10:00.000Z'), tauxAssiduite: 84, statutFinal: 'En cours', presences: 8, absences: 1 },
+    { cni: 'YTH-0014', formationNom: 'Initiation a la transformation de fruits locaux', dateInscription: new Date('2026-05-10T08:00:00.000Z'), tauxAssiduite: 0, statutFinal: 'En cours', presences: 0, absences: 0 },
+  ] as const;
+
+  for (const enrollment of extraEnrollments) {
+    const jeuneId = youthByCni.get(enrollment.cni);
+    const formationId = formationsByName.get(enrollment.formationNom);
+    if (!jeuneId || !formationId) continue;
+    await prisma.$executeRaw`
+      INSERT INTO "YouthEnrollment" ("id","jeuneId","formationId","dateInscription","tauxAssiduite","statutFinal","presences","absences","createdAt","updatedAt")
+      VALUES (${randomUUID()}, ${jeuneId}, ${formationId}, ${enrollment.dateInscription}, ${enrollment.tauxAssiduite}, ${enrollment.statutFinal}, ${enrollment.presences}, ${enrollment.absences}, ${enrollment.dateInscription}, ${enrollment.dateInscription})
+      ON CONFLICT ("jeuneId","formationId") DO UPDATE SET
+        "dateInscription" = EXCLUDED."dateInscription",
+        "tauxAssiduite" = EXCLUDED."tauxAssiduite",
+        "statutFinal" = EXCLUDED."statutFinal",
+        "presences" = EXCLUDED."presences",
+        "absences" = EXCLUDED."absences",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `;
   }
 
   const [fishermanCount] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>('SELECT COUNT(*)::bigint AS count FROM "Fisherman"');

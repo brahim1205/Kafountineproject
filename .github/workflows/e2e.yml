@@ -105,7 +105,7 @@ jobs:
             sleep 2
           done
           echo "Backend failed to start. Last logs:" >&2
-          tail -n 200 /tmp/kafountine-backend.log >&2 || true
+          tail -n 200 /tmp/kafontine-backend.log >&2 || true
           exit 1
 
       - name: Run E2E tests

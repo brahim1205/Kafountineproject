@@ -1,0 +1,19 @@
+Type;Description;Montant;Delai;Actif
+Retard paiement marché;Majoration appliquée après échéance mensuelle;1500;5 jours après échéance;true
+Retard moto-taxi;Pénalité standard de régularisation;250;Immédiatement après échéance;true
+Retard dossier urbanisme;Frais complémentaires en cas de dossier incomplet prolongé;5000;10 jours après notification;true
+Retard paiement taxe ordures;Majoration pour retard de paiement;1000;30 jours après échéance;true
+Occupation illicite domaine public;Usage sans autorisation du domaine public;10000;Immédiatement;true
+Non respect horaires marché;Ouverture en dehors des heures autorisées;2000;Par infraction constatée;true
+Stationnement gênant;Véhicule stationné sur la voie publique de manière gênante;5000;Immédiatement;true
+Dépôt sauvage d'ordures;Abandon d'ordures sur la voie publique;15000;Immédiatement;true
+Nuisance sonore non autorisée;Bruit excessif sans autorisation;5000;Par infraction constatée;true
+Publicité non autorisée;Affichage sans autorisation municipale;10000;Immédiatement;true
+Construction sans permis;Édification sans permis de construire;50000;Immédiatement après constat;true
+Taxe non acquittée;Défaut de paiement d'une taxe municipale;2000;15 jours après mise en demeure;true
+Activité commerciale sans licence;Exercice d'activité sans licence municipale;15000;Immédiatement;true
+Non respect règles hygiène marché;Manquement aux règles d'hygiène au marché;3000;Par infraction constatée;true
+Transport bois sans autorisation;Circulation de bois sans autorisation de transport;5000;Par chargement saisi;true
+Pêche non autorisée;Pêche dans zone réglementée sans autorisation;3000;Immédiatement;true
+Vente ambulante illicite;Commerce ambulant sans autorisation;2000;Immédiatement;true
+Dégradation voie publique;Détérioration de la chaussée ou des trottoirs;10000;Immédiatement après constat;true

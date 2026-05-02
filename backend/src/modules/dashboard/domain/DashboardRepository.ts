@@ -13,4 +13,6 @@ export interface DashboardRepository {
   getTodayRevenueByYear(year: number): Promise<number>;
   getMonthlyRevenueByYear(year: number): Promise<number>;
   getWeeklyEvolutionByYear(year: number): Promise<Array<{ jour: string; montant: number; transactions: number }>>;
+  getMonthlyEvolutionByYear(year: number): Promise<Array<{ mois: string; montant: number; transactions: number }>>;
+  getTopContribuables(year: number, limit: number): Promise<Array<{ id: string; prenom: string; nom: string; montantTotal: number }>>;
 }

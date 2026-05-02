@@ -174,6 +174,19 @@ export class PrismaTransactionRepository implements TransactionRepository {
     });
   }
 
+  async update(id: string, payload: Partial<CreateTransactionPayload>) {
+    return prisma.transaction.update({
+      where: { id },
+      data: payload,
+    });
+  }
+
+  async delete(id: string) {
+    await prisma.transaction.delete({
+      where: { id },
+    });
+  }
+
   private buildWhere(filters: TransactionFilters): Prisma.TransactionWhereInput {
     return {
       ...(filters.search

@@ -1,0 +1,43 @@
+# RBAC — Roles et permissions pour le namespace kafontine
+# Prod-only : moindre privilège pour les pods
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kafontine-backend-sa
+  namespace: kafontine
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kafontine-frontend-sa
+  namespace: kafontine
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kafontine-readonly
+  namespace: kafontine
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kafontine-backend-binding
+  namespace: kafontine
+subjects:
+  - kind: ServiceAccount
+    name: kafontine-backend-sa
+    namespace: kafontine
+roleRef:
+  kind: Role
+  name: kafontine-readonly
+  apiGroup: rbac.authorization.k8s.io

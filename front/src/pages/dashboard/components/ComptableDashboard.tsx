@@ -177,6 +177,36 @@ export default function ComptableDashboard() {
   const impayesARecouvrer = (motosStats?.montantEnRetard || motosStats?.penalitesEnCours || 0) + (marcheStats?.recettesEnRetard || 0);
   const soldeTresorerie = (stats?.totalRecettes || 0) - totalDepense;
 
+  const getRecettesValue = () => {
+    switch (periodeActive) {
+      case 0: return stats?.recettesAujourdhui || 0;
+      case 1: return stats?.evolutionSemaine?.reduce((s, e) => s + e.montant, 0) || 0;
+      case 2: return stats?.recettesMois || 0;
+      case 3: return (stats?.recettesMois || 0) * 3;
+      default: return 0;
+    }
+  };
+
+  const getDepensesValue = () => {
+    switch (periodeActive) {
+      case 0: return Math.round(totalDepense / 365);
+      case 1: return Math.round(totalDepense / 52);
+      case 2: return Math.round(totalDepense / 12);
+      case 3: return Math.round(totalDepense / 4);
+      default: return 0;
+    }
+  };
+
+  const getPeriodeLabel = () => {
+    switch (periodeActive) {
+      case 0: return 'du jour';
+      case 1: return 'de la semaine';
+      case 2: return 'du mois';
+      case 3: return 'du trimestre';
+      default: return '';
+    }
+  };
+
   const indicateursFinanciers = [
     {
       label: 'Solde de trésorerie',
@@ -188,8 +218,8 @@ export default function ComptableDashboard() {
       trend: '',
       trendUp: soldeTresorerie >= 0,
     },
-    { label: 'Recettes du mois', valeur: stats?.recettesMois || 0, unite: 'FCFA', icon: 'ri-arrow-up-circle-line', color: 'bg-white border border-gray-200', text: 'text-gray-900', trend: '', trendUp: true },
-    { label: 'Dépenses du mois', valeur: totalDepense, unite: 'FCFA', icon: 'ri-arrow-down-circle-line', color: 'bg-white border border-gray-200', text: 'text-gray-900', trend: '', trendUp: false },
+    { label: `Recettes ${getPeriodeLabel()}`, valeur: getRecettesValue(), unite: 'FCFA', icon: 'ri-arrow-up-circle-line', color: 'bg-white border border-gray-200', text: 'text-gray-900', trend: '', trendUp: true },
+    { label: `Dépenses ${getPeriodeLabel()}`, valeur: getDepensesValue(), unite: 'FCFA', icon: 'ri-arrow-down-circle-line', color: 'bg-white border border-gray-200', text: 'text-gray-900', trend: '', trendUp: false },
     { label: 'Impayés à recouvrer', valeur: impayesARecouvrer, unite: 'FCFA', icon: 'ri-error-warning-line', color: 'bg-white border border-gray-200', text: 'text-gray-900', trend: '', trendUp: true },
   ];
 

@@ -9,6 +9,17 @@ interface RawTransaction {
   telephone?: string;
   nin?: string;
   adresse?: string;
+  reference?: string;
+  categorie?: string;
+  service?: string;
+  quantite?: number;
+  unite?: string;
+  tarifUnitaire?: number;
+  modePaiement?: string;
+  statut?: string;
+  localisation?: string;
+  nature?: string;
+  description?: string;
 }
 
 export interface RecuData {
@@ -22,6 +33,17 @@ export interface RecuData {
   telephone: string;
   nin: string;
   adresse: string;
+  reference: string;
+  categorie: string;
+  service: string;
+  quantite: string;
+  unite: string;
+  tarifUnitaire: string;
+  modePaiement: string;
+  statut: string;
+  localisation: string;
+  nature: string;
+  description: string;
 }
 
 interface RecuDataInput {
@@ -40,13 +62,37 @@ interface RecuDataInput {
   telephone?: string;
   nin?: string;
   adresse?: string;
+  reference?: string;
+  categorie?: string;
+  service?: string;
+  quantite?: number | string;
+  unite?: string;
+  tarifUnitaire?: number | string;
+  modePaiement?: string;
+  statut?: string;
+  localisation?: string;
+  nature?: string;
+  description?: string;
   transaction?: RawTransaction;
 }
 
 export function formatDateInFrench(dateStr: string): string {
   if (!dateStr) return '';
+  
   try {
-    const date = new Date(dateStr);
+    let date: Date;
+    
+    // Gérer le format français JJ/MM/AAAA
+    if (typeof dateStr === 'string' && dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split('/').map(Number);
+      date = new Date(year, month - 1, day);
+    } else {
+      date = new Date(dateStr);
+    }
+
+    // Vérifier si la date est valide
+    if (isNaN(date.getTime())) return dateStr;
+
     const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   } catch {
@@ -102,6 +148,17 @@ export function normalizeRecuData(input: RecuDataInput): RecuData {
       telephone: transaction.telephone || '',
       nin: transaction.nin || '',
       adresse: transaction.adresse || '',
+      reference: transaction.reference || '',
+      categorie: transaction.categorie || '',
+      service: transaction.service || '',
+      quantite: transaction.quantite !== undefined ? String(transaction.quantite) : '',
+      unite: transaction.unite || '',
+      tarifUnitaire: transaction.tarifUnitaire !== undefined ? String(transaction.tarifUnitaire) : '',
+      modePaiement: transaction.modePaiement || '',
+      statut: transaction.statut || '',
+      localisation: transaction.localisation || '',
+      nature: transaction.nature || '',
+      description: transaction.description || '',
     };
   }
 
@@ -116,6 +173,17 @@ export function normalizeRecuData(input: RecuDataInput): RecuData {
     telephone: input.telephone || '',
     nin: input.nin || '',
     adresse: input.adresse || '',
+    reference: input.reference || '',
+    categorie: input.categorie || '',
+    service: input.service || '',
+    quantite: input.quantite !== undefined ? String(input.quantite) : '',
+    unite: input.unite || '',
+    tarifUnitaire: input.tarifUnitaire !== undefined ? String(input.tarifUnitaire) : '',
+    modePaiement: input.modePaiement || '',
+    statut: input.statut || '',
+    localisation: input.localisation || '',
+    nature: input.nature || '',
+    description: input.description || '',
   };
 }
 
@@ -131,22 +199,28 @@ export function buildReceiptPayload(recuData: RecuData) {
     telephone: recuData.telephone,
     nin: recuData.nin,
     adresse: recuData.adresse,
+    reference: recuData.reference,
+    categorie: recuData.categorie,
+    service: recuData.service,
+    quantite: recuData.quantite,
+    unite: recuData.unite,
+    tarifUnitaire: recuData.tarifUnitaire,
+    modePaiement: recuData.modePaiement,
+    statut: recuData.statut,
+    localisation: recuData.localisation,
+    nature: recuData.nature,
+    description: recuData.description,
   };
 }
 
 export function buildReceiptQrData(recuData: RecuData, formattedDate: string): string {
-  return JSON.stringify({
-    recu: recuData.ticketNumber,
-    date: formattedDate,
-    heure: recuData.time,
-    contribuable: recuData.contributor,
-    nin: recuData.nin,
-    telephone: recuData.telephone,
-    adresse: recuData.adresse,
-    type: recuData.type,
-    montant: recuData.amount,
-    agent: recuData.agent,
-    commune: 'Kafountine',
-    verification: `https://kafountine.sn/verify?recu=${recuData.ticketNumber}`,
+  // On génère une URL de vérification officielle
+  // Ce format est plus standard et facile à scanner que du JSON brut
+  const baseUrl = 'https://kafountine.sn/verifier';
+  const params = new URLSearchParams({
+    id: recuData.ticketNumber,
+    val: window.btoa(`${recuData.ticketNumber}|${recuData.amount}|${recuData.date}`),
   });
+  
+  return `${baseUrl}?${params.toString()}`;
 }

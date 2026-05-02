@@ -7,3 +7,7 @@ coverage/
 data/*.json
 logs/
 *.log
+uploads/
+scratch/
+.eslintcache
+*.tsbuildinfo

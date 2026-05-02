@@ -9,6 +9,17 @@ type ReceiptPdfPayload = {
   telephone?: string;
   nin?: string;
   adresse?: string;
+  reference?: string;
+  categorie?: string;
+  service?: string;
+  quantite?: string;
+  unite?: string;
+  tarifUnitaire?: string;
+  modePaiement?: string;
+  statut?: string;
+  localisation?: string;
+  nature?: string;
+  description?: string;
 };
 
 type ReportPdfPayload = {

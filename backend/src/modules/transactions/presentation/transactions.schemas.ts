@@ -13,6 +13,20 @@ export const createTransactionSchema = z.object({
   reference: optionalTrimmedString(120),
 }).strict();
 
+export const updateTransactionSchema = z.object({
+  contribuableId: z.string().uuid('ID contribuable invalide').optional(),
+  type: optionalTrimmedString(100),
+  service: optionalTrimmedString(120),
+  quantite: z.coerce.number().int().min(1).optional(),
+  montant: z.coerce.number().min(0, 'Le montant doit être positif').optional(),
+  modePaiement: z.enum(['ESPECE', 'VIREMENT', 'MOBILE_MONEY', 'CHEQUE']).optional(),
+  statut: z.enum(['PAYE', 'EN_ATTENTE', 'ANNULE']).optional(),
+}).strict();
+
+export const transactionIdParamSchema = z.object({
+  id: z.string().uuid('ID invalide'),
+}).strict();
+
 export const listTransactionsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(300).optional().default(20),

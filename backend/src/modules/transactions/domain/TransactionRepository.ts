@@ -65,4 +65,6 @@ export interface TransactionRepository {
       telephone: string;
     };
   } | null>;
+  update(id: string, payload: Partial<CreateTransactionPayload>): Promise<unknown>;
+  delete(id: string): Promise<void>;
 }

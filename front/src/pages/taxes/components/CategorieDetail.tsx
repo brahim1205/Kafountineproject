@@ -200,7 +200,7 @@ export default function CategorieDetail() {
               <h2 className="text-lg font-semibold text-gray-900">Historique des transactions</h2>
               {userRole !== 'super_admin' && isCurrentYear && (
                 <button
-                  onClick={() => navigate('/taxes/nouvelle-transaction')}
+                  onClick={() => navigate('/taxes/nouvelle-transaction', { state: { categorieId } })}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap"
                 >
                   <i className="ri-add-line"></i>
@@ -320,6 +320,11 @@ export default function CategorieDetail() {
               agent: `${selectedTransaction.agent?.prenom || ''} ${selectedTransaction.agent?.nom || ''}`.trim() || '-',
               telephone: selectedTransaction.contribuable?.telephone || '',
               nin: selectedTransaction.contribuable?.nin || '',
+              categorie: selectedTransaction.categorie || '',
+              service: selectedTransaction.service || '',
+              quantite: selectedTransaction.quantite,
+              modePaiement: selectedTransaction.modePaiement || '',
+              statut: selectedTransaction.statut || '',
             }}
             onClose={() => {
               setShowRecuPDF(false);

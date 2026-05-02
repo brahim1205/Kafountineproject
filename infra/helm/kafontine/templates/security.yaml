@@ -1,0 +1,77 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "kafontine.fullname" . }}-default
+  namespace: {{ include "kafontine.namespace" . }}
+  labels:
+    {{- include "kafontine.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    {{- if .Values.networkPolicy.allowIngressFromNamespaceSelector }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicy.allowIngressFromNamespaceSelector | nindent 14 }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ include "kafontine.namespace" . }}
+    {{- else }}
+    - {}
+    {{- end }}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ include "kafontine.namespace" . }}
+    {{- if .Values.networkPolicy.allowEgressToInternet }}
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+    {{- end }}
+{{- end }}
+---
+{{- if and .Values.podDisruptionBudget.enabled .Values.backend.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "kafontine.fullname" . }}-backend
+  namespace: {{ include "kafontine.namespace" . }}
+  labels:
+    app.kubernetes.io/component: backend
+    {{- include "kafontine.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+      {{- include "kafontine.selectorLabels" . | nindent 6 }}
+{{- end }}
+---
+{{- if and .Values.podDisruptionBudget.enabled .Values.frontend.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "kafontine.fullname" . }}-frontend
+  namespace: {{ include "kafontine.namespace" . }}
+  labels:
+    app.kubernetes.io/component: frontend
+    {{- include "kafontine.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+      {{- include "kafontine.selectorLabels" . | nindent 6 }}
+{{- end }}

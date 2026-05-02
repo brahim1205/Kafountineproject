@@ -168,7 +168,7 @@ export default function PortalDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/portal/payer"
             className="bg-teal-600 text-white rounded-xl p-5 shadow-sm hover:bg-teal-700 transition-colors flex items-center gap-4"
@@ -194,6 +194,19 @@ export default function PortalDashboard() {
               <p className="text-sm text-gray-600">Télécharger mes reçus</p>
             </div>
           </a>
+
+          <Link
+            to="/portal/penalites"
+            className="bg-white text-gray-900 rounded-xl p-5 shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-4 border"
+          >
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <i className="ri-alert-circle-line text-2xl text-red-600"></i>
+            </div>
+            <div>
+              <h3 className="font-bold">Pénalités</h3>
+              <p className="text-sm text-gray-600">Consulter les pénalités</p>
+            </div>
+          </Link>
         </div>
 
         {/* Taxes List */}

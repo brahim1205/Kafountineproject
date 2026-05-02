@@ -1,0 +1,188 @@
+Catégorie;Sous-catégorie;Libellé précis;Montant (FCFA);Unité
+État civil;Naissance;Bulletin de naissance;500;par acte
+État civil;Naissance;Extrait de naissance;300;par acte
+État civil;Naissance;Copie littérale de naissance;500;par acte
+État civil;Décès;Extrait de décès;500;par acte
+État civil;Décès;Copie littérale de décès;500;par acte
+État civil;Décès;Permis d'inhumation;500;par acte
+État civil;Mariage;Extrait de mariage;500;par acte
+État civil;Mariage;Célébration de mariage (général);15000;par cérémonie
+État civil;Mariage;Célébration mariage couple sénégalais;5000;par cérémonie
+État civil;Mariage;Célébration mariage couple étranger;10000;par cérémonie
+État civil;Mariage;Copie littérale de mariage;500;par acte
+État civil;Mariage;Certificat de non divorce...;500;par acte
+État civil;Mariage;Certificat de divorce;500;par acte
+État civil;Divers état civil;Certificat de vie comparant;500;par acte
+État civil;Divers état civil;Certificat de vie collectif;500;par acte
+État civil;Divers état civil;Certificat de vie et d'entretien;500;par acte
+État civil;Divers état civil;Certificat d'individualité;500;par acte
+État civil;Divers état civil;Certificat de célibat;500;par acte
+État civil;Divers état civil;Certificat de résidence;500;par acte
+État civil;Divers état civil;Légalisation;100;par acte
+État civil;Divers état civil;Certificat de non inscription;500;par acte
+Urbanisme & habitat;Permis;Permis construire habitation;25000;par permis
+Urbanisme & habitat;Permis;Permis renouveler habitation;15000;par permis
+Urbanisme & habitat;Permis;Permis construire commercial/industriel;100000;par permis
+Urbanisme & habitat;Permis;Permis renouveler commercial/industriel;50000;par permis
+Urbanisme & habitat;Permis;Certificat de conformité;5000;par acte
+Urbanisme & habitat;Permis;Certificat de démolition;5000;par acte
+Urbanisme & habitat;Lotissement;Certificat d'urbanisme / 1000 m²;1000;par m²
+Urbanisme & habitat;Lotissement;PV réception lotissement;1500;par acte
+Urbanisme & habitat;Taxes foncières;Terrains non mis en valeur (1000 m²);20;par m²/an
+Urbanisme & habitat;Taxes foncières;Immeubles non mis en valeur/100 m²;200;par m²/an
+Urbanisme & habitat;Taxes foncières;Constructions en saillie/100 m²;1000;par m²/an
+Urbanisme & habitat;Affectations;Dépôt dossier affectation (Sénégalais);5000;par dossier
+Urbanisme & habitat;Affectations;Dépôt dossier affectation (Étranger);10000;par dossier
+Urbanisme & habitat;Affectations;Autorisation d'occuper;10000;par parcelle
+Urbanisme & habitat;Affectations;Frais bornage (Nationaux);35000;par parcelle
+Urbanisme & habitat;Affectations;Frais bornage (Couple mixte);50000;par parcelle
+Urbanisme & habitat;Affectations;Frais bornage (Étranger);100000;par parcelle
+Urbanisme & habitat;Topographie;Levée topographique (Sénégalais);5000;par opération
+Urbanisme & habitat;Topographie;Levée topographique (Étranger);10000;par opération
+Urbanisme & habitat;Topographie;Demande agrément levée topographique;100000;par demande
+Vente animaux;;Petits ruminants;200;par unité/jour
+Vente animaux;;Grands ruminants;500;par unité/jour
+Marché;Étals;Petit étalage;50;par jour
+Marché;Étals;Grand étalage;100;par jour
+Marché;Étals;Poissonnerie (étalage);100;par jour
+Marché;Étals;Marchand ambulant;100;par jour
+Marché;Étals;Cordonnerie;50;par jour
+Marché;Commerces sédentaires;Petite cantine;7000;par mois
+Marché;Commerces sédentaires;Grande cantine;12000;par mois + ODP
+Marché;Commerces sédentaires;Boutique;3000;par mois (ODP)
+Marché;Commerces sédentaires;Boucherie;3000;par mois (ODP)
+Marché;Commerces sédentaires;Droit d'occupation de cantine;20000;forfait
+Stationnement;Deux-roues;Banabana vélo et moto;100;par jour
+Stationnement;Deux-roues;Moto Jakarta venant d'ailleurs;100;par jour (entrée)
+Stationnement;Deux-roues;Amende non adhésion moto Jakarta;25000;par infraction
+Stationnement;Charrettes;Charrette chargée (bois vers quai);500;par chargement
+Stationnement;Charrettes;Charrette chargée (périmètre communal);200;par jour
+Stationnement;Taxis;Taxi Jakarta;2000;par mois
+Stationnement;Taxis;Droit d'adhésion Jakarta;5000;unique
+Stationnement;Taxis;Taxi clando;200;par jour
+Stationnement;Taxis;Amende retard paiement;10000;par infraction
+Stationnement;Taxis;Amende saisine sans acquittement;25000;par infraction
+Stationnement;Véhicules transport;Véhicules 7 places;200;par jour
+Stationnement;Véhicules transport;Véhicules 7 places (étranger);300;par jour
+Stationnement;Véhicules transport;Mini car (15 places);300;par jour
+Stationnement;Véhicules transport;Mini car étranger;500;par jour
+Stationnement;Véhicules transport;Car (+15 places);500;par jour
+Stationnement;Véhicules transport;Car étranger;1000;par jour
+Stationnement;Véhicules transport;Bus;3500;par jour
+Stationnement;Véhicules transport;Bus étranger;5000;par jour
+Transport bois;;Véhicule L200;1000;par chargement
+Transport bois;;Véhicule 0-10 tonnes;1500;par chargement
+Transport bois;;Véhicule 10t et plus;2000;par chargement
+Transport bois;;Pirogue;5000;par chargement
+Transport bois;;Vélo;100;par chargement
+Transport bois;;Moto;200;par chargement
+Transport poisson;;Moto chargeant poisson;200;par jour
+Camions frigorifiques;Vide;0-1 tonne;3000;par passage
+Camions frigorifiques;Vide;1-10 tonnes;5000;par passage
+Camions frigorifiques;Vide;10-20 tonnes;7500;par passage
+Camions frigorifiques;Vide;+20 tonnes;10000;par passage
+Camions frigorifiques;Chargé;0-1 tonne;5000;par passage
+Camions frigorifiques;Chargé;1-10 tonnes;7500;par passage
+Camions frigorifiques;Chargé;10-20 tonnes;10000;par passage
+Camions frigorifiques;Chargé;+20 tonnes;15000;par passage
+Transport sable;;Charrette;200;par chargement
+Transport sable;;Camion 4 m³;1000;par chargement
+Transport sable;;Camion 8 m³;2000;par chargement
+Transport sable;;Camion 16 m³;3000;par chargement
+Transport maritime;Courriers;Kafountine-Saloulou;500;aller-retour
+Transport maritime;Courriers;Kassel-Iles Karones;500;aller-retour
+Transport maritime;Courriers;Niomoune;1000;aller-retour
+Transport maritime;Courriers;Diogué;1000;aller-retour
+Transport maritime;Courriers;Haer;1000;aller-retour
+Transport maritime;Courriers;Hitou;1000;aller-retour
+Transport maritime;Courriers;Bakassouck;1000;aller-retour
+Transport maritime;Traversées privé motorisé;Kassel;6000;par mois
+Transport maritime;Traversées privé motorisé;Saloulou;6000;aller-retour
+Transport maritime;Traversées privé motorisé;Bakassouck;6000;aller-retour
+Transport maritime;Autres;Pêcheurs saisonniers;15000;par mois
+Transport maritime;Autres;Stationnement voiliers;10000;par mois
+Transport maritime;Autres;Ballade-excursion pirogue;5000;par jour
+Publicité;;Véhicule publicitaire (Sénégal);50000;par an ou 5000/jour
+Publicité;;Véhicule publicitaire (étranger);100000;par an ou 10000/jour
+Publicité;;Panneau publicitaire;10000;par m²/an
+Publicité;;Enseigne lumineuse;50000;par m²/an
+Publicité;;Macarons;5000;par m²/an
+Publicité;;Banderole;1500;par jour
+Nuisances;;Nuisance sonore (jour);3000;par infraction
+Nuisances;;Nuisance sonore (nuit);5000;par infraction
+Manifestations sonores;;Jour (général);5000;par événement
+Manifestations sonores;;Reggae party;5000;par soirée
+Manifestations sonores;;Spectacle djembé;5000;par soirée
+Manifestations sonores;;Soirée discothèque;5000;par soirée
+Manifestations sonores;;Concert/grand spectacle;10000;par événement
+Ateliers artisanaux;Cafétériat;Cafétériat;3000;par mois
+Ateliers artisanaux;Boulangerie;Boulangerie;10000;par mois
+Ateliers artisanaux;Moulin;Moulin;3000;par mois
+Ateliers artisanaux;Studio photo;Studio photo;2500;par mois
+Ateliers artisanaux;Bar restaurant;Bar restaurant grande licence;10000;par mois
+Ateliers artisanaux;Bar restaurant;Bar restaurant petite licence;5000;par mois
+Ateliers artisanaux;Gargote;Gargote;2000;par mois
+Ateliers artisanaux;Restaurant;Restaurant;5000;par mois
+Ateliers artisanaux;Menuiserie;Menuiserie;5000;par mois
+Ateliers artisanaux;Couture;Couture;2000;par mois
+Ateliers artisanaux;Mécanique;Mécanique (auto/moto/vélo);2500;par mois
+Ateliers artisanaux;Coiffure;Coiffure;2000;par mois
+Ateliers artisanaux;Beauté;Salon de beauté;2000;par mois
+Ateliers artisanaux;Dibiterie;Dibiterie;2000;par mois
+Ateliers artisanaux;Vulcanisation;Atelier de vulcanisation;2000;par mois
+Ateliers artisanaux;Plomberie;Atelier de plomberie;2000;par mois
+Ateliers artisanaux;Électricité;Atelier d'électricité;2000;par mois
+Ateliers artisanaux;Bobinage;Atelier de bobinage;2000;par mois
+Ateliers artisanaux;Cordonnerie;Atelier de cordonnerie;2000;par mois
+Ateliers artisanaux;Vidéo club;Vidéo club;2500;par mois
+Ateliers artisanaux;Réparation;Atelier réparation radio/télé;2500;par mois
+Dépositaires;;Pastèque;100;par jour
+Dépositaires;;Piquets, crinting, lattes, roniers;100;par jour
+Dépositaires;;Bambous, perches;100;par jour
+Dépositaires;;Briques;5000;par mois
+Dépositaires;;Bois menuiserie;5000;par mois
+Dépositaires;;Gaz;5000;par mois
+Dépositaires;;Charbon bois;2000;par mois
+Dépositaires;;Gravier;5000;par mois
+Dépositaires;;Coquillage;50000;par mois
+Manifestations sportives;;Match terrain non clôturé;2000;par jour
+Manifestations sportives;;Match terrain clôturé mur;3000;par jour
+Manifestations sportives;;Demi-finale/finale clôturé;5000;par jour
+Produits forestiers;;Vin de palme (saison);10000;par saison
+Produits forestiers;;Huile palme (saison);10000;par saison
+Produits forestiers;;Fruits forestiers 0-50 kg;100;par colis
+Produits forestiers;;Fruits forestiers 50-100 kg;200;par colis
+Produits forestiers;;Fruits forestiers +100 kg;500;par colis
+Occupation domaine public;Commerces;Distributeur carburant;5000;par pompe/mois
+Occupation domaine public;Commerces;Kiosque;100;par jour
+Occupation domaine public;Commerces;Magasin;5000;par mois
+Occupation domaine public;Commerces;Boutique grande;3000;par mois
+Occupation domaine public;Commerces;Boutique moyenne;2000;par mois
+Occupation domaine public;Commerces;Petite boutique/gargote/cafétéria;1500;par mois
+Occupation domaine public;Restaurants;Restaurant 1ère catégorie;3000;par mois
+Occupation domaine public;Restaurants;Restaurant 2ème catégorie;2000;par mois
+Occupation domaine public;Ateliers;Atelier menuiserie/tailleur/méca/coiffure 1ère cat.;2000;par mois
+Occupation domaine public;Ateliers;Atelier menuiserie/tailleur/méca/coiffure 2ème cat.;1500;par mois
+Occupation domaine public;Divers;Dibiterie;1500;par mois
+Spectacles;;Soirée sur invitation/Tam/Foureul;5000;par séance
+Spectacles;;Soirée/Théâtre/Concert payant;5000;par séance
+Spectacles;;Bal avec orchestre/Show;5000;par séance
+Spectacles;;Licence night clubs, débits boissons;25000;par an
+Spectacles;;Cérémonies de culte;1000;par séance
+Abattoirs;;Grand ruminant;500;par tête
+Abattoirs;;Petit ruminant;300;par tête
+Abattoirs;;Transport viande grand ruminant;500;par unité
+Abattoirs;;Transport viande petit ruminant;300;par unité
+Services;;Camion vidange fosses septiques;10000;par voyage
+Taxe ordures ménagères;Ménages Kafountine;Kafountine 1ère catégorie;2000;par mois
+Taxe ordures ménagères;Ménages Kafountine;Kafountine 2ème catégorie;1000;par mois
+Taxe ordures ménagères;Ménages Diannah-Abéné;Diannah-Abéné 1ère catégorie;1500;par mois
+Taxe ordures ménagères;Ménages Diannah-Abéné;Diannah-Abéné 2ème catégorie;1000;par mois
+Taxe ordures ménagères;Ménages Albadar;Albadar;500;par mois
+Taxe ordures ménagères;Ménages Colomba;Colomba;500;par mois
+Taxe ordures ménagères;Commerces;Hôtel / Campement;5000;par mois
+Taxe ordures ménagères;Commerces;Boutique grossiste;5000;par mois
+Taxe ordures ménagères;Commerces;Restaurant-bar;5000;par mois
+Taxe ordures ménagères;Commerces;Unité fabrication eau sachet;3000;par mois
+Taxe ordures ménagères;Commerces;Boutique simple;2000;par mois
+Taxe ordures ménagères;Commerces;Atelier mécanique/couture/gargote;2000;par mois

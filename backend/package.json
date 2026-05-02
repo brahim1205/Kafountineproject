@@ -1,6 +1,6 @@
 {
   "name": "kafountine-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "commonjs",
   "main": "dist/src/index.js",
@@ -26,7 +26,9 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@types/compression": "^1.8.1",
     "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
@@ -42,6 +44,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.10.1",
@@ -55,6 +58,7 @@
     "jsdom": "^24.0.0",
     "prisma": "^5.22.0",
     "supertest": "^7.0.0",
+    "ts-jest": "^29.4.9",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.58.0"

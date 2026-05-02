@@ -18,14 +18,19 @@ type ReceiptData = {
   type: string;
   montant: number;
   agent: string;
+  categorie?: string;
+  service?: string;
+  quantite?: number;
+  unite?: string;
+  tarifUnitaire?: number;
+  statut?: string;
+  localisation?: string;
+  nature?: string;
+  description?: string;
 };
 
 type UiDossier = Omit<DossierUrbanisme, 'date' | 'surface' | 'statut'> & {
   date: string;
-  demandeur: string;
-  cni: string;
-  telephone: string;
-  adresse: string;
   surface: string;
   statut: string;
 };
@@ -47,6 +52,13 @@ export default function GestionDossiers() {
   const [dossiers, setDossiers] = useState<UiDossier[]>([]);
   const [loading, setLoading] = useState(true);
   const [typesPermis, setTypesPermis] = useState<TaxService[]>([]);
+  const [formValues, setFormValues] = useState({
+    nomComplet: '',
+    localisation: '',
+    surface: '',
+    nature: '',
+    description: '',
+  });
 
   // Fetch dossiers from API
   const fetchDossiers = async () => {
@@ -75,10 +87,6 @@ export default function GestionDossiers() {
           ...dossier,
           date: dossier.createdAt ? new Date(dossier.createdAt).toLocaleDateString('fr-FR') : '-',
           type: typePermisObj?.nom || dossier.type || '-',
-          demandeur: 'Demandeur',
-          cni: '-',
-          telephone: '-',
-          adresse: '-',
           localisation: dossier.localisation || '-',
           surface: dossier.surface ? `${dossier.surface} m²` : '-',
           montant: dossier.montant || 0,
@@ -101,7 +109,7 @@ export default function GestionDossiers() {
   useEffect(() => {
     const loadTarifs = async () => {
       try {
-        const services = await getTaxServices('urbanisme');
+        const services = await getTaxServices('urbanisme-habitat');
         setTypesPermis(services);
       } catch {
         setError('Impossible de charger les tarifs urbanisme.');
@@ -131,15 +139,15 @@ export default function GestionDossiers() {
         return;
       }
 
-      const surface = selectedPermis.unite === 'm²' ? parseInt(formData.get('surface') as string) || 0 : 1;
-      const montantTotal = selectedPermis.tarif * surface;
+      const surface = selectedPermis.unite === 'm²' ? parseInt(formData.get('surface') as string) || 0 : undefined;
+      const montantTotal =
+        selectedPermis.unite === 'm²'
+          ? selectedPermis.tarif * Math.max(1, surface || 1)
+          : selectedPermis.tarif;
 
       // First ensure the contribuable exists
       const contribuable = await ensureContribuableByIdentity({
-        cni: (formData.get('cni') as string) || '',
         fullName: (formData.get('nomComplet') as string) || '',
-        telephone: (formData.get('telephone') as string) || '',
-        adresse: (formData.get('adresse') as string) || '',
       });
 
       // Create the urbanisme dossier
@@ -147,8 +155,10 @@ export default function GestionDossiers() {
         contribuableId: contribuable.id,
         type: typePermis,
         description: formData.get('description') as string || '',
-        surface: surface,
+        surface,
         localisation: formData.get('localisation') as string || '',
+        nature: formData.get('nature') as string || '',
+        montant: montantTotal,
       });
 
       // Créer les données de transaction pour le reçu
@@ -162,12 +172,28 @@ export default function GestionDossiers() {
         contribuable: formData.get('nomComplet') as string,
         type: `${selectedPermis.nom}${selectedPermis.unite === 'm²' ? ` (${surface} m²)` : ''}`,
         montant: montantTotal,
-        agent: 'Agent Urbanisme'
+        agent: 'Agent Urbanisme',
+        categorie: 'Urbanisme & habitat',
+        service: selectedPermis.nom,
+        quantite: selectedPermis.unite === 'm²' ? Math.max(1, surface || 1) : 1,
+        unite: selectedPermis.unite,
+        tarifUnitaire: selectedPermis.tarif,
+        statut: userRole === 'admin' ? 'VALIDE' : 'EN_ATTENTE',
+        localisation: (formData.get('localisation') as string) || '',
+        nature: (formData.get('nature') as string) || '',
+        description: (formData.get('description') as string) || '',
       };
 
       setTransactionData(newTransaction);
       setShowModal(false);
       setTypePermis('');
+      setFormValues({
+        nomComplet: '',
+        localisation: '',
+        surface: '',
+        nature: '',
+        description: '',
+      });
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
       
@@ -185,26 +211,30 @@ export default function GestionDossiers() {
     setShowDetailModal(true);
   };
 
-  const handleTelecharger = (dossier: UiDossier) => {
-    // Simuler le téléchargement
-    const link = document.createElement('a');
-    link.href = '#';
-    link.download = `${dossier.numero}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+
 
   const handleImprimerRecuDossier = (dossier: UiDossier) => {
     const now = new Date();
+    const c = dossier.contribuable;
+    const contributorName = c ? `${c.prenom} ${c.nom}`.trim() : 'Inconnu';
+
     const recuData = {
       numero: dossier.numero,
       date: dossier.date,
       heure: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      contribuable: dossier.demandeur,
-      type: `${dossier.type} - ${dossier.localisation}`,
+      contribuable: contributorName,
+      type: `${dossier.type}`,
       montant: dossier.montant,
-      agent: 'Agent Urbanisme'
+      agent: dossier.agent || 'Agent Urbanisme',
+      categorie: 'Urbanisme & habitat',
+      service: dossier.type,
+      localisation: dossier.localisation,
+      nature: dossier.nature || dossier.type,
+      description: dossier.description || '',
+      statut: dossier.statut,
+      telephone: c?.telephone,
+      nin: c?.nin,
+      adresse: c?.adresse || dossier.localisation,
     };
     setTransactionData(recuData);
     setShowDetailModal(false);
@@ -212,6 +242,13 @@ export default function GestionDossiers() {
   };
 
   const selectedPermis = typesPermis.find(p => p.id === typePermis);
+  const surfaceValue = Number.parseInt(formValues.surface, 10);
+  const effectiveSurface = Number.isNaN(surfaceValue) || surfaceValue < 1 ? 1 : surfaceValue;
+  const montantEstime = selectedPermis
+    ? selectedPermis.unite === 'm²'
+      ? selectedPermis.tarif * effectiveSurface
+      : selectedPermis.tarif
+    : 0;
 
   return (
     <div className="space-y-4">
@@ -261,7 +298,6 @@ export default function GestionDossiers() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Numéro</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Demandeur</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Localisation</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Surface</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Montant</th>
@@ -272,7 +308,7 @@ export default function GestionDossiers() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                     <div className="flex items-center justify-center gap-2">
                       <i className="ri-loader-4-line animate-spin text-teal-500"></i>
                       <span>Chargement des dossiers...</span>
@@ -281,7 +317,7 @@ export default function GestionDossiers() {
                 </tr>
               ) : !dossiers || dossiers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                     Aucun dossier trouvé
                   </td>
                 </tr>
@@ -290,7 +326,6 @@ export default function GestionDossiers() {
                   <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{dossier.numero}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{dossier.date}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{dossier.type}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{dossier.demandeur}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{dossier.localisation}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{dossier.surface}</td>
                   <td className="px-4 py-3 text-sm font-medium text-teal-600 whitespace-nowrap">{dossier.montant.toLocaleString()} FCFA</td>
@@ -312,15 +347,7 @@ export default function GestionDossiers() {
                       >
                         <i className="ri-eye-line"></i>
                       </button>
-                      {dossier.statut === 'Validé' && (
-                        <button 
-                          onClick={() => handleTelecharger(dossier)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Télécharger"
-                        >
-                          <i className="ri-download-line"></i>
-                        </button>
-                      )}
+
                     </div>
                   </td>
                 </tr>
@@ -368,21 +395,9 @@ export default function GestionDossiers() {
                     {selectedDossier.statut}
                   </span>
                 </div>
-                <div className="col-span-2">
-                  <p className="text-xs text-gray-500 mb-1">Demandeur</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedDossier.demandeur}</p>
+                <div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Numéro CNI</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedDossier.cni}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Téléphone</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedDossier.telephone}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs text-gray-500 mb-1">Adresse</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedDossier.adresse}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-gray-500 mb-1">Localisation du projet</p>
@@ -414,15 +429,6 @@ export default function GestionDossiers() {
                   <i className="ri-printer-line mr-2"></i>
                   Imprimer le reçu
                 </button>
-                {selectedDossier.statut === 'Validé' && (
-                  <button
-                    onClick={() => handleTelecharger(selectedDossier)}
-                    className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
-                  >
-                    <i className="ri-download-line mr-2"></i>
-                    Télécharger
-                  </button>
-                )}
                 <button
                   onClick={() => setShowDetailModal(false)}
                   className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
@@ -437,197 +443,208 @@ export default function GestionDossiers() {
 
       {/* Modal nouveau dossier */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Nouveau dossier d'urbanisme</h3>
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-5 flex items-center justify-between z-10">
+              <div>
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Nouveau dossier d'urbanisme</h3>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-0.5">Enregistrement officiel - Commune de Kafountine</p>
+              </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
               >
-                <i className="ri-close-line text-xl"></i>
+                <i className="ri-close-line text-2xl"></i>
               </button>
             </div>
 
             <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Type de permis */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type de permis <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    data-required="true"
-                    value={typePermis}
-                    onChange={(e) => setTypePermis(e.target.value)}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  >
-                    <option value="">Sélectionnez un type</option>
-                    {typesPermis.map(permis => (
-                      <option key={permis.id} value={permis.id}>
-                        {permis.nom} - {permis.tarif} FCFA{permis.unite !== 'document' ? `/${permis.unite}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Informations demandeur */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nom complet <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="nomComplet"
-                    data-required="true"
-                    placeholder="Ex: Ibrahima Sarr"
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Numéro CNI <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="cni"
-                    data-required="true"
-                    placeholder="Ex: 1234567890123"
-                    maxLength={13}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Téléphone <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="telephone"
-                    data-required="true"
-                    placeholder="Ex: 77 123 45 67"
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Adresse <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="adresse"
-                    data-required="true"
-                    placeholder="Ex: Quartier Nord, Kafountine"
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-
-                {/* Informations projet */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Localisation du projet <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="localisation"
-                    data-required="true"
-                    placeholder="Ex: Parcelle 123, Quartier Nord"
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-
-                {selectedPermis?.unite === 'm²' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Surface (m²) <span className="text-red-500">*</span>
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                      Type de permis / Autorisation <span className="text-red-500">*</span>
                     </label>
+                    <div className="relative">
+                      <i className="ri-file-list-3-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <select
+                        data-required="true"
+                        value={typePermis}
+                        onChange={(e) => {
+                          setTypePermis(e.target.value);
+                          setFormValues((current) => ({ ...current, surface: '' }));
+                        }}
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all appearance-none"
+                      >
+                        <option value="">Sélectionnez un type</option>
+                        {typesPermis.map(permis => (
+                          <option key={permis.id} value={permis.id}>
+                            {permis.nom}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                    Nom Complet du Demandeur <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <i className="ri-user-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     <input
-                      type="number"
-                      name="surface"
+                      type="text"
+                      name="nomComplet"
+                      value={formValues.nomComplet}
+                      onChange={(e) => setFormValues((current) => ({ ...current, nomComplet: e.target.value }))}
                       data-required="true"
-                      min="1"
-                      placeholder="Ex: 150"
-                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      placeholder="Ex: El Hadji Malick Sy"
+                      className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all"
                     />
                   </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nature du projet <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="nature"
-                    data-required="true"
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  >
-                    <option value="">Sélectionnez</option>
-                    <option value="habitation">Habitation</option>
-                    <option value="commerce">Commerce</option>
-                    <option value="industrie">Industrie</option>
-                    <option value="mixte">Mixte</option>
-                  </select>
                 </div>
 
-                {/* Description */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description du projet
-                  </label>
-                  <textarea
-                    name="description"
-                    rows={3}
-                    placeholder="Décrivez brièvement le projet..."
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
-                  ></textarea>
-                </div>
+                
+
+
+                
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                      Localisation précise du projet <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <i className="ri-map-pin-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <input
+                        type="text"
+                        name="localisation"
+                        value={formValues.localisation}
+                        onChange={(e) => setFormValues((current) => ({ ...current, localisation: e.target.value }))}
+                        data-required="true"
+                        placeholder="Ex: Quartier Abéné, Parcelle n°45"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {selectedPermis?.unite === 'm²' && (
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                        Surface totale (m²) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <i className="ri-ruler-2-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input
+                          type="number"
+                          name="surface"
+                          value={formValues.surface}
+                          onChange={(e) => setFormValues((current) => ({ ...current, surface: e.target.value }))}
+                          data-required="true"
+                          min="1"
+                          placeholder="Ex: 250"
+                          className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={selectedPermis?.unite === 'm²' ? '' : 'md:col-span-2'}>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                      Nature du projet <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <i className="ri-building-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <select
+                        name="nature"
+                        value={formValues.nature}
+                        onChange={(e) => setFormValues((current) => ({ ...current, nature: e.target.value }))}
+                        data-required="true"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all appearance-none"
+                      >
+                        <option value="">Sélectionnez la nature</option>
+                        <option value="habitation">Usage d'habitation</option>
+                        <option value="commerce">Usage commercial</option>
+                        <option value="industrie">Usage industriel</option>
+                        <option value="mixte">Usage mixte (Habitat + Commerce)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                      Description complémentaire
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formValues.description}
+                      onChange={(e) => setFormValues((current) => ({ ...current, description: e.target.value }))}
+                      rows={3}
+                      placeholder="Précisez les détails du projet (ex: nombre d'étages, type de clôture...)"
+                      className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all resize-none"
+                    ></textarea>
+                  </div>
               </div>
 
-              {/* Récapitulatif */}
+              {/* Récapitulatif de paiement Premium */}
               {selectedPermis && (
-                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
+                <div className="bg-gradient-to-br from-teal-600 to-teal-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-xl"></div>
+                  <div className="relative flex justify-between items-center text-white">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Montant à payer</p>
-                      <p className="text-xs text-gray-600 mt-0.5">{selectedPermis.nom}</p>
+                      <p className="text-[10px] font-black text-teal-100 uppercase tracking-widest mb-1">Estimation des Droits de Voirie</p>
+                      <h4 className="text-sm font-bold mb-2">{selectedPermis.nom}</h4>
+                      <div className="flex items-center gap-3 text-teal-50/70 text-[10px] font-medium">
+                        <span>Tarif: {selectedPermis.tarif.toLocaleString()} F / {selectedPermis.unite}</span>
+                        {selectedPermis.unite === 'm²' && (
+                          <>
+                            <span className="w-1 h-1 bg-teal-400 rounded-full"></span>
+                            <span>Base calcul: {effectiveSurface} m²</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-2xl font-bold text-teal-600">
-                      {selectedPermis.tarif.toLocaleString()} FCFA{selectedPermis.unite !== 'document' ? `/${selectedPermis.unite}` : ''}
-                    </p>
+                    <div className="text-right">
+                      <p className="text-3xl font-black">{montantEstime.toLocaleString()} <span className="text-xs opacity-60">FCFA</span></p>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Boutons */}
-              <div className="flex gap-3">
+              {/* Boutons d'action */}
+              <div className="flex gap-4 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   disabled={isSubmitting}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
+                  className="flex-1 px-8 py-4 bg-gray-100 text-gray-500 text-sm font-black uppercase tracking-widest rounded-2xl hover:bg-gray-200 transition-all"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`flex-1 px-6 py-3 text-white text-sm font-medium rounded-lg whitespace-nowrap ${
-                    isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600 transition-colors'
+                  className={`flex-[2] px-8 py-4 text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-teal-200 transition-all flex items-center justify-center gap-3 ${
+                    isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700 hover:shadow-xl'
                   }`}
                 >
-                  <i className={`ri-${isSubmitting ? 'loader-4-line animate-spin' : 'check-line'} mr-2`}></i>
-                  {isSubmitting ? 'Enregistrement...' : 'Créer le dossier'}
+                  {isSubmitting ? (
+                    <>
+                      <i className="ri-loader-4-line animate-spin text-xl"></i>
+                      <span>Enregistrement...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="ri-checkbox-circle-line text-xl"></i>
+                      <span>Créer le dossier</span>
+                    </>
+                  )}
                 </button>
               </div>
 
-              {/* Message d'erreur */}
+              {/* Erreur */}
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
-                  <i className="ri-error-warning-line mr-2"></i>
-                  {error}
+                <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3 text-red-600 animate-shake">
+                  <i className="ri-error-warning-line text-xl"></i>
+                  <p className="text-xs font-bold uppercase tracking-tight">{error}</p>
                 </div>
               )}
             </form>

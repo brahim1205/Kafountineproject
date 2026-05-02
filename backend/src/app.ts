@@ -1,8 +1,8 @@
+import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import path from 'node:path';
-import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { buildContainer } from './shared/container';
 import { env } from './shared/config/env';
@@ -45,6 +45,9 @@ export function createApp() {
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
   app.use(helmet());
+  if (env.compressionEnabled) {
+    app.use(compression());
+  }
   app.use(cors({ origin: env.corsOrigin, credentials: true }));
   app.use(requestLogger);
   app.use(express.json({ limit: '10mb' }));
@@ -96,3 +99,4 @@ export function createApp() {
 
   return app;
 }
+

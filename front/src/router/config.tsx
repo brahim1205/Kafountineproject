@@ -19,6 +19,7 @@ const CategorieDetail = lazy(() => import('../pages/taxes/components/CategorieDe
 const NouvelleTransaction = lazy(() => import('../pages/taxes/components/NouvelleTransaction'));
 const MotosPage = lazy(() => import('../pages/motos/page'));
 const FormationsPage = lazy(() => import('../pages/formations/page'));
+const PenalitesPage = lazy(() => import('../pages/penalites/page'));
 const UtilisateursPage = lazy(() => import('../pages/utilisateurs/page'));
 const RapportsPage = lazy(() => import('../pages/rapports/page'));
 const EtatCivilPage = lazy(() => import('../pages/etat-civil/page'));
@@ -31,6 +32,7 @@ const ProfilPage = lazy(() => import('../pages/profil/page'));
 const PortalLoginPage = lazy(() => import('../pages/portal/login/page'));
 const PortalDashboardPage = lazy(() => import('../pages/portal/dashboard/page'));
 const PortalPayerPage = lazy(() => import('../pages/portal/payer/page'));
+const PortalPenalitesPage = lazy(() => import('../pages/portal/penalites/page'));
 const NotFoundPage = lazy(() => import('../pages/NotFound'));
 
 function protect(children: ReactNode) {
@@ -194,6 +196,10 @@ const routes: RouteObject[] = [
     element: protectRoles(['admin', 'super_admin', 'agent'], <FormationsPage />)
   },
   {
+    path: '/penalites',
+    element: protectRoles(['admin', 'super_admin', 'agent', 'comptable'], <PenalitesPage />)
+  },
+  {
     path: '/utilisateurs',
     element: protectRoles(['admin', 'super_admin'], <UtilisateursPage />)
   },
@@ -257,6 +263,10 @@ const routes: RouteObject[] = [
   {
     path: '/portal/payer',
     element: protectPortal(<PortalPayerPage />)
+  },
+  {
+    path: '/portal/penalites',
+    element: <PortalPenalitesPage />
   },
   {
     path: '*',

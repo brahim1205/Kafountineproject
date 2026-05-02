@@ -3,6 +3,7 @@ import { optionalTrimmedString, trimmedString } from '../../../shared/validation
 
 export const dashboardStatisticsQuerySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 }).strict();
 
 export const portalLoginSchema = z

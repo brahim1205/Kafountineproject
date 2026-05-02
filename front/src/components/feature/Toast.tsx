@@ -1,4 +1,4 @@
-import { useState, createContext, useContext, ReactNode } from 'react';
+import { useState, createContext, useContext, ReactNode, useCallback } from 'react';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -29,7 +29,7 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = (message: string, type: ToastType = 'info') => {
+  const showToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = crypto.randomUUID();
     setToasts((prev) => [...prev, { id, message, type }]);
     
@@ -37,11 +37,11 @@ export function ToastProvider({ children }: ToastProviderProps) {
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 5000);
-  };
+  }, []);
 
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
 
   const getIcon = (type: ToastType) => {
     switch (type) {

@@ -15,6 +15,14 @@ export interface DossierUrbanisme {
   date?: string;
   createdAt: string;
   updatedAt: string;
+  contribuable?: {
+    id: string;
+    nom: string;
+    prenom: string;
+    nin: string;
+    telephone: string;
+    adresse: string;
+  };
 }
 
 type DossiersUrbanismeApiResult =
@@ -73,6 +81,7 @@ export async function createDossierUrbanisme(data: {
   description?: string;
   surface?: number;
   localisation?: string;
+  nature?: string;
   montant?: number;
   numero?: string;
   statut?: string;

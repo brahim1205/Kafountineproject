@@ -4,17 +4,21 @@ type PdfSection = {
 };
 
 function normalizePdfText(value: string) {
+  if (!value) return '';
   return value
+    .toString()
+    .replace(/[\u202F\u00A0\u00A0]/g, ' ') // Espaces insécables et fins
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\x20-\x7E]/g, '?');
+    .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
+    .replace(/[^\x20-\x7E]/g, ' ') // Remplace tout caractère non-ASCII restant par un espace au lieu de '?'
+    .trim();
 }
 
 function toPdfHexString(value: string) {
   return Buffer.from(normalizePdfText(value), 'ascii').toString('hex').toUpperCase();
 }
 
-function wrapLine(value: string, maxChars = 88) {
+function wrapLine(value: string, maxChars = 94) {
   const sanitized = normalizePdfText(value).trim();
   if (!sanitized) {
     return [''];
@@ -89,8 +93,8 @@ export function buildSimplePdf(title: string, sections: PdfSection[]) {
     const pageId = nextId++;
     const streamCommands = [
       'BT',
-      '/F1 12 Tf',
-      '14 TL',
+      '/F1 9 Tf',
+      '11 TL',
       '50 792 Td',
       ...pageLines.flatMap((line, index) => index === 0
         ? [`<${toPdfHexString(line)}> Tj`]
@@ -105,7 +109,7 @@ export function buildSimplePdf(title: string, sections: PdfSection[]) {
 
   objects.set(1, '<< /Type /Catalog /Pages 2 0 R >>');
   objects.set(2, `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] >>`);
-  objects.set(3, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  objects.set(3, '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>');
 
   for (let index = 0; index < pageIds.length; index += 1) {
     objects.set(

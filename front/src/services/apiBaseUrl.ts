@@ -1,18 +1,7 @@
 const API_PATH_PREFIX = '/api/v1';
-const LOCAL_API_PORT = '3000';
 
 function trimTrailingSlashes(value: string): string {
   return value.replace(/\/+$/, '');
-}
-
-function isLocalHost(hostname: string): boolean {
-  return hostname === 'localhost' || hostname === '127.0.0.1';
-}
-
-function buildLocalApiUrl(): string {
-  const protocol = window.location.protocol || 'http:';
-  const hostname = window.location.hostname || '127.0.0.1';
-  return `${protocol}//${hostname}:${LOCAL_API_PORT}${API_PATH_PREFIX}`;
 }
 
 export function resolveApiBaseUrl(): string {
@@ -32,29 +21,10 @@ export function resolveApiBaseUrl(): string {
       return API_PATH_PREFIX;
     }
 
-    if (
-      normalizedUrl === API_PATH_PREFIX &&
-      typeof window !== 'undefined' &&
-      isLocalHost(window.location.hostname) &&
-      window.location.port !== LOCAL_API_PORT
-    ) {
-      return buildLocalApiUrl();
-    }
-
     return normalizedUrl;
   }
 
-  if (isDevelopment) {
-    return API_PATH_PREFIX;
-  }
-
-  if (
-    typeof window !== 'undefined' &&
-    isLocalHost(window.location.hostname) &&
-    window.location.port !== LOCAL_API_PORT
-  ) {
-    return buildLocalApiUrl();
-  }
-
+  // No VITE_API_URL configured: always use relative path so the Vite proxy handles it in dev
+  // and the same-origin nginx proxy handles it in production.
   return API_PATH_PREFIX;
 }

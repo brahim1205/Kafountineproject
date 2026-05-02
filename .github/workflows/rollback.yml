@@ -12,7 +12,7 @@ on:
           - production
           - staging
       target_version:
-        description: 'Docker image tag to rollback to (e.g., sha-abc123)'
+        description: 'Docker image tag to rollback to'
         required: true
       reason:
         description: 'Reason for rollback'
@@ -21,6 +21,10 @@ on:
 env:
   DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'docker.io' }}
   IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME || 'kafontine' }}
+  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE || 'kafontine' }}
+  HELM_RELEASE: ${{ secrets.HELM_RELEASE || 'kafontine' }}
+  BACKEND_DEPLOYMENT: ${{ secrets.BACKEND_DEPLOYMENT || 'kafontine-backend' }}
+  FRONTEND_DEPLOYMENT: ${{ secrets.FRONTEND_DEPLOYMENT || 'kafontine-frontend' }}
 
 concurrency:
   group: production-rollback
@@ -29,65 +33,48 @@ concurrency:
 jobs:
   rollback:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip rollback]')"
     environment: production
     timeout-minutes: 30
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
         with:
-          fetch-depth: 0
+          version: 'latest'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
 
-      - name: Login to Docker Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Pull specific version
+      - name: Configure kubeconfig
         run: |
-          docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.event.inputs.target_version }}
-          docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.event.inputs.target_version }}
+          mkdir -p "$HOME/.kube"
+          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
 
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd /opt/kafontine
-            bash ./scripts/validate-prod-env.sh .env.prod
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login ${{ env.DOCKER_REGISTRY }} -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-            export BACKEND_IMAGE=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.event.inputs.target_version }}
-            export FRONTEND_IMAGE=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.event.inputs.target_version }}
-            
-            # Pull and restart services
-            docker compose --env-file .env.prod -f docker-compose.prod.yml pull backend front
-            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d postgres redis otel-collector
-            docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
-            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --no-build backend front
-            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend wget -qO- http://localhost:3000/ready
-            
-            echo "Rollback initiated at $(date)" >> rollback_history.log
-            echo "Target: ${{ github.event.inputs.target_version }}" >> rollback_history.log
-            echo "Reason: ${{ github.event.inputs.reason }}" >> rollback_history.log
+      - name: Rollback with Helm
+        run: |
+          helm upgrade --install "${HELM_RELEASE}" infra/helm/kafontine \
+            --namespace "${K8S_NAMESPACE}" \
+            --create-namespace \
+            --set frontend.image.repository="${DOCKER_REGISTRY}/${IMAGE_NAME}-frontend" \
+            --set frontend.image.tag="${TARGET_VERSION}" \
+            --set backend.image.repository="${DOCKER_REGISTRY}/${IMAGE_NAME}-backend" \
+            --set backend.image.tag="${TARGET_VERSION}"
+        env:
+          TARGET_VERSION: ${{ github.event.inputs.target_version }}
 
-      - name: Wait for deployment
-        run: sleep 30
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/"${BACKEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
+          kubectl rollout status deployment/"${FRONTEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
 
       - name: Health Check
         run: |
-          curl -f --max-time 30 ${{ secrets.HEALTH_URL }} || {
-            echo "Health check failed - triggering alerts"
-            exit 1
-          }
+          curl -f --max-time 30 "${HEALTH_URL}"
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
 
       - name: Notify rollback
         if: always()
@@ -108,16 +95,3 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - name: Create rollback issue
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `[ROLLBACK] ${context.repo.owner}/${context.repo.repo}`,
-              body: `**Rollback executed**\n\n- Target: \`${{ github.event.inputs.target_version }}\`\n- Reason: ${{ github.event.inputs.reason }}\n- Status: ${{ job.status }}\n- Actor: @${context.actor}\n- Workflow: ${context.workflowUrl}`,
-              labels: ['rollback', 'production']
-            })

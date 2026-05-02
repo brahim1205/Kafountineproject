@@ -49,8 +49,8 @@ export default function Login() {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo */}
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-              <i className="ri-government-line text-white text-4xl"></i>
+            <div className="w-28 h-28 rounded-full flex items-center justify-center shadow-lg bg-white overflow-hidden border-2 border-gray-100">
+              <img src="/logo.jpeg" alt="Logo Commune de Kafountine" className="w-full h-full object-contain p-2" />
             </div>
           </div>
 

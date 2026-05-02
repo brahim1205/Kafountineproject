@@ -96,6 +96,12 @@ export interface GlobalStats {
   evolutionSemaine?: Array<{
     jour: string;
     montant: number;
+    transactions: number;
+  }>;
+  evolutionMensuelle?: Array<{
+    mois: string;
+    montant: number;
+    transactions: number;
   }>;
 }
 

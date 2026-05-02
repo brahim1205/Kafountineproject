@@ -174,13 +174,24 @@ export class PlaceholderEtatCivilUrbanismeService {
     }
 
     const payload = req.body || {};
+    const nextContribuableId = payload.contribuableId ? String(payload.contribuableId).trim() : existing.contribuableId;
+    const nextTypeDocument = payload.typeDocument ? String(payload.typeDocument).trim() : existing.typeDocument;
+    const nextExemplaires = payload.exemplaires !== undefined ? Math.max(1, Number(payload.exemplaires)) : existing.exemplaires;
+    const nextMontant = payload.montant !== undefined ? Number(payload.montant) : existing.montant;
     const nextStatus = payload.statut ? this.normalizeEtatCivilStatus(String(payload.statut)) : existing.statut;
     const nextObservations =
       payload.observations === undefined ? existing.observations : String(payload.observations || '').trim() || null;
 
     const [updated] = await prisma.$queryRawUnsafe<EtatCivilRequestRow[]>(
       `UPDATE "EtatCivilRequest"
-       SET "statut" = $2, "observations" = $3, "updatedAt" = CURRENT_TIMESTAMP
+       SET 
+        "contribuableId" = $2,
+        "typeDocument" = $3,
+        "exemplaires" = $4,
+        "montant" = $5,
+        "statut" = $6, 
+        "observations" = $7, 
+        "updatedAt" = CURRENT_TIMESTAMP
        WHERE "id" = $1
        RETURNING
         "id",
@@ -195,13 +206,17 @@ export class PlaceholderEtatCivilUrbanismeService {
         "year",
         "createdAt",
         "updatedAt",
-        $4::text AS "contribuableNom",
-        $5::text AS "contribuablePrenom",
-        $6::text AS "contribuableNin",
-        $7::text AS "contribuableTelephone",
-        $8::text AS "agentNom",
-        $9::text AS "agentPrenom"`,
+        $8::text AS "contribuableNom",
+        $9::text AS "contribuablePrenom",
+        $10::text AS "contribuableNin",
+        $11::text AS "contribuableTelephone",
+        $12::text AS "agentNom",
+        $13::text AS "agentPrenom"`,
       requestId,
+      nextContribuableId,
+      nextTypeDocument,
+      nextExemplaires,
+      nextMontant,
       nextStatus,
       nextObservations,
       existing.contribuableNom,
@@ -215,11 +230,29 @@ export class PlaceholderEtatCivilUrbanismeService {
     await this.supportService.writeAuditLog(req, {
       action: 'Mise à jour demande état civil',
       module: 'État civil',
-      details: `Demande ${updated.numero} passée au statut ${updated.statut}`,
+      details: `Demande ${updated.numero} mise à jour`,
       status: updated.statut === 'REJETEE' ? 'warning' : 'success',
     });
 
     return this.mapEtatCivilRow(updated);
+  }
+
+  async deleteEtatCivil(req: AuthRequest) {
+    const requestId = String(req.params.id);
+    const [existing] = await prisma.$queryRawUnsafe<Array<Pick<EtatCivilRequestRow, 'id' | 'numero'>>>(
+      'SELECT "id", "numero" FROM "EtatCivilRequest" WHERE "id" = $1 LIMIT 1',
+      requestId
+    );
+    if (!existing) {
+      throw new NotFoundError("Demande d'état civil introuvable.");
+    }
+    await prisma.$executeRaw`DELETE FROM "EtatCivilRequest" WHERE "id" = ${requestId}`;
+    await this.supportService.writeAuditLog(req, {
+      action: 'Suppression demande état civil',
+      module: 'État civil',
+      details: `Suppression de la demande ${existing.numero}`,
+      status: 'warning',
+    });
   }
 
   async etatCivilStats(year: number) {

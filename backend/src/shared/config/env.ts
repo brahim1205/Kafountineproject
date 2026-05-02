@@ -15,12 +15,16 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',
   databaseUrl: requireEnv('DATABASE_URL'),
+  dbPoolSize: Number(process.env.DB_POOL_SIZE || 10),
+  dbPoolMin: Number(process.env.DB_POOL_MIN || 2),
   jwtSecret: requireEnv('JWT_SECRET'),
   jwtRefreshSecret: requireEnv('JWT_REFRESH_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   apiRateLimitWindowMs: Number(process.env.API_RATE_LIMIT_WINDOW_MS || 60_000),
   apiRateLimitMax: Number(process.env.API_RATE_LIMIT_MAX || 300),
+  loginRateLimitWindowMs: Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS || 900_000),
+  loginRateLimitMax: Number(process.env.LOGIN_RATE_LIMIT_MAX || 5),
   maxUploadFileSizeBytes: Number(process.env.MAX_UPLOAD_FILE_SIZE_BYTES || 5 * 1024 * 1024),
   cookieDomain: (process.env.COOKIE_DOMAIN || '').trim(),
   corsOrigin: (process.env.CORS_ORIGIN || 'http://localhost:5173')
@@ -31,4 +35,11 @@ export const env = {
   portalUrl: process.env.PORTAL_URL || 'http://localhost:5173',
   enableApiDocs: process.env.ENABLE_API_DOCS === 'true' || process.env.NODE_ENV !== 'production',
   enableMetrics: process.env.ENABLE_METRICS === 'true' || process.env.NODE_ENV !== 'production',
+  cacheTtlSeconds: Number(process.env.CACHE_TTL_SECONDS || 300),
+  cacheEnabled: process.env.CACHE_ENABLED !== 'false',
+  compressionEnabled: process.env.COMPRESSION_ENABLED !== 'false',
+  otelEnabled: process.env.OTEL_ENABLED === 'true',
+  otelServiceName: process.env.OTEL_SERVICE_NAME || 'kafountine-backend',
+  otelExporterEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || '',
 };
+

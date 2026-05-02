@@ -3,9 +3,11 @@ import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
 import type { AuthRequest } from '../../../shared/types/AuthRequest';
 import { NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import { PlaceholderSupportService } from './PlaceholderSupportService';
+import { slugify } from '../../transactions/infrastructure/municipalTariffs';
 
-type AppSettingTariffRow = {
+type MunicipalTariffRow = {
   id: string;
+  categoryId: string;
   categorie: string;
   nom: string;
   montant: number;
@@ -50,8 +52,21 @@ export class PlaceholderSettingsService {
   constructor(private readonly supportService: PlaceholderSupportService) {}
 
   async getTarifs() {
-    const rows = await prisma.$queryRawUnsafe<AppSettingTariffRow[]>(
-      'SELECT * FROM "AppSettingTariff" ORDER BY "categorie" ASC, "nom" ASC'
+    const rows = await prisma.$queryRawUnsafe<MunicipalTariffRow[]>(
+      `SELECT
+        i."id",
+        c."id" AS "categoryId",
+        c."nom" AS "categorie",
+        i."nom",
+        i."tarif" AS "montant",
+        i."unite",
+        c."description" AS "description",
+        i."isActive" AS "actif",
+        i."createdAt",
+        i."updatedAt"
+      FROM "MunicipalTariffItem" i
+      INNER JOIN "MunicipalTariffCategory" c ON c."id" = i."categoryId"
+      ORDER BY c."sortOrder" ASC, i."sortOrder" ASC, i."nom" ASC`
     );
     return rows.map((row) => this.mapTariffRow(row));
   }
@@ -72,21 +87,44 @@ export class PlaceholderSettingsService {
       throw new ValidationError('Le montant doit être positif.');
     }
 
-    const [row] = await prisma.$queryRawUnsafe<AppSettingTariffRow[]>(
-      'INSERT INTO "AppSettingTariff" ("id", "categorie", "nom", "montant", "unite", "description", "actif", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
-      randomUUID(),
-      categorie,
+    const category = await this.findOrCreateTariffCategory(categorie);
+    const itemId = randomUUID();
+    const sortOrder = await this.nextTariffItemSortOrder(category.id);
+
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "MunicipalTariffItem" ("id", "categoryId", "nom", "tarif", "unite", "calcul", "legalSource", "effectiveDate", "sortOrder", "isActive", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, NULL, NULL, NULL, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      itemId,
+      category.id,
       nom,
       montant,
       unite,
-      description,
+      sortOrder,
       actif
+    );
+
+    const [row] = await prisma.$queryRawUnsafe<MunicipalTariffRow[]>(
+      `SELECT
+        i."id",
+        c."id" AS "categoryId",
+        c."nom" AS "categorie",
+        i."nom",
+        i."tarif" AS "montant",
+        i."unite",
+        c."description" AS "description",
+        i."isActive" AS "actif",
+        i."createdAt",
+        i."updatedAt"
+      FROM "MunicipalTariffItem" i
+      INNER JOIN "MunicipalTariffCategory" c ON c."id" = i."categoryId"
+      WHERE i."id" = $1 LIMIT 1`,
+      itemId
     );
 
     await this.supportService.writeAuditLog(req, {
       action: 'Création tarif',
-      module: 'Paramètres',
-      details: `Tarif ${row.nom} créé dans ${row.categorie}`,
+      module: 'Parametres',
+      details: `Tarif ${row.nom} cree dans ${row.categorie}`,
     });
 
     return this.mapTariffRow(row);
@@ -94,8 +132,21 @@ export class PlaceholderSettingsService {
 
   async updateTarif(req: AuthRequest) {
     const id = String(req.params.id);
-    const [existing] = await prisma.$queryRawUnsafe<AppSettingTariffRow[]>(
-      'SELECT * FROM "AppSettingTariff" WHERE "id" = $1 LIMIT 1',
+    const [existing] = await prisma.$queryRawUnsafe<MunicipalTariffRow[]>(
+      `SELECT
+        i."id",
+        c."id" AS "categoryId",
+        c."nom" AS "categorie",
+        i."nom",
+        i."tarif" AS "montant",
+        i."unite",
+        c."description" AS "description",
+        i."isActive" AS "actif",
+        i."createdAt",
+        i."updatedAt"
+      FROM "MunicipalTariffItem" i
+      INNER JOIN "MunicipalTariffCategory" c ON c."id" = i."categoryId"
+      WHERE i."id" = $1 LIMIT 1`,
       id
     );
     if (!existing) {
@@ -108,21 +159,53 @@ export class PlaceholderSettingsService {
       throw new ValidationError('Le montant doit être positif.');
     }
 
-    const [row] = await prisma.$queryRawUnsafe<AppSettingTariffRow[]>(
-      'UPDATE "AppSettingTariff" SET "categorie" = $2, "nom" = $3, "montant" = $4, "unite" = $5, "description" = $6, "actif" = $7, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = $1 RETURNING *',
+    const targetCategorie = payload.categorie ? String(payload.categorie).trim() : existing.categorie;
+    const category = await this.findOrCreateTariffCategory(targetCategorie);
+    const nextDescription =
+      payload.description === undefined ? existing.description : String(payload.description || '').trim() || null;
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "MunicipalTariffCategory"
+       SET "description" = $2, "updatedAt" = CURRENT_TIMESTAMP
+       WHERE "id" = $1`,
+      category.id,
+      nextDescription
+    );
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "MunicipalTariffItem"
+       SET "categoryId" = $2, "nom" = $3, "tarif" = $4, "unite" = $5, "isActive" = $6, "updatedAt" = CURRENT_TIMESTAMP
+       WHERE "id" = $1`,
       id,
-      payload.categorie ? String(payload.categorie).trim() : existing.categorie,
+      category.id,
       payload.nom ? String(payload.nom).trim() : existing.nom,
       montant,
       payload.unite ? String(payload.unite).trim() : existing.unite,
-      payload.description === undefined ? existing.description : String(payload.description || '').trim() || null,
       payload.actif === undefined ? existing.actif : Boolean(payload.actif)
     );
 
+    const [row] = await prisma.$queryRawUnsafe<MunicipalTariffRow[]>(
+      `SELECT
+        i."id",
+        c."id" AS "categoryId",
+        c."nom" AS "categorie",
+        i."nom",
+        i."tarif" AS "montant",
+        i."unite",
+        c."description" AS "description",
+        i."isActive" AS "actif",
+        i."createdAt",
+        i."updatedAt"
+      FROM "MunicipalTariffItem" i
+      INNER JOIN "MunicipalTariffCategory" c ON c."id" = i."categoryId"
+      WHERE i."id" = $1 LIMIT 1`,
+      id
+    );
+
     await this.supportService.writeAuditLog(req, {
-      action: 'Mise à jour tarif',
-      module: 'Paramètres',
-      details: `Tarif ${row.nom} mis à jour`,
+      action: 'Mise a jour tarif',
+      module: 'Parametres',
+      details: `Tarif ${row.nom} mis a jour`,
     });
 
     return this.mapTariffRow(row);
@@ -130,19 +213,32 @@ export class PlaceholderSettingsService {
 
   async deleteTarif(req: AuthRequest) {
     const id = String(req.params.id);
-    const [existing] = await prisma.$queryRawUnsafe<AppSettingTariffRow[]>(
-      'SELECT * FROM "AppSettingTariff" WHERE "id" = $1 LIMIT 1',
+    const [existing] = await prisma.$queryRawUnsafe<MunicipalTariffRow[]>(
+      `SELECT
+        i."id",
+        c."id" AS "categoryId",
+        c."nom" AS "categorie",
+        i."nom",
+        i."tarif" AS "montant",
+        i."unite",
+        c."description" AS "description",
+        i."isActive" AS "actif",
+        i."createdAt",
+        i."updatedAt"
+      FROM "MunicipalTariffItem" i
+      INNER JOIN "MunicipalTariffCategory" c ON c."id" = i."categoryId"
+      WHERE i."id" = $1 LIMIT 1`,
       id
     );
     if (!existing) {
       throw new NotFoundError('Tarif introuvable.');
     }
 
-    await prisma.$executeRaw`DELETE FROM "AppSettingTariff" WHERE "id" = ${id}`;
+    await prisma.$executeRaw`DELETE FROM "MunicipalTariffItem" WHERE "id" = ${id}`;
     await this.supportService.writeAuditLog(req, {
       action: 'Suppression tarif',
-      module: 'Paramètres',
-      details: `Tarif ${existing.nom} supprimé`,
+      module: 'Parametres',
+      details: `Tarif ${existing.nom} supprime`,
       status: 'warning',
     });
   }
@@ -365,7 +461,7 @@ export class PlaceholderSettingsService {
     return backup;
   }
 
-  private mapTariffRow(row: AppSettingTariffRow) {
+  private mapTariffRow(row: MunicipalTariffRow) {
     return {
       id: row.id,
       categorie: row.categorie,
@@ -375,6 +471,52 @@ export class PlaceholderSettingsService {
       description: row.description || undefined,
       actif: row.actif,
     };
+  }
+
+  private async findOrCreateTariffCategory(label: string) {
+    const normalized = label.trim();
+    const [existingByName] = await prisma.$queryRawUnsafe<Array<{ id: string; nom: string }>>(
+      `SELECT "id", "nom" FROM "MunicipalTariffCategory" WHERE LOWER("nom") = LOWER($1) LIMIT 1`,
+      normalized
+    );
+    if (existingByName) {
+      return existingByName;
+    }
+
+    const id = slugify(normalized) || randomUUID();
+    const [existingById] = await prisma.$queryRawUnsafe<Array<{ id: string; nom: string }>>(
+      `SELECT "id", "nom" FROM "MunicipalTariffCategory" WHERE "id" = $1 LIMIT 1`,
+      id
+    );
+    if (existingById) {
+      return existingById;
+    }
+
+    const sortOrder = await this.nextTariffCategorySortOrder();
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "MunicipalTariffCategory" ("id", "nom", "sortOrder", "isActive", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      id,
+      normalized,
+      sortOrder
+    );
+
+    return { id, nom: normalized };
+  }
+
+  private async nextTariffCategorySortOrder() {
+    const [row] = await prisma.$queryRawUnsafe<Array<{ max: number | null }>>(
+      `SELECT MAX("sortOrder")::int AS "max" FROM "MunicipalTariffCategory"`
+    );
+    return Number(row?.max ?? -1) + 1;
+  }
+
+  private async nextTariffItemSortOrder(categoryId: string) {
+    const [row] = await prisma.$queryRawUnsafe<Array<{ max: number | null }>>(
+      `SELECT MAX("sortOrder")::int AS "max" FROM "MunicipalTariffItem" WHERE "categoryId" = $1`,
+      categoryId
+    );
+    return Number(row?.max ?? -1) + 1;
   }
 
   private mapPenaltyRow(row: AppSettingPenaltyRow) {

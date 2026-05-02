@@ -5,7 +5,6 @@ import {
   getPenalites, createPenalite, updatePenalite, deletePenalite,
   getPermissions, updatePermission,
   listBackups, createBackup, downloadBackup, restoreBackup,
-  seedSettings,
   type Tarif, type Penalite, type Permission, type BackupFile
 } from '../../services/settings';
 import {
@@ -36,6 +35,7 @@ export default function Parametres() {
   const [penalites, setPenalites] = useState<Penalite[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [backups, setBackups] = useState<BackupFile[]>([]);
+  const availableCategories = Array.from(new Set(tarifs.map((tarif) => tarif.categorie))).sort((a, b) => a.localeCompare(b, 'fr'));
 
   // Load data from API
   useEffect(() => {
@@ -75,6 +75,7 @@ export default function Parametres() {
     try {
       if (selectedTarif) {
         await updateTarif(selectedTarif.id, {
+          categorie: selectedTarif.categorie,
           nom: selectedTarif.nom,
           montant: selectedTarif.montant,
           unite: selectedTarif.unite,
@@ -253,16 +254,6 @@ export default function Parametres() {
     }
   };
 
-  const handleSeed = async () => {
-    try {
-      await seedSettings();
-      showSuccess('Paramètres seeded avec succès !');
-      loadData();
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Impossible de charger les données par défaut.');
-    }
-  };
-
   const showSuccess = (message: string) => {
     setErrorMessage('');
     setSuccessMessage(message);
@@ -310,13 +301,7 @@ export default function Parametres() {
             <h1 className="text-2xl font-bold text-gray-900">Paramètres système</h1>
             <p className="text-sm text-gray-600 mt-1">Configuration des tarifs, pénalités et permissions</p>
           </div>
-          <button
-            onClick={handleSeed}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
-          >
-            <i className="ri-refresh-line"></i>
-            Charger données par défaut
-          </button>
+
         </div>
 
         {/* Onglets */}
@@ -428,7 +413,7 @@ export default function Parametres() {
                           {tarifs.length === 0 && (
                             <tr>
                               <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                                Aucun tarif configuré. Cliquez sur "Charger données par défaut" pour initialiser.
+                                Aucun tarif configuré.
                               </td>
                             </tr>
                           )}
@@ -500,7 +485,7 @@ export default function Parametres() {
                       ))}
                       {penalites.length === 0 && (
                         <div className="text-center py-8 text-gray-500">
-                          Aucune pénalité configurée. Cliquez sur "Charger données par défaut" pour initialiser.
+                          Aucune pénalité configurée.
                         </div>
                       )}
                     </div>
@@ -679,45 +664,154 @@ export default function Parametres() {
 
         {/* Modal Ajout Tarif */}
         {showAddTarifModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Nouveau tarif</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl p-6 w-full max-w-lg mx-4 my-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  <i className="ri-price-tag-3-line mr-2 text-teal-600"></i>
+                  Nouveau tarif municipal
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowAddTarifModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <i className="ri-close-line text-xl"></i>
+                </button>
+              </div>
               <form onSubmit={handleAddTarif} onInput={clearFieldValidationError} noValidate>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                    <select name="categorie" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
-                      <option value="État Civil">État Civil</option>
-                      <option value="Urbanisme">Urbanisme</option>
-                      <option value="Marché">Marché</option>
-                      <option value="Transport">Transport</option>
-                      <option value="Manifestations">Manifestations</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Catégorie <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        name="categorie"
+                        list="tarif-categories"
+                        data-required="true"
+                        placeholder="Ex: État civil, Urbanisme, Marché..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                        required
+                      />
+                      <datalist id="tarif-categories">
+                        {availableCategories.map((category) => (
+                          <option key={category} value={category} />
+                        ))}
+                      </datalist>
+                      <p className="mt-1 text-xs text-gray-500">Sélectionnez une catégorie existante ou créez-en une nouvelle</p>
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom du tarif</label>
-                    <input name="nom" type="text" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Libellé précis <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      name="nom"
+                      type="text"
+                      data-required="true"
+                      placeholder="Ex: Bulletin de naissance, Permis de construire..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Montant (FCFA) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          name="montant"
+                          type="number"
+                          min="0"
+                          step="1"
+                          data-required="true"
+                          placeholder="0"
+                          className="w-full px-3 py-2 pl-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                          required
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">FCFA</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Unité <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="unite"
+                        data-required="true"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                        required
+                      >
+                        <option value="">Sélectionner...</option>
+                        <option value="par acte">par acte</option>
+                        <option value="par jour">par jour</option>
+                        <option value="par mois">par mois</option>
+                        <option value="par an">par an</option>
+                        <option value="par permis">par permis</option>
+                        <option value="par cérémonie">par cérémonie</option>
+                        <option value="par m²">par m²</option>
+                        <option value="par m²/an">par m²/an</option>
+                        <option value="par dossier">par dossier</option>
+                        <option value="par parcelle">par parcelle</option>
+                        <option value="par opération">par opération</option>
+                        <option value="par unité">par unité</option>
+                        <option value="par unité/jour">par unité/jour</option>
+                        <option value="par chargement">par chargement</option>
+                        <option value="par passage">par passage</option>
+                        <option value="par mois">par mois</option>
+                        <option value="par séance">par séance</option>
+                        <option value="par tête">par tête</option>
+                        <option value="par voyage">par voyage</option>
+                        <option value="par pompe/mois">par pompe/mois</option>
+                        <option value="par infraction">par infraction</option>
+                        <option value="par colis">par colis</option>
+                        <option value="par saison">par saison</option>
+                        <option value="par an ou par jour">par an ou par jour</option>
+                        <option value="par m²/an">par m²/an</option>
+                        <option value="aller-retour">aller-retour</option>
+                        <option value="forfait">forfait</option>
+                        <option value="unique">unique</option>
+                        <option value="autre">autre...</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Montant</label>
-                    <input name="montant" type="number" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description (optionnel)</label>
+                    <textarea
+                      name="description"
+                      placeholder="Description détaillée du tarif..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      rows={3}
+                    ></textarea>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
-                    <select name="unite" data-required="true" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500">
-                      <option value="FCFA">FCFA</option>
-                      <option value="FCFA/mois">FCFA/mois</option>
-                      <option value="FCFA/an">FCFA/an</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500" rows={2}></textarea>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="actif"
+                      id="actif"
+                      defaultChecked
+                      className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                    />
+                    <label htmlFor="actif" className="text-sm text-gray-700">Tarif actif immédiatement</label>
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 mt-6">
-                  <button type="button" onClick={() => setShowAddTarifModal(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Annuler</button>
-                  <button type="submit" className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Créer</button>
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddTarifModal(false)}
+                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2"
+                  >
+                    <i className="ri-save-3-line"></i>
+                    Enregistrer le tarif
+                  </button>
                 </div>
               </form>
             </div>
@@ -765,6 +859,15 @@ export default function Parametres() {
               <form onSubmit={handleSaveTarif} onInput={clearFieldValidationError} noValidate>
                 <div className="space-y-4">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                    <input
+                      type="text"
+                      value={selectedTarif.categorie}
+                      onChange={(e) => setSelectedTarif({...selectedTarif, categorie: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom du tarif</label>
                     <input 
                       type="text" 
@@ -784,15 +887,21 @@ export default function Parametres() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
-                    <select 
+                    <input 
+                      type="text"
                       value={selectedTarif.unite}
                       onChange={(e) => setSelectedTarif({...selectedTarif, unite: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-                    >
-                      <option value="FCFA">FCFA</option>
-                      <option value="FCFA/mois">FCFA/mois</option>
-                      <option value="FCFA/an">FCFA/an</option>
-                    </select>
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      value={selectedTarif.description || ''}
+                      onChange={(e) => setSelectedTarif({...selectedTarif, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                      rows={2}
+                    />
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 mt-6">

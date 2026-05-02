@@ -71,6 +71,7 @@ export type ReportsOverview = {
   };
   totalContribuables: number;
   evolutionSemaine: NonNullable<GlobalStats['evolutionSemaine']>;
+  evolutionMensuelle: NonNullable<GlobalStats['evolutionMensuelle']>;
   transactionsRecentes: NonNullable<GlobalStats['transactionsRecentes']>;
   topAgents: NonNullable<GlobalStats['topAgents']>;
 };
@@ -106,6 +107,7 @@ export async function getReportsOverview(year?: number): Promise<ReportsOverview
       },
       categories: [],
       evolutionSemaine: [],
+      evolutionMensuelle: [],
       transactionsRecentes: [],
       topAgents: [],
     })),
@@ -135,6 +137,7 @@ export async function getReportsOverview(year?: number): Promise<ReportsOverview
     },
     totalContribuables: dashboardStats?.totalContribuables || 0,
     evolutionSemaine: dashboardStats?.evolutionSemaine || [],
+    evolutionMensuelle: dashboardStats?.evolutionMensuelle || [],
     transactionsRecentes: dashboardStats?.transactionsRecentes || [],
     topAgents: dashboardStats?.topAgents || [],
   };
@@ -144,4 +147,23 @@ export async function getReportTransactions(limit = 500, year?: number): Promise
   const selectedYear = year || new Date().getFullYear();
   const response = await getTransactions({ page: 1, limit, year: selectedYear });
   return Array.isArray(response?.data) ? response.data : [];
+}
+
+export async function getTopContribuablesApi(limit = 10, year?: number) {
+  const selectedYear = year || new Date().getFullYear();
+  const query = `?year=${selectedYear}&limit=${limit}`;
+  const response = await apiRequest<{
+    data: Array<{
+      id: string;
+      prenom: string;
+      nom: string;
+      montantTotal: number;
+    }>;
+  }>(`/dashboard/top-contribuables${query}`);
+  return response?.data || [];
+}
+export async function getDetailedReportData(year?: number): Promise<any[]> {
+  const query = year ? `?year=${year}` : '';
+  const response = await apiRequest<any[] | { data: any[] }>(`/exports/report-data${query}`);
+  return Array.isArray(response) ? response : (response as any)?.data || [];
 }

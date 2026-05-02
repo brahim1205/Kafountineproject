@@ -117,4 +117,61 @@ export class PrismaDashboardRepository implements DashboardRepository {
 
     return days;
   }
+
+  async getMonthlyEvolutionByYear(year: number) {
+    const months: Array<{ mois: string; montant: number; transactions: number }> = [];
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // We fetch for each month to be safe and compatible with SQLite/Postgres across the board without raw queries
+    for (let i = 0; i < 12; i++) {
+      const startDate = new Date(year, i, 1);
+      const endDate = new Date(year, i + 1, 1);
+      
+      const result = await prisma.transaction.aggregate({
+        where: {
+          year,
+          statut: 'PAYE',
+          createdAt: { gte: startDate, lt: endDate }
+        },
+        _sum: { montant: true },
+        _count: { id: true }
+      });
+      
+      months.push({
+        mois: monthNames[i],
+        montant: result._sum.montant || 0,
+        transactions: result._count.id || 0
+      });
+    }
+    
+    return months;
+  }
+
+  async getTopContribuables(year: number, limit: number) {
+    const topTransactions = await prisma.transaction.groupBy({
+      by: ['contribuableId'],
+      where: { year, statut: 'PAYE' },
+      _sum: { montant: true },
+      orderBy: {
+        _sum: { montant: 'desc' }
+      },
+      take: limit + 5 // Take slightly more in case some have no contribuable
+    });
+
+    const results = [];
+    for (const tx of topTransactions) {
+      if (!tx.contribuableId) continue;
+      const contribuable = await prisma.contribuable.findUnique({ where: { id: tx.contribuableId } });
+      if (contribuable) {
+        results.push({
+          id: contribuable.id,
+          prenom: contribuable.prenom || '',
+          nom: contribuable.nom || '',
+          montantTotal: tx._sum?.montant || 0
+        });
+        if (results.length >= limit) break;
+      }
+    }
+    return results;
+  }
 }

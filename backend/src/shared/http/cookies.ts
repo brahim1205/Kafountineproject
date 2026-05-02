@@ -50,6 +50,7 @@ export function clearAuthCookies(res: Response) {
     domain: getCookieDomain(),
     secure: env.isProduction,
     sameSite: 'lax' as const,
+    httpOnly: true,
   };
   res.clearCookie(AUTH_TOKEN_COOKIE, options);
   res.clearCookie(REFRESH_TOKEN_COOKIE, options);
@@ -65,6 +66,7 @@ export function clearPortalCookie(res: Response) {
     domain: getCookieDomain(),
     secure: env.isProduction,
     sameSite: 'lax',
+    httpOnly: true,
   });
 }
 

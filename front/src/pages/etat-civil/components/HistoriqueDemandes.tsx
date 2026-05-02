@@ -12,6 +12,7 @@ import {
 } from '../../../utils/formValidation';
 
 type UiEtatCivilDemande = EtatCivilDemande & {
+  contribuableId: string;
   demandeur: string;
   cni: string;
   telephone: string;
@@ -41,6 +42,7 @@ export default function HistoriqueDemandes() {
         setErrorMsg('');
         const mapped = (data || []).map((d: EtatCivilDemande): UiEtatCivilDemande => ({
           ...d,
+          contribuableId: d.contribuable?.id || '',
           demandeur: d.contribuable ? `${d.contribuable.prenom || ''} ${d.contribuable.nom || ''}`.trim() : '-',
           cni: d.contribuable?.nin || '-',
           telephone: d.contribuable?.telephone || '-',

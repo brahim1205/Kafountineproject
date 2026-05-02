@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 interface JournalItem {
   id: string;
-  date: string;
+  date: string | Date;
   person: string;
   type: string;
   amount: number;

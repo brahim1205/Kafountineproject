@@ -113,6 +113,7 @@ export async function getTransactionStats(year?: number): Promise<TransactionSta
 
 export async function createTransaction(payload: {
   contribuableId: string;
+  categorie: string;
   type: string;
   service: string;
   quantite: number;
@@ -126,5 +127,22 @@ export async function createTransaction(payload: {
       'idempotency-key': crypto.randomUUID(),
     },
     body: JSON.stringify(payload),
+  });
+}
+
+export async function updateTransaction(id: string, payload: {
+  contribuableId?: string;
+  type?: string;
+  montant?: number;
+}): Promise<TransactionItem> {
+  return apiRequest<TransactionItem>(`/transactions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  return apiRequest<void>(`/transactions/${id}`, {
+    method: 'DELETE',
   });
 }

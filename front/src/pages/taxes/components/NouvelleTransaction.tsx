@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { ensureContribuableByIdentity } from '../../../services/contribuables';
@@ -21,11 +21,24 @@ type ReceiptTransaction = {
   telephone: string;
   nin: string;
   adresse: string;
+  categorie?: string;
+  service?: string;
+  quantite?: number;
+  unite?: string;
+  tarifUnitaire?: number;
+  modePaiement?: string;
+  statut?: string;
+  reference?: string;
 };
 
 export default function NouvelleTransaction() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
+  const preselectedCategoryId =
+    typeof (location.state as { categorieId?: unknown } | null)?.categorieId === 'string'
+      ? ((location.state as { categorieId: string }).categorieId)
+      : '';
   const [etape, setEtape] = useState(1);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showRecuModal, setShowRecuModal] = useState(false);
@@ -35,7 +48,7 @@ export default function NouvelleTransaction() {
   const [services, setServices] = useState<TaxService[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    categorie: '',
+    categorie: preselectedCategoryId,
     service: '',
     contribuable: '',
     cni: '',
@@ -47,12 +60,18 @@ export default function NouvelleTransaction() {
 
   useEffect(() => {
     getTaxCategories()
-      .then((data) => setCategories(data || []))
+      .then((data) => {
+        const nextCategories = data || [];
+        setCategories(nextCategories);
+        if (preselectedCategoryId && !nextCategories.some((category) => category.id === preselectedCategoryId)) {
+          setFormData((current) => ({ ...current, categorie: '' }));
+        }
+      })
       .catch(() => {
         setCategories([]);
         showToast('Impossible de charger les catégories de taxe.', 'error');
       });
-  }, []);
+  }, [preselectedCategoryId, showToast]);
 
   useEffect(() => {
     if (!formData.categorie) {
@@ -102,6 +121,7 @@ export default function NouvelleTransaction() {
         const reference = `TX-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
         const created = await createTransaction({
           contribuableId: contribuable.id,
+          categorie: formData.categorie,
           type: formData.categorie,
           service: serviceSelectionne?.nom || formData.service,
           quantite: formData.quantite,
@@ -122,6 +142,14 @@ export default function NouvelleTransaction() {
           telephone: formData.telephone,
           nin: formData.cni,
           adresse: formData.adresse,
+          categorie: categorieSelectionnee?.nom || formData.categorie,
+          service: serviceSelectionne?.nom || formData.service,
+          quantite: formData.quantite,
+          unite: serviceSelectionne?.unite || '',
+          tarifUnitaire: serviceSelectionne?.tarif || 0,
+          modePaiement: 'ESPECE',
+          statut: 'PAYE',
+          reference,
         };
         setTransactionData(newTransaction);
         setTransactionValidee(true);
@@ -149,7 +177,7 @@ export default function NouvelleTransaction() {
   };
 
   const handleRetourListe = () => {
-    navigate('/taxes');
+    navigate(formData.categorie ? `/taxes/${formData.categorie}` : '/taxes');
   };
 
   const handleGenererRecu = () => {
@@ -236,6 +264,7 @@ export default function NouvelleTransaction() {
                       onChange={(e) => setFormData({ ...formData, categorie: e.target.value, service: '' })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
                       data-required="true"
+                      disabled={Boolean(preselectedCategoryId)}
                     >
                       <option value="">Sélectionner une catégorie</option>
                       {categories.map((cat) => (

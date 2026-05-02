@@ -7,6 +7,8 @@ import { ListTransactionsUseCase } from '../application/ListTransactionsUseCase'
 import { CreateTransactionUseCase } from '../application/CreateTransactionUseCase';
 import { GetTransactionStatisticsUseCase } from '../application/GetTransactionStatisticsUseCase';
 import { ExportTransactionsUseCase } from '../application/ExportTransactionsUseCase';
+import { UpdateTransactionUseCase } from '../application/UpdateTransactionUseCase';
+import { DeleteTransactionUseCase } from '../application/DeleteTransactionUseCase';
 
 export class TransactionsController {
   constructor(
@@ -15,15 +17,17 @@ export class TransactionsController {
     private readonly listTransactionsUseCase: ListTransactionsUseCase,
     private readonly createTransactionUseCase: CreateTransactionUseCase,
     private readonly getTransactionStatisticsUseCase: GetTransactionStatisticsUseCase,
-    private readonly exportTransactionsUseCase: ExportTransactionsUseCase
+    private readonly exportTransactionsUseCase: ExportTransactionsUseCase,
+    private readonly updateTransactionUseCase: UpdateTransactionUseCase,
+    private readonly deleteTransactionUseCase: DeleteTransactionUseCase
   ) {}
 
   async categories(_req: Request, res: Response) {
-    return ok(res, this.listCategoriesUseCase.execute());
+    return ok(res, await this.listCategoriesUseCase.execute());
   }
 
   async categoryServices(req: Request, res: Response) {
-    return ok(res, this.listCategoryServicesUseCase.execute(String(req.params.id)));
+    return ok(res, await this.listCategoryServicesUseCase.execute(String(req.params.id)));
   }
 
   async list(req: Request, res: Response) {
@@ -56,5 +60,15 @@ export class TransactionsController {
   async export(_req: Request, res: Response) {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.send(this.exportTransactionsUseCase.execute());
+  }
+
+  async update(req: Request, res: Response) {
+    const updated = await this.updateTransactionUseCase.execute(req.params.id, req.body);
+    return ok(res, updated);
+  }
+
+  async delete(req: Request, res: Response) {
+    await this.deleteTransactionUseCase.execute(req.params.id);
+    return ok(res, { success: true });
   }
 }

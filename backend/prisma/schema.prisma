@@ -52,6 +52,8 @@ model Contribuable {
   marketPlaces      MarketPlace[]
   ownedMotos        MotoRegistration[] @relation("MotoOwner")
   drivenMotos       MotoRegistration[] @relation("MotoDriver")
+  
+  @@index([nom, prenom])
 }
 
 model Transaction {
@@ -75,6 +77,8 @@ model Transaction {
   agent        User         @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@index([year])
+  @@index([contribuableId])
+  @@index([agentId])
 }
 
 model BudgetLine {
@@ -110,6 +114,8 @@ model BudgetRequest {
 
   @@index([year])
   @@index([statut])
+  @@index([requestedById])
+  @@index([approvedById])
 }
 
 model AuditLog {
@@ -153,6 +159,8 @@ model EtatCivilRequest {
   @@index([year])
   @@index([statut])
   @@index([typeDocument])
+  @@index([contribuableId])
+  @@index([agentId])
 }
 
 model UrbanismeCase {
@@ -177,6 +185,8 @@ model UrbanismeCase {
   @@index([year])
   @@index([statut])
   @@index([type])
+  @@index([contribuableId])
+  @@index([agentId])
 }
 
 model MarketPlace {
@@ -200,6 +210,7 @@ model MarketPlace {
 
   @@index([year])
   @@index([statut])
+  @@index([occupantId])
   @@unique([numeroPlace, year])
 }
 
@@ -219,6 +230,7 @@ model MarketPayment {
 
   @@index([year])
   @@index([statut])
+  @@index([placeId])
 }
 
 model MotoRegistration {
@@ -247,6 +259,8 @@ model MotoRegistration {
 
   @@index([year])
   @@index([statut])
+  @@index([proprietaireId])
+  @@index([conducteurId])
 }
 
 model MotoPayment {
@@ -267,6 +281,7 @@ model MotoPayment {
 
   @@index([year])
   @@index([statut])
+  @@index([motoId])
 }
 
 model TrainingProgram {
@@ -363,6 +378,7 @@ model FishingBoat {
 
   @@index([year])
   @@index([statut])
+  @@index([pecheurId])
 }
 
 model FishCommission {
@@ -383,6 +399,7 @@ model FishCommission {
 
   @@index([year])
   @@index([statut])
+  @@index([pecheurId])
 }
 
 model RefrigeratedTruck {
@@ -422,6 +439,7 @@ model ShippingExpedition {
 
   @@index([year])
   @@index([statut])
+  @@index([camionId])
 }
 
 model AppSettingTariff {
@@ -494,4 +512,44 @@ model AppNotification {
   @@index([year])
   @@index([lu])
   @@index([createdAt])
+}
+
+model MunicipalTariffCategory {
+  id            String   @id
+  nom           String
+  icon          String?
+  color         String?
+  description   String?
+  legalSource   String?
+  effectiveDate DateTime?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items MunicipalTariffItem[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model MunicipalTariffItem {
+  id            String   @id @default(uuid())
+  categoryId    String
+  nom           String
+  tarif         Float    @default(0)
+  unite         String
+  calcul        String?
+  legalSource   String?
+  effectiveDate DateTime?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category MunicipalTariffCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([sortOrder])
 }

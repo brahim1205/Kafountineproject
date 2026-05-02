@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import RecuPDF from '../../components/feature/RecuPDF';
 import { listContribuables, type Contribuable } from '../../services/contribuables';
-import { createTransaction, getTransactions, type TransactionItem } from '../../services/taxes';
+import { createTransaction, getTransactions, updateTransaction, deleteTransaction, type TransactionItem } from '../../services/taxes';
 import { getStoredUserName, getStoredUserRole } from '../../services/auth';
 import { useYear } from '../../contexts/YearContext';
 import { useToast } from '../../components/feature/Toast';
@@ -43,8 +43,10 @@ export default function Recettes() {
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
   const [showRecuModal, setShowRecuModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedRecu, setSelectedRecu] = useState<RecetteRow | ReceiptData | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<RecetteRow | null>(null);
+  const [selectedEditTransaction, setSelectedEditTransaction] = useState<RecetteRow | null>(null);
   const [filterType, setFilterType] = useState('all');
   const [ticketSubmitted, setTicketSubmitted] = useState(false);
   const [newTicketData, setNewTicketData] = useState<ReceiptData | null>(null);
@@ -93,6 +95,11 @@ export default function Recettes() {
     setShowRecuModal(true);
   };
 
+  const handleEditTransaction = (item: RecetteRow) => {
+    setSelectedEditTransaction(item);
+    setShowEditModal(true);
+  };
+
   const handleViewTransaction = (item: RecetteRow) => {
     setSelectedTransaction(item);
     setShowViewModal(true);
@@ -125,6 +132,7 @@ export default function Recettes() {
     try {
       const created = await createTransaction({
         contribuableId: contributorId,
+        categorie: type,
         type,
         service: type,
         quantite: 1,
@@ -159,6 +167,47 @@ export default function Recettes() {
     setSelectedRecu(newTicketData);
     setShowRecuModal(true);
     setNewTicketData(null);
+  };
+
+  const handleUpdateTicket = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedEditTransaction) return;
+    if (!validateFormElement(e.currentTarget)) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const type = String(formData.get('type') || '');
+    const contributorId = String(formData.get('contributorId') || '');
+    const amount = Number(formData.get('amount') || 0);
+
+    try {
+      await updateTransaction(selectedEditTransaction.id, {
+        type,
+        contribuableId: contributorId,
+        montant: amount,
+      });
+      showToast('Ticket mis à jour avec succès.', 'success');
+      setShowEditModal(false);
+      setSelectedEditTransaction(null);
+      await loadData();
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Erreur lors de la mise à jour.'), 'error');
+    }
+  };
+
+  const handleDeleteTicket = async () => {
+    if (!selectedEditTransaction) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette transaction définitivement ? Cette action est irréversible.")) return;
+
+    try {
+      await deleteTransaction(selectedEditTransaction.id);
+      showToast('Transaction supprimée avec succès.', 'success');
+      setShowEditModal(false);
+      setSelectedEditTransaction(null);
+      await loadData();
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Erreur lors de la suppression.'), 'error');
+    }
   };
 
   const typeOptions = Array.from(new Set(rows.map((r) => r.type).filter(Boolean)));
@@ -257,12 +306,23 @@ export default function Recettes() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handlePrintRecu(item)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <i className="ri-printer-line text-lg"></i>
-                        </button>
+                        {(userRole === 'admin' || userRole === 'super_admin') ? (
+                          <button
+                            onClick={() => handleEditTransaction(item)}
+                            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                            title="Modifier"
+                          >
+                            <i className="ri-edit-line text-lg"></i>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handlePrintRecu(item)}
+                            className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                            title="Imprimer"
+                          >
+                            <i className="ri-printer-line text-lg"></i>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleViewTransaction(item)}
                           className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
@@ -421,6 +481,92 @@ export default function Recettes() {
                   Imprimer le reçu
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && selectedEditTransaction && (
+        <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Modifier la transaction {selectedEditTransaction.ticketNumber}</h2>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedEditTransaction(null);
+                }}
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <i className="ri-close-line text-xl"></i>
+              </button>
+            </div>
+            <div className="p-6">
+              <form onSubmit={handleUpdateTicket} onInput={clearFieldValidationError} noValidate className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type de taxe</label>
+                  <input
+                    name="type"
+                    data-required="true"
+                    defaultValue={selectedEditTransaction.type}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Contribuable</label>
+                  <select
+                    name="contributorId"
+                    data-required="true"
+                    defaultValue={selectedEditTransaction.contribuableId}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
+                  >
+                    <option value="">Sélectionner un contribuable</option>
+                    {contribuables.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {`${c.prenom || ''} ${c.nom || ''}`.trim()} ({c.nin})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Montant (FCFA)</label>
+                  <input
+                    type="number"
+                    name="amount"
+                    data-required="true"
+                    min="0"
+                    defaultValue={selectedEditTransaction.amount}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
+                  <button
+                    type="button"
+                    onClick={handleDeleteTicket}
+                    className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <i className="ri-delete-bin-line"></i>
+                    Supprimer la recette
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditModal(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2"
+                    >
+                      <i className="ri-save-line"></i>
+                      Enregistrer
+                    </button>
+                  </div>
+                </div>
+              </form>
             </div>
           </div>
         </div>

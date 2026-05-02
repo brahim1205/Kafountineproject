@@ -3,7 +3,7 @@ import type { TaxCatalog } from '../domain/TaxCatalog';
 export class ListTransactionCategoriesUseCase {
   constructor(private readonly taxCatalog: TaxCatalog) {}
 
-  execute() {
+  async execute() {
     return this.taxCatalog.listCategories();
   }
 }

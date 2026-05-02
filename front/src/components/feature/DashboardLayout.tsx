@@ -22,6 +22,7 @@ const allMenuItems = [
   { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'comptable', 'service_finances'] },
   { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
   { path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent'] },
+  { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
   { path: '/etat-civil', icon: 'ri-file-text-line', label: 'État Civil', roles: ['admin', 'super_admin', 'agent'] },
   { path: '/urbanisme', icon: 'ri-building-line', label: 'Urbanisme', roles: ['admin', 'super_admin', 'agent'] },
   { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
@@ -55,6 +56,34 @@ export interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+const playNotificationSound = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    
+    const audioCtx = new AudioContext();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    // Un son doux, agréable et premium ("Ping")
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Note La (A5)
+    oscillator.frequency.exponentialRampToValueAtTime(1318.51, audioCtx.currentTime + 0.1); // Glissement vers Mi (E6)
+    
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.02); // Fade in très rapide
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4); // Fade out progressif
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + 0.4);
+  } catch (e) {
+    console.log("Lecture audio bloquée par le navigateur");
+  }
+};
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Use year context
   const { selectedYear, setSelectedYear } = useYear();
@@ -69,6 +98,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [searchContribuables, setSearchContribuables] = useState<Contribuable[]>([]);
   const [searchTransactions, setSearchTransactions] = useState<TransactionItem[]>([]);
   const [notificationsNonLues, setNotificationsNonLues] = useState(0);
+  const prevNotifsRef = useRef<number>(0);
+  const isInitialLoadRef = useRef<boolean>(true);
   const searchRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -144,7 +175,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     
     listNotifications({ year: selectedYear })
       .then((data) => {
-        setNotificationsNonLues((data || []).filter((n) => !n.lu).length);
+        const unreadCount = (data || []).filter((n) => !n.lu).length;
+        
+        // Jouer le son et vibrer uniquement si c'est une nouvelle notification (pas au chargement initial)
+        if (!isInitialLoadRef.current && unreadCount > prevNotifsRef.current) {
+          playNotificationSound();
+          if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200]); // Vibre 200ms, pause 100ms, vibre 200ms
+          }
+        }
+        
+        setNotificationsNonLues(unreadCount);
+        prevNotifsRef.current = unreadCount;
+        isInitialLoadRef.current = false;
       })
       .catch(() => {
         setNotificationsNonLues(0);
@@ -273,8 +316,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
         {expanded ? (
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
-              <i className="ri-government-line text-xl text-white"></i>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 overflow-hidden">
+              <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-contain p-0.5" />
             </div>
             <div>
               <h1 className="text-sm font-bold text-gray-900">Kafountine</h1>
@@ -282,8 +325,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
         ) : (
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
-            <i className="ri-government-line text-xl text-white"></i>
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 overflow-hidden">
+            <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-contain p-0.5" />
           </div>
         )}
 
@@ -320,6 +363,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </Link>
           );
         })}
+
+        {/* Version Badge */}
+        <div className={`mt-8 pt-4 border-t border-gray-100 ${!expanded ? 'text-center' : 'px-3'}`}>
+          <div className={`inline-flex items-center gap-2 px-2 py-1 bg-gray-50 rounded-md border border-gray-100 ${!expanded ? 'justify-center' : ''}`}>
+            <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse"></div>
+            {expanded && (
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Version 2.0.0</span>
+            )}
+            {!expanded && (
+              <span className="text-[10px] font-black text-gray-400">V2</span>
+            )}
+          </div>
+        </div>
       </nav>
     </>
   );
@@ -440,12 +496,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             {/* Sélecteur d'année */}
-            <div className="flex items-center gap-2">
-              <i className="ri-calendar-line hidden text-gray-500 sm:block"></i>
+            <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500">
+              <i className="ri-calendar-line text-gray-500"></i>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="cursor-pointer rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 sm:px-3"
+                className="cursor-pointer border-none bg-transparent text-sm font-medium text-gray-700 outline-none focus:ring-0"
               >
                 {AVAILABLE_YEARS.map((year) => (
                   <option key={year} value={year}>

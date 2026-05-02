@@ -3,7 +3,7 @@ import DashboardLayout from '../../components/feature/DashboardLayout';
 import { apiRequest } from '../../services/api';
 import { useYear } from '../../contexts/YearContext';
 
-const periodes = ['Jour', 'Semaine', 'Mois', 'Trimestre'] as const;
+
 
 type LigneBudgetaire = {
   id: string;
@@ -23,7 +23,7 @@ type BudgetStats = {
 };
 
 export default function BudgetSuiviPage() {
-  const [periodeActive, setPeriodeActive] = useState<number>(2);
+
   const [stats, setStats] = useState<BudgetStats | null>(null);
   const [lignes, setLignes] = useState<LigneBudgetaire[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,21 +92,7 @@ export default function BudgetSuiviPage() {
           <h1 className="text-2xl font-bold text-gray-900">Suivi Budgétaire</h1>
           <p className="text-sm text-gray-600 mt-1">Gestion des dépenses communales</p>
         </div>
-        <div className="w-full sm:w-auto overflow-x-auto">
-          <div className="inline-flex min-w-max items-center gap-1 bg-gray-100 rounded-full p-1">
-            {periodes.map((p, i) => (
-              <button
-                key={i}
-                onClick={() => setPeriodeActive(i)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  periodeActive === i ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
+
       </div>
 
       {/* Cartans resume */}

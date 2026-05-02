@@ -1,7 +1,6 @@
 SHELL := /bin/bash
-SAFE_DIR := /tmp/kafontine-gm
 
-.PHONY: help up down restart reset logs ps build check backend-check validate-prod-env validate-prod-template prod-preflight prod-smoke up-prod down-prod logs-prod reset-prod up-dev down-dev logs-dev reset-dev bootstrap-dev-db dev-local backend-local backend-local-no-db front-local
+.PHONY: help check backend-check validate-prod-env validate-prod-template prod-preflight prod-smoke k8s-apply helm-install helm-upgrade helm-uninstall up-dev down-dev logs-dev reset-dev bootstrap-dev-db dev-local backend-local backend-local-no-db front-local
 
 help:
 	@echo "Modes disponibles:"
@@ -9,39 +8,15 @@ help:
 	@echo "  make backend-local-no-db -> lance seulement le backend (DB déjà prête)"
 	@echo "  make front-local       -> lance le frontend Vite en local"
 	@echo "  make up-dev            -> démarre PostgreSQL et Redis de développement"
-	@echo "  make up-prod           -> démarre le stack production complet localement"
 	@echo "  make validate-prod-env -> vérifie que .env.prod ne contient pas de placeholders"
 	@echo "  make validate-prod-template -> vérifie seulement la structure du template .env.prod"
 	@echo "  make prod-preflight    -> lance les vérifications repo + build + tests avant prod"
 	@echo "  make prod-smoke URL=https://domaine -> lance le smoke test HTTP post-déploiement"
+	@echo "  make k8s-apply         -> applique les manifestes Kubernetes"
+	@echo "  make helm-install      -> installe le chart Helm kafontine"
+	@echo "  make helm-upgrade      -> met à jour le chart Helm kafontine"
+	@echo "  make helm-uninstall    -> supprime la release Helm kafontine"
 	@echo "  make check            -> lance la vérification backend"
-
-up:
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod up --build -d
-
-down:
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod down
-
-restart: down up
-
-reset:
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod down -v --remove-orphans
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod up --build -d
-
-logs:
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod logs -f --tail=200
-
-ps:
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod ps
-
-build:
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod build
 
 check:
 	cd backend && npm run build
@@ -62,22 +37,17 @@ prod-smoke:
 	test -n "$(URL)" || (echo "Usage: make prod-smoke URL=https://your-domain.com" && exit 1)
 	bash ./scripts/smoke-prod.sh "$(URL)"
 
-up-prod: validate-prod-env
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod -f docker-compose.prod.yml up --build -d
+k8s-apply: validate-prod-env
+	kubectl apply -f infra/k8s/
 
-down-prod:
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod -f docker-compose.prod.yml down
+helm-install: validate-prod-env
+	helm install kafontine infra/helm/kafontine
 
-logs-prod:
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f --tail=200
+helm-upgrade: validate-prod-env
+	helm upgrade --install kafontine infra/helm/kafontine
 
-reset-prod: validate-prod-env
-	ln -sfn "$$PWD" "$(SAFE_DIR)"
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod -f docker-compose.prod.yml down -v --remove-orphans
-	cd "$(SAFE_DIR)" && docker compose --env-file .env.prod -f docker-compose.prod.yml up --build -d
+helm-uninstall:
+	helm uninstall kafontine
 
 up-dev:
 	docker compose -f docker-compose.dev.yml up -d postgres redis

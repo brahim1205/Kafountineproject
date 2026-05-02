@@ -15,6 +15,16 @@ type Bucket = {
 
 const buckets = new Map<string, Bucket>();
 
+// Nettoyage périodique pour éviter les fuites de mémoire (exécuté toutes les 5 minutes)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of buckets.entries()) {
+    if (bucket.resetAt <= now) {
+      buckets.delete(key);
+    }
+  }
+}, 5 * 60 * 1000).unref();
+
 function getClientIp(req: Request) {
   const forwardedFor = req.header('x-forwarded-for');
   if (forwardedFor) {

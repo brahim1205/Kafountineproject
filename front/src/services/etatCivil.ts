@@ -60,11 +60,21 @@ export async function createEtatCivilDemande(payload: {
 }
 
 export async function updateEtatCivilDemande(id: string, payload: {
+  contribuableId?: string;
+  typeDocument?: string;
+  exemplaires?: number;
+  montant?: number;
   statut?: string;
   observations?: string;
 }): Promise<EtatCivilDemande> {
   return apiRequest<EtatCivilDemande>(`/etat-civil/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteEtatCivilDemande(id: string): Promise<void> {
+  return apiRequest<void>(`/etat-civil/${id}`, {
+    method: 'DELETE',
   });
 }

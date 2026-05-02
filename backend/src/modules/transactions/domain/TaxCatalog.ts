@@ -1,6 +1,6 @@
 import type { TransactionCategory, TransactionService } from './TransactionRepository';
 
 export interface TaxCatalog {
-  listCategories(): TransactionCategory[];
-  listServices(categoryId: string): TransactionService[];
+  listCategories(): TransactionCategory[] | Promise<TransactionCategory[]>;
+  listServices(categoryId: string): TransactionService[] | Promise<TransactionService[]>;
 }

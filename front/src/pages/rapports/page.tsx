@@ -1,11 +1,18 @@
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import { ReportsOverviewCards } from './ReportsOverviewCards';
 import { ReportsTopContribuablesTable } from './ReportsTopContribuablesTable';
+import { ReportsJournalTable } from './ReportsJournalTable';
 import { useReportsPage } from './useReportsPage';
+import RapportPDF from '../../components/feature/RapportPDF';
+import { useState, useMemo } from 'react';
 
 export default function Rapports() {
-  const { selectedYear, overview, loading, moduleStats, tauxRecouvrement, evolutionMensuelle, total, maxMontant, topContribuables, exportCsv, exportPdf } =
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const { selectedYear, overview, loading, moduleStats, tauxRecouvrement, evolutionMensuelle, total, maxMontant, topContribuables, detailedJournal, executiveSummary, totalExpenses, exportCsv, exportPdf } =
     useReportsPage();
+    
+  // On utilise le journal complet pour le PDF
+  const journalData = useMemo(() => detailedJournal, [detailedJournal]);
 
   return (
     <DashboardLayout>
@@ -17,11 +24,11 @@ export default function Rapports() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={exportPdf}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 whitespace-nowrap"
+              onClick={() => setShowPdfPreview(true)}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 whitespace-nowrap no-print"
             >
-              <i className="ri-file-pdf-line"></i>
-              Export PDF
+              <i className="ri-printer-line"></i>
+              Générer Rapport (PDF)
             </button>
             <button
               onClick={exportCsv}
@@ -56,7 +63,7 @@ export default function Rapports() {
                       style={{ height: `${(item.montant / maxMontant) * 100}%`, minHeight: item.montant > 0 ? '8px' : '0' }}
                       title={`${item.montant.toLocaleString('fr-FR')} FCFA`}
                     ></div>
-                    <span className="text-xs text-gray-500">{item.jour}</span>
+                    <span className="text-xs text-gray-500">{item.mois}</span>
                   </div>
                 ))}
               </div>
@@ -109,41 +116,41 @@ export default function Rapports() {
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           {m.name === 'Taxes' && (
                             <>
-                              <div><span className="text-gray-500">Transactions:</span> <span className="font-medium">{(stats as { transactions?: number }).transactions}</span></div>
-                              <div><span className="text-gray-500">Moyenne:</span> <span className="font-medium">{(stats as { moyenne?: number }).moyenne?.toLocaleString() || 0} FCA</span></div>
+                              <div><span className="text-gray-500">Transactions:</span> <span className="font-medium">{stats.transactions || 0}</span></div>
+                              <div><span className="text-gray-500">Moyenne:</span> <span className="font-medium">{Number(stats.moyenne || 0).toLocaleString()} FCFA</span></div>
                             </>
                           )}
                           {m.name === 'Marche' && (
                             <>
-                              <div><span className="text-gray-500">Places:</span> <span className="font-medium">{(stats as { places?: number }).places}</span></div>
-                              <div><span className="text-gray-500">Occupation:</span> <span className="font-medium">{(stats as { occupancy?: number }).occupancy}%</span></div>
+                              <div><span className="text-gray-500">Places:</span> <span className="font-medium">{stats.places || 0}</span></div>
+                              <div><span className="text-gray-500">Occupation:</span> <span className="font-medium">{stats.occupancy || 0}%</span></div>
                             </>
                           )}
                           {m.name === 'Motos' && (
                             <>
-                              <div><span className="text-gray-500">Motos:</span> <span className="font-medium">{(stats as { totalMotos?: number }).totalMotos}</span></div>
-                              <div><span className="text-gray-500">Taux paiement:</span> <span className="font-medium">{(stats as { tauxPaiement?: number }).tauxPaiement}%</span></div>
+                              <div><span className="text-gray-500">Motos:</span> <span className="font-medium">{stats.totalMotos || 0}</span></div>
+                              <div><span className="text-gray-500">Taux paiement:</span> <span className="font-medium">{stats.tauxPaiement || 0}%</span></div>
                             </>
                           )}
                           {m.name === 'Etat Civil' && (
                             <>
-                              <div><span className="text-gray-500">Actes:</span> <span className="font-medium">{(stats as { actesDelivres?: number }).actesDelivres}</span></div>
-                              <div><span className="text-gray-500">Principale:</span> <span className="font-medium">{(stats as { principalesDemandes?: string[] }).principalesDemandes?.[0]}</span></div>
+                              <div><span className="text-gray-500">Actes:</span> <span className="font-medium">{stats.actesDelivres || 0}</span></div>
+                              <div><span className="text-gray-500">Principale:</span> <span className="font-medium">{Array.isArray(stats.principalesDemandes) ? stats.principalesDemandes[0] : ''}</span></div>
                             </>
                           )}
                           {m.name === 'Urbanisme' && (
                             <>
-                              <div><span className="text-gray-500">Permis:</span> <span className="font-medium">{(stats as { permisDelivres?: number }).permisDelivres}</span></div>
-                              <div><span className="text-gray-500">Dossiers:</span> <span className="font-medium">{(stats as { dossiers?: number }).dossiers}</span></div>
+                              <div><span className="text-gray-500">Permis:</span> <span className="font-medium">{stats.permisDelivres || 0}</span></div>
+                              <div><span className="text-gray-500">Dossiers:</span> <span className="font-medium">{stats.dossiers || 0}</span></div>
                             </>
                           )}
                           {m.name === 'Formations' && (
                             <>
-                              <div><span className="text-gray-500">Jeunes:</span> <span className="font-medium">{(stats as { jeunesFormes?: number }).jeunesFormes}</span></div>
-                              <div><span className="text-gray-500">Certifications:</span> <span className="font-medium">{(stats as { certifications?: number }).certifications}</span></div>
+                              <div><span className="text-gray-500">Jeunes:</span> <span className="font-medium">{stats.jeunesFormes || 0}</span></div>
+                              <div><span className="text-gray-500">Certifications:</span> <span className="font-medium">{stats.certifications || 0}</span></div>
                             </>
                           )}
-                          <div><span className="text-gray-500">Evolution:</span> <span className="font-medium text-green-600">+{(stats as { evolution?: number }).evolution || 0}%</span></div>
+                          <div><span className="text-gray-500">Evolution:</span> <span className="font-medium text-green-600">+{stats.evolution || 0}%</span></div>
                         </div>
                       </div>
                     );
@@ -180,32 +187,33 @@ export default function Rapports() {
 
             <ReportsTopContribuablesTable topContribuables={topContribuables} total={total} />
 
+            <ReportsJournalTable journal={detailedJournal} />
+
             <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white">
               <h3 className="text-lg font-semibold mb-4">Resume executif - Annee {selectedYear}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                 <div>
                   <h4 className="font-medium text-gray-300 mb-2">Points positifs</h4>
                   <ul className="space-y-1 text-gray-400">
-                    <li>- Croissance de 12.5% des recettes</li>
-                    <li>- Taux de paiement motos: 87%</li>
-                    <li>- 189 certifications formations</li>
-                    <li>- Occupation marche: 92%</li>
+                    {executiveSummary.pointsPositifs.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-300 mb-2">Defis identifies</h4>
                   <ul className="space-y-1 text-gray-400">
-                    <li>- Delais traitement urbanisme</li>
-                    <li>- Recouvrement taxes</li>
-                    <li>- Formation agents</li>
+                    {executiveSummary.defisIdentifies.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-300 mb-2">Recommandations</h4>
                   <ul className="space-y-1 text-gray-400">
-                    <li>- Digitaliser les processus</li>
-                    <li>- Renforcer le controle</li>
-                    <li>- Augmenter les formations</li>
+                    {executiveSummary.recommandations.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -213,6 +221,64 @@ export default function Rapports() {
           </>
         )}
       </div>
+
+      {showPdfPreview && (
+        <RapportPDF
+          year={selectedYear}
+          total={total}
+          totalExpenses={totalExpenses}
+          tauxRecouvrement={tauxRecouvrement}
+          totalTransactions={overview?.txStats?.annee?.transactions || 0}
+          totalContribuables={overview?.totalContribuables || 0}
+          moduleStats={moduleStats}
+          evolutionMensuelle={evolutionMensuelle}
+          topContribuables={topContribuables}
+          executiveSummary={executiveSummary}
+          journal={journalData}
+          onClose={() => setShowPdfPreview(false)}
+        />
+      )}
+
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 1.5cm;
+          }
+          .no-print, nav, aside, header, footer, .sidebar, .top-bar {
+            display: none !important;
+          }
+          body {
+            background: white !important;
+            color: black !important;
+          }
+          .bg-white, .bg-gray-50, .bg-gradient-to-r, .bg-gradient-to-br {
+            background: white !important;
+            border-color: #eee !important;
+            box-shadow: none !important;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+          .text-white {
+            color: black !important;
+          }
+          .rounded-xl, .rounded-lg {
+            border-radius: 4px !important;
+          }
+          /* Fix layout for print */
+          .grid {
+            display: block !important;
+          }
+          .grid > div {
+            margin-bottom: 2rem !important;
+            page-break-inside: avoid;
+          }
+          h1 { font-size: 24pt !important; margin-bottom: 20pt !important; }
+          h3 { font-size: 16pt !important; margin-bottom: 10pt !important; }
+          table { width: 100% !important; border-collapse: collapse !important; }
+          th, td { border: 1px solid #eee !important; padding: 8pt !important; }
+        }
+      `}</style>
     </DashboardLayout>
   );
 }

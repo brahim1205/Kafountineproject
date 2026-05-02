@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import RecuPDF from '../../../components/feature/RecuPDF';
-import { listEtatCivilDemandes, type EtatCivilDemande } from '../../../services/etatCivil';
+import { listEtatCivilDemandes, updateEtatCivilDemande, deleteEtatCivilDemande, type EtatCivilDemande } from '../../../services/etatCivil';
+import { listContribuables, type Contribuable } from '../../../services/contribuables';
 import { useYear } from '../../../contexts/YearContext';
+import { getStoredUserRole } from '../../../services/auth';
+import { useToast } from '../../../components/feature/Toast';
+import {
+  clearFieldValidationError,
+  getErrorMessage,
+  validateFormElement,
+} from '../../../utils/formValidation';
 
 type UiEtatCivilDemande = EtatCivilDemande & {
   demandeur: string;
@@ -18,11 +26,16 @@ export default function HistoriqueDemandes() {
   const [filterType, setFilterType] = useState('tous');
   const [showRecuModal, setShowRecuModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDemande, setSelectedDemande] = useState<UiEtatCivilDemande | null>(null);
+  const [selectedEditDemande, setSelectedEditDemande] = useState<UiEtatCivilDemande | null>(null);
   const [demandes, setDemandes] = useState<UiEtatCivilDemande[]>([]);
+  const [contribuables, setContribuables] = useState<Contribuable[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
+  const userRole = getStoredUserRole();
+  const { showToast } = useToast();
 
-  useEffect(() => {
+  const loadDemandes = () => {
     listEtatCivilDemandes(selectedYear)
       .then((data) => {
         setErrorMsg('');
@@ -41,6 +54,11 @@ export default function HistoriqueDemandes() {
         setDemandes([]);
         setErrorMsg("Impossible de charger l'historique de l'état civil.");
       });
+  };
+
+  useEffect(() => {
+    loadDemandes();
+    listContribuables().then(setContribuables).catch(() => {});
   }, [selectedYear]);
 
   const filteredDemandes = useMemo(() => demandes.filter(demande => {
@@ -61,14 +79,54 @@ export default function HistoriqueDemandes() {
     setShowRecuModal(true);
   };
 
-  const handleTelecharger = (demande: UiEtatCivilDemande) => {
-    // Simuler le téléchargement
-    const link = document.createElement('a');
-    link.href = '#';
-    link.download = `${demande.numero}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleEdit = (demande: UiEtatCivilDemande) => {
+    setSelectedEditDemande(demande);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateDemande = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedEditDemande) return;
+    if (!validateFormElement(e.currentTarget)) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const typeDocument = String(formData.get('typeDocument') || '');
+    const contribuableId = String(formData.get('contribuableId') || '');
+    const montant = Number(formData.get('montant') || 0);
+    const exemplaires = Number(formData.get('exemplaires') || 1);
+    const statut = String(formData.get('statut') || 'DELIVREE');
+
+    try {
+      await updateEtatCivilDemande(selectedEditDemande.id, {
+        typeDocument,
+        contribuableId,
+        montant,
+        exemplaires,
+        statut,
+      });
+      showToast('Demande mise à jour avec succès.', 'success');
+      setShowEditModal(false);
+      setSelectedEditDemande(null);
+      loadDemandes();
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Erreur lors de la mise à jour.'), 'error');
+    }
+  };
+
+  const handleDeleteDemande = async () => {
+    if (!selectedEditDemande) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette demande définitivement ? Cette action est irréversible.")) return;
+
+    try {
+      await deleteEtatCivilDemande(selectedEditDemande.id);
+      showToast('Demande supprimée avec succès.', 'success');
+      setShowEditModal(false);
+      setSelectedEditDemande(null);
+      loadDemandes();
+    } catch (error) {
+      showToast(getErrorMessage(error, 'Erreur lors de la suppression.'), 'error');
+    }
   };
 
   return (
@@ -118,7 +176,6 @@ export default function HistoriqueDemandes() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Numéro</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Type de document</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Demandeur</th>
@@ -132,7 +189,6 @@ export default function HistoriqueDemandes() {
             <tbody className="divide-y divide-gray-200">
               {filteredDemandes.map((demande) => (
                 <tr key={demande.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{demande.numero}</td>
                   <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                     {demande.date}
                     <span className="block text-xs text-gray-500">{demande.heure}</span>
@@ -152,20 +208,23 @@ export default function HistoriqueDemandes() {
                       >
                         <i className="ri-eye-line"></i>
                       </button>
-                      <button 
-                        onClick={() => handleImprimer(demande)}
-                        className="w-8 h-8 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Imprimer le reçu"
-                      >
-                        <i className="ri-printer-line"></i>
-                      </button>
-                      <button 
-                        onClick={() => handleTelecharger(demande)}
-                        className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Télécharger"
-                      >
-                        <i className="ri-download-line"></i>
-                      </button>
+                      {(userRole === 'admin' || userRole === 'super_admin') ? (
+                        <button 
+                          onClick={() => handleEdit(demande)}
+                          className="w-8 h-8 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                          title="Modifier"
+                        >
+                          <i className="ri-edit-line"></i>
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleImprimer(demande)}
+                          className="w-8 h-8 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Imprimer le reçu"
+                        >
+                          <i className="ri-printer-line"></i>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -199,6 +258,125 @@ export default function HistoriqueDemandes() {
           </button>
         </div>
       </div>
+
+      {showEditModal && selectedEditDemande && (
+        <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <h3 className="text-lg font-semibold text-gray-900">Modifier la demande {selectedEditDemande.numero}</h3>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedEditDemande(null);
+                }}
+                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <i className="ri-close-line text-xl"></i>
+              </button>
+            </div>
+
+            <div className="p-6">
+              <form onSubmit={handleUpdateDemande} onInput={clearFieldValidationError} noValidate className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type de document</label>
+                  <select
+                    name="typeDocument"
+                    data-required="true"
+                    defaultValue={selectedEditDemande.typeDocument}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer"
+                  >
+                    <option value="Extrait de naissance">Extrait de naissance</option>
+                    <option value="Certificat de résidence">Certificat de résidence</option>
+                    <option value="Légalisation de signature">Légalisation de signature</option>
+                    <option value="Certificat de vie">Certificat de vie</option>
+                    <option value="Certificat de célibat">Certificat de célibat</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Contribuable</label>
+                  <select
+                    name="contribuableId"
+                    data-required="true"
+                    defaultValue={selectedEditDemande.contribuableId}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer"
+                  >
+                    <option value="">Sélectionner un contribuable</option>
+                    {contribuables.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {`${c.prenom || ''} ${c.nom || ''}`.trim()} ({c.nin})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Exemplaires</label>
+                    <input
+                      type="number"
+                      name="exemplaires"
+                      data-required="true"
+                      min="1"
+                      defaultValue={selectedEditDemande.exemplaires}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Montant (FCFA)</label>
+                    <input
+                      type="number"
+                      name="montant"
+                      data-required="true"
+                      min="0"
+                      defaultValue={selectedEditDemande.montant}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+                  <select
+                    name="statut"
+                    data-required="true"
+                    defaultValue={selectedEditDemande.statut}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer"
+                  >
+                    <option value="EN_ATTENTE">En attente</option>
+                    <option value="DELIVREE">Délivrée</option>
+                    <option value="REJETEE">Rejetée</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
+                  <button
+                    type="button"
+                    onClick={handleDeleteDemande}
+                    className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <i className="ri-delete-bin-line"></i>
+                    Supprimer la demande
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditModal(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2"
+                    >
+                      <i className="ri-save-line"></i>
+                      Enregistrer
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Détails */}
       {showDetailModal && selectedDemande && (

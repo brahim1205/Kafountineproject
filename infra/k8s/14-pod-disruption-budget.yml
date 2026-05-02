@@ -1,0 +1,24 @@
+# Pod Disruption Budget — Haute disponibilité pendant les rolling updates
+# Prod-only : garantir un minimum de pods disponibles
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kafontine-backend-pdb
+  namespace: kafontine
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kafontine-backend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kafontine-frontend-pdb
+  namespace: kafontine
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kafontine-frontend

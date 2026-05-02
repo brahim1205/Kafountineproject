@@ -14,6 +14,7 @@ export class GetDashboardStatisticsUseCase {
       recettesAujourdhui,
       recettesMois,
       evolutionSemaine,
+      evolutionMensuelle,
       topAgentsRaw,
       totalUsers,
       totalAdmins,
@@ -35,6 +36,7 @@ export class GetDashboardStatisticsUseCase {
       this.dashboardRepository.getTodayRevenueByYear(year),
       this.dashboardRepository.getMonthlyRevenueByYear(year),
       this.dashboardRepository.getWeeklyEvolutionByYear(year),
+      this.dashboardRepository.getMonthlyEvolutionByYear(year),
       prisma.transaction.groupBy({
         by: ['agentId'],
         where: { year, statut: 'PAYE' },
@@ -119,6 +121,7 @@ export class GetDashboardStatisticsUseCase {
       transactionsRecentes,
       topAgents,
       evolutionSemaine,
+      evolutionMensuelle,
     };
   }
 

@@ -87,3 +87,7 @@ tmp/
 temp/
 .cache/
 .codex
+scratch/
+.temp/
+.DS_Store
+Thumbs.db

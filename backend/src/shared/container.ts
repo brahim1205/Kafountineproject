@@ -16,16 +16,19 @@ import { UpdateContribuableUseCase } from '../modules/contribuables/application/
 import { DeleteContribuableUseCase } from '../modules/contribuables/application/DeleteContribuableUseCase';
 import { ContribuablesController } from '../modules/contribuables/presentation/ContribuablesController';
 import { PrismaTransactionRepository } from '../modules/transactions/infrastructure/PrismaTransactionRepository';
-import { InMemoryTaxCatalog } from '../modules/transactions/infrastructure/InMemoryTaxCatalog';
+import { PrismaTaxCatalog } from '../modules/transactions/infrastructure/InMemoryTaxCatalog';
 import { ListTransactionCategoriesUseCase } from '../modules/transactions/application/ListTransactionCategoriesUseCase';
 import { ListTransactionCategoryServicesUseCase } from '../modules/transactions/application/ListTransactionCategoryServicesUseCase';
 import { ListTransactionsUseCase } from '../modules/transactions/application/ListTransactionsUseCase';
 import { CreateTransactionUseCase } from '../modules/transactions/application/CreateTransactionUseCase';
 import { GetTransactionStatisticsUseCase } from '../modules/transactions/application/GetTransactionStatisticsUseCase';
 import { ExportTransactionsUseCase } from '../modules/transactions/application/ExportTransactionsUseCase';
+import { UpdateTransactionUseCase } from '../modules/transactions/application/UpdateTransactionUseCase';
+import { DeleteTransactionUseCase } from '../modules/transactions/application/DeleteTransactionUseCase';
 import { TransactionsController } from '../modules/transactions/presentation/TransactionsController';
 import { PrismaDashboardRepository } from '../modules/dashboard/infrastructure/PrismaDashboardRepository';
 import { GetDashboardStatisticsUseCase } from '../modules/dashboard/application/GetDashboardStatisticsUseCase';
+import { GetTopContribuablesUseCase } from '../modules/dashboard/application/GetTopContribuablesUseCase';
 import { DashboardController } from '../modules/dashboard/presentation/DashboardController';
 import { PortalLoginContribuableUseCase } from '../modules/portal/application/PortalLoginContribuableUseCase';
 import { GetPortalTaxesUseCase } from '../modules/portal/application/GetPortalTaxesUseCase';
@@ -47,7 +50,7 @@ export function buildContainer() {
   const authSessionStore = new RedisAuthSessionStore();
   const contribuableRepository = new PrismaContribuableRepository();
   const transactionRepository = new PrismaTransactionRepository();
-  const taxCatalog = new InMemoryTaxCatalog();
+  const taxCatalog = new PrismaTaxCatalog();
   const dashboardRepository = new PrismaDashboardRepository();
   const portalPaymentStore = new RedisPortalPaymentStore();
 
@@ -73,11 +76,14 @@ export function buildContainer() {
     new ListTransactionsUseCase(transactionRepository),
     new CreateTransactionUseCase(transactionRepository),
     new GetTransactionStatisticsUseCase(transactionRepository),
-    new ExportTransactionsUseCase()
+    new ExportTransactionsUseCase(),
+    new UpdateTransactionUseCase(transactionRepository),
+    new DeleteTransactionUseCase(transactionRepository)
   );
 
   const dashboardController = new DashboardController(
-    new GetDashboardStatisticsUseCase(dashboardRepository)
+    new GetDashboardStatisticsUseCase(dashboardRepository),
+    new GetTopContribuablesUseCase(dashboardRepository)
   );
 
   const portalController = new PortalController(

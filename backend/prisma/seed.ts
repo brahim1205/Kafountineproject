@@ -3,6 +3,10 @@ import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
+import {
+  MUNICIPAL_TARIFFS,
+  buildServiceId,
+} from '../src/modules/transactions/infrastructure/municipalTariffs';
 
 const prisma = new PrismaClient();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -20,6 +24,58 @@ function getSeedPassword(): string | null {
   return null;
 }
 
+async function seedMunicipalTariffs(prisma: PrismaClient) {
+  const source = 'Arrete municipal du 08 mai 2024';
+  const effectiveDate = new Date('2024-05-08T00:00:00.000Z');
+
+  const tables = await prisma.$queryRawUnsafe<Array<{ table_name: string }>>(
+    `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('MunicipalTariffCategory', 'MunicipalTariffItem')`
+  );
+
+  if (tables.length < 2) {
+    console.warn('Municipal tariff tables not found, skipping tariff seed.');
+    return;
+  }
+
+  await prisma.$executeRawUnsafe('DELETE FROM "MunicipalTariffItem"');
+  await prisma.$executeRawUnsafe('DELETE FROM "MunicipalTariffCategory"');
+
+  let categoryOrder = 0;
+  for (const entry of MUNICIPAL_TARIFFS) {
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "MunicipalTariffCategory" ("id", "nom", "icon", "color", "description", "legalSource", "effectiveDate", "sortOrder", "isActive", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      entry.category.id,
+      entry.category.nom,
+      entry.category.icon || null,
+      entry.category.color || null,
+      entry.category.description || null,
+      source,
+      effectiveDate,
+      categoryOrder++
+    );
+
+    let itemOrder = 0;
+    for (const service of entry.services) {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "MunicipalTariffItem" ("id", "categoryId", "nom", "tarif", "unite", "calcul", "legalSource", "effectiveDate", "sortOrder", "isActive", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        buildServiceId(entry.category.id, service.nom),
+        entry.category.id,
+        service.nom,
+        service.tarif,
+        service.unite,
+        service.calcul || null,
+        source,
+        effectiveDate,
+        itemOrder++
+      );
+    }
+  }
+
+  console.log(`  Seeded ${MUNICIPAL_TARIFFS.length} municipal tariff categories`);
+}
+
 async function main() {
   if (isProduction) {
     throw new Error('Refusing to run demo seed in production. Use a dedicated migration/import process instead.');
@@ -31,6 +87,8 @@ async function main() {
   }
 
   const password = await bcrypt.hash(seedPassword, 10);
+
+  await seedMunicipalTariffs(prisma);
 
   // ─── USERS ───────────────────────────────────────────────
   const admin = await prisma.user.upsert({

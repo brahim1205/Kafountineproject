@@ -9,9 +9,12 @@ on:
         type: choice
         options:
           - status
-          - full-backup
           - restore-latest
-          - restore-from-artifact
+
+env:
+  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE || 'kafontine' }}
+  POSTGRES_SELECTOR: ${{ secrets.POSTGRES_SELECTOR || 'app.kubernetes.io/instance=kafontine,app.kubernetes.io/name=postgresql' }}
+  BACKEND_DEPLOYMENT: ${{ secrets.BACKEND_DEPLOYMENT || 'kafontine-backend' }}
 
 jobs:
   status:
@@ -19,293 +22,61 @@ jobs:
     if: github.event.inputs.action == 'status'
     environment: production
     timeout-minutes: 15
-    
     steps:
-      - name: Check disaster recovery prerequisites
-        id: dr-status-check
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
         run: |
-          missing=0
-          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
-            if [ -z "${!key}" ]; then
-              echo "Missing required production secret: $key" >&2
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            echo "Disaster recovery prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
-            exit 1
-          fi
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
-
-      - name: Check server backup status
-        if: steps.dr-status-check.outputs.enabled == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            set -euo pipefail
-            if [ -d /opt/kafountine/Kafountineproject ]; then
-              APP_DIR=/opt/kafountine/Kafountineproject
-            elif [ -d /opt/kafountine ]; then
-              APP_DIR=/opt/kafountine
-            else
-              echo "Application directory not found" >&2
-              exit 1
-            fi
-            cd "$APP_DIR"
-            echo "=== Backup Status ==="
-            ls -lt backups 2>/dev/null | head -10 || echo "No backup directory"
-            echo ""
-            echo "=== Backend Readiness ==="
-            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend wget -qO- http://localhost:3000/ready || echo "Backend not ready"
-
-  full-backup:
-    runs-on: ubuntu-latest
-    if: github.event.inputs.action == 'full-backup'
-    environment: production
-    timeout-minutes: 30
-    env:
-      BACKUP_FILENAME: disaster_recovery_${{ github.run_id }}_${{ github.run_attempt }}.dump
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check disaster recovery prerequisites
-        id: dr-full-backup-check
+          mkdir -p "$HOME/.kube"
+          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+
+      - name: Check cluster status
         run: |
-          missing=0
-          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
-            if [ -z "${!key}" ]; then
-              echo "Missing required production secret: $key" >&2
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            echo "Disaster recovery prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
-            exit 1
-          fi
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
-
-      - name: Create full backup on server
-        if: steps.dr-full-backup-check.outputs.enabled == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            set -euo pipefail
-            if [ -d /opt/kafountine/Kafountineproject ]; then
-              APP_DIR=/opt/kafountine/Kafountineproject
-            elif [ -d /opt/kafountine ]; then
-              APP_DIR=/opt/kafountine
-            else
-              echo "Application directory not found" >&2
-              exit 1
-            fi
-            cd "$APP_DIR"
-            bash ./scripts/validate-prod-env.sh .env.prod
-            mkdir -p backups
-            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
-              sh -lc 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "backups/${{ env.BACKUP_FILENAME }}"
-
-      - name: Download backup artifact from server
-        if: steps.dr-full-backup-check.outputs.enabled == 'true'
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          source: /opt/kafountine/Kafountineproject/backups/${{ env.BACKUP_FILENAME }}
-          target: ./backups
-
-      - name: Upload backup artifact
-        if: steps.dr-full-backup-check.outputs.enabled == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: disaster-recovery-backup
-          path: backups/opt/kafountine/backups/${{ env.BACKUP_FILENAME }}
-          retention-days: 30
-
-      - name: Notify
-        uses: slackapi/slack-github-action@v1.25.0
-        with:
-          payload: |
-            {
-              "text": "Disaster Recovery: Full backup completed for Kafountine"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          kubectl get pods -n "${K8S_NAMESPACE}"
+          kubectl get pvc -n "${K8S_NAMESPACE}"
+          kubectl get ingress -n "${K8S_NAMESPACE}" || true
 
   restore-latest:
     runs-on: ubuntu-latest
     if: github.event.inputs.action == 'restore-latest'
     environment: production
     timeout-minutes: 30
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Check disaster recovery prerequisites
-        id: dr-restore-latest-check
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
         run: |
-          missing=0
-          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
-            if [ -z "${!key}" ]; then
-              echo "Missing required production secret: $key" >&2
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            echo "Disaster recovery prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
-            exit 1
-          fi
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          mkdir -p "$HOME/.kube"
+          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
 
       - name: Download latest backup
-        if: steps.dr-restore-latest-check.outputs.enabled == 'true'
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: backup.yml
           name: database-backup
 
-      - name: Upload backup to server
-        if: steps.dr-restore-latest-check.outputs.enabled == 'true'
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "./**/*.dump"
-          target: /opt/kafountine/Kafountineproject/backups/restore
-
-      - name: Restore database on server
-        if: steps.dr-restore-latest-check.outputs.enabled == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            set -euo pipefail
-            if [ -d /opt/kafountine/Kafountineproject ]; then
-              APP_DIR=/opt/kafountine/Kafountineproject
-            elif [ -d /opt/kafountine ]; then
-              APP_DIR=/opt/kafountine
-            else
-              echo "Application directory not found" >&2
-              exit 1
-            fi
-            cd "$APP_DIR"
-            bash ./scripts/validate-prod-env.sh .env.prod
-            LATEST=$(find backups/restore -name "*.dump" | sort | tail -1)
-            test -n "$LATEST"
-            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
-              sh -lc 'exec pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$LATEST"
-
-      - name: Notify
-        uses: slackapi/slack-github-action@v1.25.0
-        with:
-          payload: |
-            {
-              "text": "Disaster Recovery: Database restored from latest backup"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-  restore-from-artifact:
-    runs-on: ubuntu-latest
-    if: github.event.inputs.action == 'restore-from-artifact'
-    environment: production
-    timeout-minutes: 30
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check disaster recovery prerequisites
-        id: dr-restore-artifact-check
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
+      - name: Restore backup into postgres pod
         run: |
-          missing=0
-          for key in SSH_HOST SSH_USERNAME SSH_KEY; do
-            if [ -z "${!key}" ]; then
-              echo "Missing required production secret: $key" >&2
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            echo "Disaster recovery prerequisites are incomplete. Define the missing secrets in GitHub Actions > Environments > production." >&2
-            exit 1
-          fi
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          POD_NAME="$(kubectl get pods -n "${K8S_NAMESPACE}" -l "${POSTGRES_SELECTOR}" -o jsonpath='{.items[0].metadata.name}')"
+          test -n "${POD_NAME}"
+          LATEST="$(find . -name "*.dump" | sort | tail -1)"
+          test -n "${LATEST}"
+          cat "${LATEST}" | kubectl exec -i -n "${K8S_NAMESPACE}" "${POD_NAME}" -- sh -lc 'pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 
-      - name: Download disaster recovery backup
-        if: steps.dr-restore-artifact-check.outputs.enabled == 'true'
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: disaster-recovery.yml
-          name: disaster-recovery-backup
-
-      - name: Upload disaster recovery backup to server
-        if: steps.dr-restore-artifact-check.outputs.enabled == 'true'
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "./**/*.dump"
-          target: /opt/kafountine/Kafountineproject/backups/restore
-
-      - name: Restore disaster recovery backup on server
-        if: steps.dr-restore-artifact-check.outputs.enabled == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            set -euo pipefail
-            if [ -d /opt/kafountine/Kafountineproject ]; then
-              APP_DIR=/opt/kafountine/Kafountineproject
-            elif [ -d /opt/kafountine ]; then
-              APP_DIR=/opt/kafountine
-            else
-              echo "Application directory not found" >&2
-              exit 1
-            fi
-            cd "$APP_DIR"
-            bash ./scripts/validate-prod-env.sh .env.prod
-            LATEST=$(find backups/restore -name "*.dump" | sort | tail -1)
-            test -n "$LATEST"
-            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T postgres \
-              sh -lc 'exec pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$LATEST"
-
-      - name: Notify
-        uses: slackapi/slack-github-action@v1.25.0
-        with:
-          payload: |
-            {
-              "text": "Disaster Recovery: Database restored from disaster recovery backup"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Verify backend readiness
+        run: |
+          kubectl rollout status deployment/"${BACKEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s

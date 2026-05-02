@@ -1005,6 +1005,7 @@ export function buildPlaceholderRoutes(controller: PlaceholderController) {
   router.get('/etat-civil/statistiques', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.etatCivilStats(req, res)));
   router.post('/etat-civil', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(createEtatCivilSchema), asyncHandler((req, res) => controller.createEtatCivil(req, res)));
   router.put('/etat-civil/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(resourceIdParamsSchema, 'params'), validate(updateEtatCivilSchema), asyncHandler((req, res) => controller.updateEtatCivil(req, res)));
+  router.delete('/etat-civil/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteEtatCivil(req, res)));
 
   router.get('/urbanisme', authenticate, validate(urbanismeListQuerySchema, 'query'), asyncHandler((req, res) => controller.urbanismeList(req, res)));
   router.get('/urbanisme/statistiques', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.urbanismeStats(req, res)));
@@ -1083,9 +1084,11 @@ export function buildPlaceholderRoutes(controller: PlaceholderController) {
   router.put('/settings/penalites/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), validate(updatePenaltySchema), asyncHandler((req, res) => controller.updatePenalite(req, res)));
   router.delete('/settings/penalites/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deletePenalite(req, res)));
 
+  // Route publique pour consulter les pénalités (sans authentification)
+  router.get('/public/penalites', asyncHandler((req, res) => controller.getPenalites(req, res)));
+
   router.get('/settings/permissions', authenticate, adminOnly, asyncHandler((req, res) => controller.getPermissions(req, res)));
   router.post('/settings/permissions', authenticate, adminOnly, validate(updatePermissionSchema), asyncHandler((req, res) => controller.updatePermission(req, res)));
-  router.post('/settings/seed', authenticate, adminOnly, asyncHandler((req, res) => controller.settingsSeed(req, res)));
 
   router.get('/settings/backups', authenticate, adminOnly, asyncHandler((req, res) => controller.listBackups(req, res)));
   router.post('/settings/backups', authenticate, adminOnly, validate(createBackupSchema), asyncHandler((req, res) => controller.createBackup(req, res)));
@@ -1100,6 +1103,7 @@ export function buildPlaceholderRoutes(controller: PlaceholderController) {
   router.delete('/upload/image/:publicId', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(publicIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteImage(req, res)));
   router.post('/exports/receipt.pdf', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES', 'QUAI_PECHE'), validate(exportReceiptPdfSchema), asyncHandler((req, res) => controller.exportReceiptPdf(req, res)));
   router.post('/exports/report.pdf', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), validate(exportReportPdfSchema), asyncHandler((req, res) => controller.exportReportPdf(req, res)));
+  router.get('/exports/report-data', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), asyncHandler((req, res) => controller.getReportData(req, res)));
 
   const budgetRoles = authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES');
   router.get('/budget/lignes', authenticate, budgetRoles, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.listBudgetLignes(req, res)));

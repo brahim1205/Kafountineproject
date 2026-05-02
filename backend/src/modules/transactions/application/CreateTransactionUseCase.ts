@@ -6,6 +6,7 @@ export class CreateTransactionUseCase {
   async execute(input: {
     contribuableId: string;
     agentId: string;
+    categorie?: string;
     type?: string;
     service?: string;
     quantite?: number;
@@ -19,8 +20,8 @@ export class CreateTransactionUseCase {
     return this.transactionRepository.createWithAtomicNumero({
       contribuableId: input.contribuableId,
       agentId: input.agentId,
-      categorie: String(input.type || 'TAXE'),
-      service: String(input.service || input.type || 'Taxe'),
+      categorie: String(input.categorie || input.type || 'TAXE'),
+      service: String(input.service || input.categorie || input.type || 'Taxe'),
       quantite: Number(input.quantite || 1),
       montant: Number(input.montant || 0),
       modePaiement: String(input.modePaiement || 'ESPECE'),

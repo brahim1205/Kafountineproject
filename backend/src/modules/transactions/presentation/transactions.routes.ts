@@ -10,6 +10,8 @@ import {
   listTransactionsQuerySchema,
   transactionStatisticsQuerySchema,
   categoryServicesParamsSchema,
+  updateTransactionSchema,
+  transactionIdParamSchema,
 } from './transactions.schemas';
 
 /**
@@ -202,6 +204,9 @@ export function buildTransactionsRoutes(controller: TransactionsController) {
   router.post('/', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES'), validate(createTransactionSchema), asyncHandler((req, res) => controller.create(req as never, res)));
   router.get('/statistiques', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), validate(transactionStatisticsQuerySchema, 'query'), asyncHandler((req, res) => controller.statistiques(req, res)));
   router.get('/export', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), asyncHandler((req, res) => controller.export(req, res)));
+  
+  router.put('/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(transactionIdParamSchema, 'params'), validate(updateTransactionSchema), asyncHandler((req, res) => controller.update(req, res)));
+  router.delete('/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(transactionIdParamSchema, 'params'), asyncHandler((req, res) => controller.delete(req, res)));
 
   return router;
 }

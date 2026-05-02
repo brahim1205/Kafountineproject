@@ -382,6 +382,17 @@ export const exportReceiptPdfSchema = z.object({
   telephone: optionalTrimmedString(20),
   nin: optionalTrimmedString(40),
   adresse: optionalTrimmedString(255),
+  reference: optionalTrimmedString(120),
+  categorie: optionalTrimmedString(160),
+  service: optionalTrimmedString(160),
+  quantite: optionalTrimmedString(40),
+  unite: optionalTrimmedString(80),
+  tarifUnitaire: optionalTrimmedString(80),
+  modePaiement: optionalTrimmedString(80),
+  statut: optionalTrimmedString(80),
+  localisation: optionalTrimmedString(255),
+  nature: optionalTrimmedString(160),
+  description: optionalTrimmedString(500),
 }).strict();
 
 export const exportReportPdfSchema = z.object({

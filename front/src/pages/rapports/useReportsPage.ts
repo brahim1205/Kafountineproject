@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/feature/Toast';
 import { useYear } from '../../contexts/YearContext';
 import { exportReportPdf, openPdfBlob } from '../../services/pdf';
-import { getReportsOverview, getReportTransactions, type ReportsOverview } from '../../services/reports';
-import type { TransactionItem } from '../../services/taxes';
+import { getReportsOverview, getTopContribuablesApi, getDetailedReportData, type ReportsOverview } from '../../services/reports';
 
 type PrimitiveStat = number | string | string[] | undefined;
 export type ModuleStatRecord = Record<string, PrimitiveStat>;
@@ -105,41 +104,38 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
   ];
 }
 
-function buildTopContribuables(transactions: TransactionItem[]): TopContribuable[] {
-  const map = new Map<string, number>();
-  transactions.forEach((tx) => {
-    const name = `${tx.contribuable?.prenom || ''} ${tx.contribuable?.nom || ''}`.trim() || '-';
-    map.set(name, (map.get(name) || 0) + Number(tx.montant || 0));
-  });
 
-  return Array.from(map.entries())
-    .map(([name, amount]) => ({ name, amount }))
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 10);
-}
 
 export function useReportsPage() {
   const { selectedYear } = useYear();
   const { showToast } = useToast();
   const [overview, setOverview] = useState<ReportsOverview | null>(null);
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [topContribuables, setTopContribuables] = useState<TopContribuable[]>([]);
+  const [detailedJournal, setDetailedJournal] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
 
-    Promise.all([getReportsOverview(selectedYear), getReportTransactions(800, selectedYear)])
-      .then(([ov, txs]) => {
+    Promise.all([
+      getReportsOverview(selectedYear), 
+      getTopContribuablesApi(10, selectedYear),
+      getDetailedReportData(selectedYear)
+    ])
+      .then(([ov, topList, journal]) => {
         if (!mounted) return;
         setOverview(ov);
-        setTransactions(txs || []);
+        setTopContribuables(
+          topList.map((t) => ({ name: `${t.prenom} ${t.nom}`.trim() || '-', amount: t.montantTotal }))
+        );
+        setDetailedJournal(journal);
       })
       .catch(() => {
         if (!mounted) return;
         showToast('Erreur lors du chargement des donnees des rapports.', 'error');
         setOverview(null);
-        setTransactions([]);
+        setTopContribuables([]);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -152,14 +148,64 @@ export function useReportsPage() {
 
   const moduleStats = useMemo(() => buildModuleStats(overview), [overview]);
   const tauxRecouvrement = useMemo(() => {
-    return (overview?.txStats?.annee?.transactions || 0) > 0
-      ? Math.round(((overview?.txStats?.annee?.transactions || 0) / (overview?.totalContribuables || 1)) * 100)
+    // Calcul réel : on se base sur les contribuables inscrits ayant fait des transactions
+    return (overview?.totalContribuables || 0) > 0
+      ? Math.min(100, Math.round(((overview?.txStats?.annee?.transactions || 0) / (overview?.totalContribuables || 1)) * 100))
       : 0;
   }, [overview]);
-  const evolutionMensuelle = useMemo(() => overview?.evolutionSemaine || [], [overview?.evolutionSemaine]);
+  const evolutionMensuelle = useMemo(() => overview?.evolutionMensuelle || [], [overview?.evolutionMensuelle]);
+  const totalExpenses = useMemo(() => {
+    return detailedJournal
+      .filter(item => item.amount < 0 || item.type?.toLowerCase().includes('depense'))
+      .reduce((sum, item) => sum + Math.abs(item.amount), 0);
+  }, [detailedJournal]);
+
   const total = useMemo(() => moduleStats.reduce((sum, module) => sum + module.amount, 0), [moduleStats]);
   const maxMontant = useMemo(() => Math.max(...evolutionMensuelle.map((item) => item.montant), 1), [evolutionMensuelle]);
-  const topContribuables = useMemo(() => buildTopContribuables(transactions), [transactions]);
+
+  const executiveSummary = useMemo(() => {
+    if (!overview) return { pointsPositifs: [], defisIdentifies: [], recommandations: [] };
+    
+    const pointsPositifs = [];
+    const defisIdentifies = [];
+    const recommandations = [];
+
+    // Taux de paiement motos
+    const tauxMotos = overview.motosStats?.tauxPaiement || 0;
+    if (tauxMotos >= 70) pointsPositifs.push(`- Taux de paiement motos excellent : ${tauxMotos}%`);
+    else defisIdentifies.push(`- Faible taux de recouvrement des motos (${tauxMotos}%)`);
+
+    // Formations
+    const certifies = overview.formationsStats?.totalCertifies || 0;
+    if (certifies > 0) pointsPositifs.push(`- ${certifies} jeunes ont été certifiés cette année`);
+    else defisIdentifies.push(`- Aucune certification validée pour l'instant`);
+
+    // Marché
+    const occupationMarche = overview.marcheStats?.tauxOccupation || 0;
+    if (occupationMarche >= 80) pointsPositifs.push(`- Forte occupation du marché central : ${occupationMarche}%`);
+    else defisIdentifies.push(`- L'occupation du marché est perfectible (${occupationMarche}%)`);
+
+    // État civil
+    const enAttenteEC = overview.etatCivilStats?.demandesEnAttente || 0;
+    if (enAttenteEC > 50) {
+      defisIdentifies.push(`- ${enAttenteEC} demandes d'état civil en attente de traitement`);
+      recommandations.push('- Accélérer le traitement des dossiers d\'état civil');
+    }
+
+    // Urbanisme
+    const permisValid = overview.urbanismeStats?.dossiersValides || 0;
+    if (permisValid > 0) pointsPositifs.push(`- ${permisValid} dossiers d'urbanisme traités et validés`);
+
+    // Global
+    if (pointsPositifs.length === 0) pointsPositifs.push('- L\'année vient de démarrer, les indicateurs se construisent.');
+    if (defisIdentifies.length === 0) defisIdentifies.push('- Aucun défi majeur signalé.');
+    
+    recommandations.push('- Poursuivre la digitalisation des paiements');
+    recommandations.push('- Renforcer les contrôles sur le terrain');
+    recommandations.push('- Sensibiliser les contribuables aux délais');
+
+    return { pointsPositifs, defisIdentifies, recommandations };
+  }, [overview]);
 
   const exportCsv = () => {
     const rows = [
@@ -208,6 +254,9 @@ export function useReportsPage() {
     total,
     maxMontant,
     topContribuables,
+    detailedJournal,
+    executiveSummary,
+    totalExpenses,
     exportCsv,
     exportPdf,
   };

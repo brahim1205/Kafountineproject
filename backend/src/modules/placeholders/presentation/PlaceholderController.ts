@@ -201,6 +201,11 @@ export class PlaceholderController {
     return ok(res, await this.etatCivilUrbanismeService.updateEtatCivil(req as AuthRequest));
   }
 
+  async deleteEtatCivil(req: Request, res: Response) {
+    await this.etatCivilUrbanismeService.deleteEtatCivil(req as AuthRequest);
+    return message(res, 'Suppression effectuée');
+  }
+
   async etatCivilStats(req: Request, res: Response) {
     const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
     return ok(res, await this.etatCivilUrbanismeService.etatCivilStats(year));
@@ -405,11 +410,6 @@ export class PlaceholderController {
     return message(res, 'Permission mise à jour');
   }
 
-  async settingsSeed(req: Request, res: Response) {
-    await this.settingsService.settingsSeed(req as AuthRequest);
-    return message(res, 'Paramètres seedés');
-  }
-
   async listBackups(_req: Request, res: Response) {
     return ok(res, await this.settingsService.listBackups());
   }
@@ -465,6 +465,10 @@ export class PlaceholderController {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(pdf);
+  }
+
+  async getReportData(req: Request, res: Response) {
+    return ok(res, await this.documentsService.getReportData(req as AuthRequest));
   }
 
   async listBudgetLignes(req: Request, res: Response) {

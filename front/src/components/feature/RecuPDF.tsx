@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { exportReceiptPdf, openPdfBlob, printPdfBlob } from '../../services/pdf';
+import html2pdf from 'html2pdf.js';
 import { useToast } from './Toast';
 import { buildReceiptPayload, buildReceiptQrData, formatDateInFrench, normalizeRecuData, numberToWords } from './recuPdf.utils';
 
@@ -20,6 +21,17 @@ interface RecuPDFProps {
   telephone?: string;
   nin?: string;
   adresse?: string;
+  reference?: string;
+  categorie?: string;
+  service?: string;
+  quantite?: number | string;
+  unite?: string;
+  tarifUnitaire?: number | string;
+  modePaiement?: string;
+  statut?: string;
+  localisation?: string;
+  nature?: string;
+  description?: string;
   transaction?: {
     numero: string;
     date: string;
@@ -31,6 +43,17 @@ interface RecuPDFProps {
     telephone?: string;
     nin?: string;
     adresse?: string;
+    reference?: string;
+    categorie?: string;
+    service?: string;
+    quantite?: number;
+    unite?: string;
+    tarifUnitaire?: number;
+    modePaiement?: string;
+    statut?: string;
+    localisation?: string;
+    nature?: string;
+    description?: string;
   };
   onClose: () => void;
 }
@@ -51,6 +74,17 @@ export default function RecuPDF({
   telephone,
   nin,
   adresse,
+  reference,
+  categorie,
+  service,
+  quantite,
+  unite,
+  tarifUnitaire,
+  modePaiement,
+  statut,
+  localisation,
+  nature,
+  description,
   transaction,
   onClose 
 }: RecuPDFProps) {
@@ -71,6 +105,17 @@ export default function RecuPDF({
     telephone,
     nin,
     adresse,
+    reference,
+    categorie,
+    service,
+    quantite,
+    unite,
+    tarifUnitaire,
+    modePaiement,
+    statut,
+    localisation,
+    nature,
+    description,
     transaction,
   });
 
@@ -88,25 +133,59 @@ export default function RecuPDF({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  const handlePrint = async () => {
-    try {
-      const blob = await exportReceiptPdf(buildReceiptPayload(recuData));
-      printPdfBlob(blob);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Impossible de générer le reçu.', 'error');
-    }
+  const handlePrint = () => {
+    window.print();
   };
 
-  const handleDownload = async () => {
-    try {
-      const blob = await exportReceiptPdf(buildReceiptPayload(recuData));
-      openPdfBlob(blob, `recu-${recuData.ticketNumber}.pdf`);
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Impossible de générer le reçu.', 'error');
-    }
+  const handleDownload = () => {
+    const element = document.getElementById('recu-content');
+    if (!element) return;
+
+    // Masquer temporairement les éléments qui posent problème au canvas
+    const opt = {
+      margin: [0.3, 0.3],
+      filename: `recu-${recuData.ticketNumber}.pdf`,
+      image: { type: 'jpeg', quality: 1 },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true,
+        letterRendering: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Utiliser worker pour plus de contrôle et un petit délai
+    const worker = html2pdf().from(element).set(opt);
+    
+    showToast('Préparation du document haute fidélité...', 'info');
+
+    worker.toPdf().get('pdf').then((pdf: any) => {
+      const totalPages = pdf.internal.getNumberOfPages();
+      if (totalPages > 1) {
+        for (let i = totalPages; i > 1; i--) pdf.deletePage(i);
+      }
+    }).save();
   };
 
   const amountInWords = numberToWords(recuData.amount);
+  const detailRows = [
+    ['Reference', recuData.reference],
+    ['Categorie', recuData.categorie],
+    ['Service', recuData.service],
+    ['Quantite', recuData.quantite && recuData.unite ? `${recuData.quantite} ${recuData.unite}` : recuData.quantite],
+    ['Tarif unitaire', recuData.tarifUnitaire ? `${Number(recuData.tarifUnitaire).toLocaleString()} FCFA` : ''],
+    ['Mode de paiement', recuData.modePaiement],
+    ['Statut', recuData.statut],
+    ['Telephone', recuData.telephone],
+    ['NIN / CNI', recuData.nin],
+    ['Adresse', recuData.adresse],
+    ['Localisation', recuData.localisation],
+    ['Nature', recuData.nature],
+    ['Description', recuData.description],
+  ].filter(([, value]) => Boolean(value));
 
   return (
     <>
@@ -125,126 +204,187 @@ export default function RecuPDF({
           </div>
           
           <div className="p-6">
-            <div id="recu-content" className="bg-white border-2 border-gray-300 rounded-lg p-8">
-              {/* En-tête officiel */}
-              <div className="text-center border-b-2 border-gray-300 pb-6 mb-6">
-                <div className="flex items-center justify-center gap-4 mb-3">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                    <i className="ri-government-line text-white text-3xl"></i>
+            <div id="recu-content" className="bg-white border-[3px] border-double border-gray-400 rounded-xl p-6 shadow-inner relative overflow-hidden">
+              {/* Filigrane discret */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none rotate-[-35deg]">
+                <p className="text-8xl font-black text-gray-900">COMMUNE DE KAFOUNTINE</p>
+              </div>
+
+              {/* En-tête officiel avec design premium */}
+              <div className="relative text-center border-b-2 border-teal-600/20 pb-4 mb-4">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="text-left">
+                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-0.5">République du Sénégal</p>
+                    <p className="text-[7px] text-gray-500 uppercase tracking-widest">Un Peuple - Un But - Une Foi</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-0.5">Région de Ziguinchor</p>
+                    <p className="text-[7px] text-gray-500 uppercase tracking-widest">Département de Bignona</p>
                   </div>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">COMMUNE DE KAFOUNTINE</h1>
-                {/* Drapeau du Sénégal */}
-                <div className="flex justify-center mb-2">
-                  <svg viewBox="0 0 900 600" className="w-20 h-12 rounded shadow-sm" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="900" height="600" fill="#007A3D"/>
-                    <rect width="300" height="600" x="300" fill="#FDEF42"/>
-                    <rect width="300" height="600" x="600" fill="#CE1126"/>
-                  </svg>
-                </div>
-                <p className="text-sm text-gray-600 mb-1">République du Sénégal</p>
-                <p className="text-xs text-gray-500">Région de Ziguinchor - Département de Bignona</p>
-              </div>
 
-              {/* Titre du reçu */}
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-teal-700 mb-2">REÇU DE PAIEMENT</h2>
-                <div className="inline-block bg-teal-50 px-4 py-2 rounded-lg">
-                  <p className="text-sm font-semibold text-teal-900">N° {recuData.ticketNumber}</p>
-                </div>
-              </div>
-
-              {/* Informations du paiement */}
-              <div className="space-y-4 mb-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="relative w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-teal-50 border-gray-100 shadow-md">
+                      <img src="/logo.jpeg" alt="Logo Commune de Kafountine" className="w-full h-full object-contain p-1.5" />
+                    </div>
+                  </div>
+                  
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Date</p>
-                    <p className="text-sm font-semibold text-gray-900">{formattedDate}</p>
+                    <h1 className="text-xl font-black text-teal-800 tracking-tight">
+                      COMMUNE DE KAFOUNTINE
+                    </h1>
+                    <div className="flex items-center justify-center gap-2 mt-1">
+                      <div className="h-[2px] w-8 bg-teal-500"></div>
+                      <span className="text-[9px] font-bold text-teal-600 uppercase tracking-[0.3em]">Hôtel de Ville</span>
+                      <div className="h-[2px] w-8 bg-teal-500"></div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Heure</p>
-                    <p className="text-sm font-semibold text-gray-900">{recuData.time}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Reçu de</p>
-                  <p className="text-base font-semibold text-gray-900">{recuData.contributor}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Pour</p>
-                  <p className="text-sm font-medium text-gray-900">{recuData.type}</p>
-                </div>
-
-                <div className="bg-teal-50 p-4 rounded-lg border border-teal-200">
-                  <p className="text-xs text-gray-600 mb-1">Montant</p>
-                  <p className="text-3xl font-bold text-teal-700 mb-2">{recuData.amount.toLocaleString()} FCFA</p>
-                  <p className="text-xs text-gray-700 italic">
-                    Arrêté à la somme de : {amountInWords} francs CFA
-                  </p>
                 </div>
               </div>
 
-              {/* Agent collecteur */}
-              <div className="mb-6">
-                <p className="text-xs text-gray-500 mb-1">Agent collecteur</p>
-                <p className="text-sm font-semibold text-gray-900">{recuData.agent}</p>
+              {/* Badge du reçu */}
+              <div className="flex justify-between items-end mb-4">
+                <div className="text-left">
+                  <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Reçu de Paiement</h2>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black text-gray-900 tracking-tighter">N° {recuData.ticketNumber}</span>
+                  </div>
+                </div>
+                <div className="text-right bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Date d'émission</p>
+                  <p className="text-sm font-black text-gray-800">{formattedDate}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{recuData.time}</p>
+                </div>
               </div>
 
-              {/* QR Code placeholder */}
-              <div className="flex items-center justify-between border-t-2 border-gray-300 pt-6">
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 mb-2">Signature de l'agent</p>
-                  <div className="h-16 border-b border-gray-400 w-48"></div>
+              {/* Corps du reçu */}
+              <div className="space-y-4 mb-6 relative">
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl border border-gray-100 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+                    
+                    <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div>
+                        <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-1" style={{ fontFamily: 'sans-serif' }}>Contribuable</p>
+                        <p className="text-xl font-bold text-gray-900 leading-normal" style={{ fontFamily: 'sans-serif' }}>{recuData.contributor}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1" style={{ fontFamily: 'sans-serif' }}>Objet du paiement</p>
+                        <p className="text-sm font-semibold text-gray-800 leading-normal" style={{ fontFamily: 'sans-serif' }}>{recuData.type}</p>
+                        {recuData.reference && (
+                          <p className="text-[10px] text-gray-500 mt-1 font-medium italic" style={{ fontFamily: 'sans-serif' }}>Réf: {recuData.reference}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {detailRows.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {detailRows.slice(0, 6).map(([label, value]) => (
+                        <div key={label} className="p-4 bg-white rounded-xl border border-gray-100 flex flex-col justify-center min-h-[70px]">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5" style={{ fontFamily: 'sans-serif' }}>{label}</p>
+                          <p className="text-xs font-bold text-gray-800 leading-relaxed" style={{ fontFamily: 'sans-serif' }}>{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Zone Montant Premium */}
+                  <div className="bg-gradient-to-r from-teal-600 to-emerald-600 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-2xl"></div>
+                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24 blur-2xl"></div>
+                    
+                    <div className="relative flex flex-col items-center">
+                      <p className="text-[9px] font-bold text-teal-100 uppercase tracking-[0.4em] mb-1.5">Montant Total Versé</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-4xl font-black text-white tracking-tighter" style={{ color: 'white !important' }}>
+                          {recuData.amount.toLocaleString()}
+                        </span>
+                        <span className="text-xl font-bold text-teal-100">FCFA</span>
+                      </div>
+                      <div className="mt-3 w-full h-[1px] bg-white/20"></div>
+                      <p className="mt-3 text-[10px] text-teal-50 font-medium italic text-center leading-relaxed">
+                        " Arrêté à la somme de : {amountInWords} francs CFA "
+                      </p>
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              {/* Zone Signatures & Validation */}
+              <div className="grid grid-cols-2 gap-12 pt-8 border-t-2 border-gray-100">
                 <div className="text-center">
-                  <div className="bg-white p-1 rounded-lg">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-8">Cachet et Signature de l'Agent</p>
+                  <div className="relative h-24 flex items-center justify-center">
+                    <p className="text-xs font-bold text-gray-900 z-10">{recuData.agent}</p>
+                    {/* Placeholder pour un cachet numérique simulé */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-20 rotate-[-15deg]">
+                      <div className="w-20 h-20 border-4 border-double border-teal-600 rounded-full flex items-center justify-center text-[8px] font-black text-teal-600 text-center uppercase p-1">
+                        Commune de Kafountine
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-full h-px bg-gray-200"></div>
+                </div>
+
+                <div className="flex flex-col items-center justify-center bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                  <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 mb-3">
                     <QRCodeSVG
                       value={qrData}
-                      size={96}
-                      level="M"
+                      size={80}
+                      level="H"
                       includeMargin={false}
                       fgColor="#0f766e"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Scannez pour vérifier</p>
+                  <p className="text-[9px] font-black text-teal-700 uppercase tracking-widest">Validation Numérique</p>
+                  <p className="text-[8px] text-gray-500 mt-1">Scannez pour vérifier l'authenticité</p>
                 </div>
               </div>
 
-              {/* Pied de page */}
-              <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-                <p className="text-xs text-gray-500">
-                  Ce reçu est valable et authentique. Pour toute vérification, contactez la mairie de Kafountine.
-                </p>
-                <p className="text-xs text-gray-400 mt-2">
-                  Tél: +221 33 XXX XX XX | Email: mairie@kafountine.sn
-                </p>
+              {/* Pied de page élégant */}
+              <div className="mt-12 pt-6 border-t border-gray-100">
+                <div className="flex justify-between items-center text-[9px] text-gray-400 font-medium">
+                  <p>© {new Date().getFullYear()} Mairie de Kafountine - Système de Gestion Municipale</p>
+                  <div className="flex gap-4">
+                    <p>www.kafountine.sn</p>
+                    <p>Tél: +221 33 994 00 00</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Boutons d'action */}
-            <div className="flex items-center justify-end gap-3 mt-6 no-print">
-              <button
-                onClick={onClose}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap"
-              >
-                Fermer
-              </button>
-              <button
-                onClick={handleDownload}
-                className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap"
-              >
-                <i className="ri-download-line"></i>
-                Télécharger PDF
-              </button>
-              <button
-                onClick={handlePrint}
-                className="px-4 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"
-              >
-                <i className="ri-printer-line"></i>
-                Imprimer le reçu
-              </button>
+            <div className="flex flex-col items-end gap-3 mt-6 no-print">
+              {(recuData.statut?.toLowerCase() === 'en attente' || recuData.statut?.toLowerCase() === 'en_attente') && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-100 mb-2">
+                  <i className="ri-information-line"></i>
+                  <p className="text-xs font-semibold uppercase tracking-wider">Paiement non validé : Reçu indisponible</p>
+                </div>
+              )}
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Fermer
+                </button>
+                <button
+                  onClick={handlePrint}
+                  disabled={recuData.statut?.toLowerCase() === 'en attente' || recuData.statut?.toLowerCase() === 'en_attente'}
+                  className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
+                    (recuData.statut?.toLowerCase() === 'en attente' || recuData.statut?.toLowerCase() === 'en_attente')
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                      : 'bg-teal-600 text-white hover:bg-teal-700 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  <i className="ri-printer-line"></i>
+                  Imprimer le reçu
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -253,29 +393,60 @@ export default function RecuPDF({
       {/* Version imprimable */}
       <style>{`
         @media print {
-          body * {
+          /* Masquer tout le reste du site */
+          body > *:not(.no-print-wrapper) {
             display: none !important;
           }
-          #recu-content, #recu-content * {
-            display: block !important;
-          }
-          #recu-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+          
+          /* Styles de base pour la page */
+          @page {
             margin: 0;
-            padding: 20px !important;
-            border: 2px solid #333 !important;
-            border-radius: 0 !important;
+            size: A4 portrait;
+          }
+
+          body {
+            background: white !important;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* Le conteneur du reçu */
+          #recu-content {
+            display: block !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 40px !important;
+            border: none !important;
+            box-shadow: none !important;
             background: white !important;
           }
-          .no-print {
+
+          /* Masquer les boutons et le fond gris */
+          .no-print, .bg-gray-900\/50, button {
             display: none !important;
           }
-          /* Ensure all elements are visible in print */
-          #recu-content > div {
-            display: block !important;
+
+          /* S'assurer que le texte est bien noir et visible */
+          #recu-content * {
+            color: black !important;
+            text-shadow: none !important;
+          }
+          
+          /* Garder les couleurs des badges et du montant */
+          #recu-content .bg-teal-600, 
+          #recu-content .bg-teal-50,
+          #recu-content .bg-gradient-to-r {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          #recu-content .text-white {
+            color: white !important;
           }
         }
       `}</style>

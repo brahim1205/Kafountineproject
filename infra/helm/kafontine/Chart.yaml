@@ -1,0 +1,25 @@
+apiVersion: v2
+name: kafontine
+description: Chart Helm pour Kafontine Gestion Municipale
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - kafontine
+  - municipal
+  - gestion
+home: https://kafontine.gouv.sn
+sources:
+  - https://github.com/orbyteconsulting/Kafontine-Gestion-municipale
+maintainers:
+  - name: Orbyte Consulting
+    email: dev@orbyteconsulting.com
+dependencies:
+  - name: postgresql
+    version: 16.0.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 20.0.0
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

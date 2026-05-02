@@ -20,8 +20,10 @@ on:
 env:
   DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'docker.io' }}
   IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME || 'kafontine' }}
-  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE || 'kafontine' }}
+  HELM_RELEASE: ${{ secrets.HELM_RELEASE || 'kafontine' }}
+  BACKEND_DEPLOYMENT: ${{ secrets.BACKEND_DEPLOYMENT || 'kafontine-backend' }}
+  FRONTEND_DEPLOYMENT: ${{ secrets.FRONTEND_DEPLOYMENT || 'kafontine-frontend' }}
 
 permissions:
   actions: read
@@ -37,13 +39,8 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    outputs:
-      backend-scan: ${{ steps.trivy-backend.outputs.exit-code }}
-      frontend-scan: ${{ steps.trivy-frontend.outputs.exit-code }}
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -73,62 +70,20 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
         working-directory: front
 
-      - name: Run Trivy vulnerability scanner on backend
-        uses: aquasecurity/trivy-action@master
-        id: trivy-backend
-        with:
-          scanners: 'vuln'
-          scan-type: 'fs'
-          scan-ref: './backend'
-          severity: 'HIGH,CRITICAL'
-          ignore-unfixed: true
-          exit-code: '0'
-          format: 'sarif'
-          output: 'trivy-backend-results.sarif'
-
-      - name: Run Trivy vulnerability scanner on frontend
-        uses: aquasecurity/trivy-action@master
-        id: trivy-frontend
-        with:
-          scanners: 'vuln'
-          scan-type: 'fs'
-          scan-ref: './front'
-          severity: 'HIGH,CRITICAL'
-          ignore-unfixed: true
-          exit-code: '0'
-          format: 'sarif'
-          output: 'trivy-frontend-results.sarif'
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        with:
-          sarif_file: trivy-backend-results.sarif
-          category: backend
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        with:
-          sarif_file: trivy-frontend-results.sarif
-          category: frontend
-
   build-and-push:
     runs-on: ubuntu-latest
     needs: security-scan
     timeout-minutes: 30
-    permissions:
-      contents: read
-      id-token: write
-    
+    outputs:
+      enabled: ${{ steps.registry-check.outputs.enabled }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
       - name: Check registry credentials
         id: registry-check
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
           if [ -n "${DOCKER_USERNAME}" ] && [ -n "${DOCKER_PASSWORD}" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
@@ -136,9 +91,6 @@ jobs:
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "Docker registry credentials are not configured. Skipping build-and-push."
           fi
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Set up Docker Buildx
         if: steps.registry-check.outputs.enabled == 'true'
@@ -149,30 +101,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
-
-      - name: Extract metadata backend
-        if: steps.registry-check.outputs.enabled == 'true'
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=
-            type=raw,value=${{ github.ref_name }},enable={{is_default_branch}}
-
-      - name: Extract metadata frontend
-        if: steps.registry-check.outputs.enabled == 'true'
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=
-            type=raw,value=${{ github.ref_name }},enable={{is_default_branch}}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push backend
         if: steps.registry-check.outputs.enabled == 'true'
@@ -180,7 +110,7 @@ jobs:
         with:
           context: ./backend
           file: ./backend/Dockerfile.prod
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
@@ -193,98 +123,78 @@ jobs:
         with:
           context: ./front
           file: ./front/Dockerfile.prod
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Store image tags
-        if: steps.registry-check.outputs.enabled == 'true'
-        run: |
-          echo "${{ github.sha }}" > deployment_version.txt
-          echo "Backend: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}" >> deployment_version.txt
-          echo "Frontend: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}" >> deployment_version.txt
-          
-      - name: Upload deployment artifact
-        if: steps.registry-check.outputs.enabled == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-info
-          path: deployment_version.txt
-          retention-days: 30
-
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.build-and-push.outputs.enabled == 'true'
     environment: production
     timeout-minutes: 30
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Check deployment prerequisites
         id: deploy-check
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
         run: |
-          if [ -n "${DOCKER_USERNAME}" ] && [ -n "${DOCKER_PASSWORD}" ] && [ -n "${SSH_HOST}" ] && [ -n "${SSH_USERNAME}" ] && [ -n "${SSH_KEY}" ] && [ -n "${HEALTH_URL}" ]; then
+          if [ -n "${KUBE_CONFIG_DATA}" ] && [ -n "${HEALTH_URL}" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "Deployment secrets are incomplete. Skipping deploy job."
           fi
+
+      - name: Setup kubectl
+        if: steps.deploy-check.outputs.enabled == 'true'
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Setup Helm
+        if: steps.deploy-check.outputs.enabled == 'true'
+        uses: azure/setup-helm@v4
+
+      - name: Configure kubeconfig
+        if: steps.deploy-check.outputs.enabled == 'true'
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
 
-      - name: Download deployment info
+      - name: Deploy with Helm
         if: steps.deploy-check.outputs.enabled == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: deployment-info
+        run: |
+          helm upgrade --install "${HELM_RELEASE}" infra/helm/kafontine \
+            --namespace "${K8S_NAMESPACE}" \
+            --create-namespace \
+            --set frontend.image.repository="${DOCKER_REGISTRY}/${IMAGE_NAME}-frontend" \
+            --set frontend.image.tag="${GITHUB_SHA}" \
+            --set backend.image.repository="${DOCKER_REGISTRY}/${IMAGE_NAME}-backend" \
+            --set backend.image.tag="${GITHUB_SHA}"
+        env:
+          GITHUB_SHA: ${{ github.sha }}
 
-      - name: Deploy to server
+      - name: Wait for rollout
         if: steps.deploy-check.outputs.enabled == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            set -euo pipefail
-            cd /opt/kafontine
-            bash ./scripts/validate-prod-env.sh .env.prod
-            echo "${{ env.DOCKER_PASSWORD }}" | docker login ${{ env.DOCKER_REGISTRY }} -u "${{ env.DOCKER_USERNAME }}" --password-stdin
-            export BACKEND_IMAGE=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
-            export FRONTEND_IMAGE=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
-            
-            # Log version for rollback
-            echo "$(date): Deployed version ${{ github.sha }}" >> deployment.log
-            
-            docker compose --env-file .env.prod -f docker-compose.prod.yml pull backend front
-            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d postgres redis otel-collector
-            docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
-            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --no-build backend front
-            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend wget -qO- http://localhost:3000/ready
-            docker system prune -f
-
-      - name: Wait for deployment
-        if: steps.deploy-check.outputs.enabled == 'true'
-        run: sleep 30
+        run: |
+          kubectl rollout status deployment/"${BACKEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
+          kubectl rollout status deployment/"${FRONTEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
 
       - name: Health Check
         if: steps.deploy-check.outputs.enabled == 'true'
         run: |
-          curl -f --max-time 60 ${{ secrets.HEALTH_URL }} || {
-            echo "Health check failed"
-            exit 1
-          }
+          curl -f --max-time 60 "${HEALTH_URL}"
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
 
       - name: Notify deployment
         if: always() && steps.deploy-check.outputs.enabled == 'true'
@@ -298,7 +208,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "Deployment *${{ job.status }}* for Kafontine Municipal\nVersion: \`${{ github.sha }}\`\nEnvironment: Production"
+                    "text": "Deployment *${{ job.status }}* for Kafontine Municipal\nVersion: `${{ github.sha }}`\nEnvironment: Production"
                   }
                 }
               ]

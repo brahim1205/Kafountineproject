@@ -162,8 +162,19 @@ export async function getTopContribuablesApi(limit = 10, year?: number) {
   }>(`/dashboard/top-contribuables${query}`);
   return response?.data || [];
 }
-export async function getDetailedReportData(year?: number): Promise<any[]> {
+export interface JournalEntry {
+  id: string;
+  date: string | Date;
+  person: string;
+  type: string;
+  amount: number;
+  description: string;
+  module: string;
+  formattedDate?: string;
+}
+
+export async function getDetailedReportData(year?: number): Promise<JournalEntry[]> {
   const query = year ? `?year=${year}` : '';
-  const response = await apiRequest<any[] | { data: any[] }>(`/exports/report-data${query}`);
-  return Array.isArray(response) ? response : (response as any)?.data || [];
+  const response = await apiRequest<JournalEntry[] | { data: JournalEntry[] }>(`/exports/report-data${query}`);
+  return Array.isArray(response) ? response : response?.data || [];
 }

@@ -1,6 +1,28 @@
-import React, { useMemo } from 'react';
-import { formatDateInFrench } from './recuPdf.utils';
-import html2pdf from 'html2pdf.js';
+import React from 'react';
+interface ModuleStat {
+  name: string;
+  amount: number;
+  icon: string;
+  couleur: string;
+  stats: {
+    evolution?: number;
+  };
+}
+
+interface JournalEntry {
+  date: string | Date;
+  type: string;
+  person?: string;
+  acteur?: string;
+  amount: number;
+  description: string;
+  formattedDate?: string;
+}
+
+interface ContribuableTop {
+  name: string;
+  amount: number;
+}
 
 interface RapportPDFProps {
   year: number;
@@ -9,11 +31,9 @@ interface RapportPDFProps {
   tauxRecouvrement: number;
   totalTransactions: number;
   totalContribuables: number;
-  moduleStats: any[];
-  evolutionMensuelle: any[];
-  topContribuables: any[];
-  executiveSummary: any;
-  journal: any[];
+  moduleStats: ModuleStat[];
+  topContribuables: ContribuableTop[];
+  journal: JournalEntry[];
   onClose: () => void;
 }
 
@@ -25,34 +45,10 @@ export default function RapportPDF({
   totalTransactions,
   totalContribuables,
   moduleStats,
-  evolutionMensuelle,
   topContribuables,
-  executiveSummary,
   journal,
   onClose
 }: RapportPDFProps) {
-  
-  const handleDownloadPDF = () => {
-    const element = document.getElementById('rapport-content');
-    if (!element) return;
-
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `rapport-annuel-${year}-Kafountine.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        letterRendering: true,
-        scrollX: 0,
-        scrollY: 0
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    html2pdf().set(opt).from(element).save();
-  };
 
   return (
     <div className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50 p-4 no-print backdrop-blur-sm">
@@ -246,7 +242,7 @@ export default function RapportPDF({
             </h3>
             
             {Object.entries(
-              journal.reduce((acc: any, item: any) => {
+              journal.reduce((acc: Record<string, JournalEntry[]>, item: JournalEntry) => {
                 const dateObj = new Date(item.date);
                 const month = (dateObj.getMonth() + 1).toString().padStart(2, '0') + '/' + dateObj.getFullYear();
                 if (!acc[month]) acc[month] = [];
@@ -256,7 +252,7 @@ export default function RapportPDF({
                 });
                 return acc;
               }, {})
-            ).map(([monthKey, items]: [string, any]) => (
+            ).map(([monthKey, items]: [string, JournalEntry[]]) => (
               <div key={monthKey} className="mb-12 avoid-break">
                 <div className="bg-gray-100 px-6 py-2 rounded-xl mb-4">
                   <h4 className="text-sm font-black text-gray-700 uppercase tracking-widest">
@@ -275,7 +271,7 @@ export default function RapportPDF({
                       </tr>
                     </thead>
                     <tbody className="text-[11px] font-bold divide-y divide-gray-100">
-                      {items.map((item: any, idx: number) => (
+                      {items.map((item: JournalEntry, idx: number) => (
                         <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}>
                           <td className="px-6 py-3 text-gray-500 whitespace-nowrap">{item.formattedDate}</td>
                           <td className="px-6 py-3">

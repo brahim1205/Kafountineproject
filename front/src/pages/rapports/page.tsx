@@ -8,7 +8,7 @@ import { useState, useMemo } from 'react';
 
 export default function Rapports() {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
-  const { selectedYear, overview, loading, moduleStats, tauxRecouvrement, evolutionMensuelle, total, maxMontant, topContribuables, detailedJournal, executiveSummary, totalExpenses, exportCsv, exportPdf } =
+  const { selectedYear, overview, loading, moduleStats, tauxRecouvrement, evolutionMensuelle, total, maxMontant, topContribuables, detailedJournal, executiveSummary, totalExpenses, exportCsv } =
     useReportsPage();
     
   // On utilise le journal complet pour le PDF

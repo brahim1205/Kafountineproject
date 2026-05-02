@@ -63,12 +63,12 @@ export class TransactionsController {
   }
 
   async update(req: Request, res: Response) {
-    const updated = await this.updateTransactionUseCase.execute(req.params.id, req.body);
+    const updated = await this.updateTransactionUseCase.execute(String(req.params.id), req.body);
     return ok(res, updated);
   }
 
   async delete(req: Request, res: Response) {
-    await this.deleteTransactionUseCase.execute(req.params.id);
+    await this.deleteTransactionUseCase.execute(String(req.params.id));
     return ok(res, { success: true });
   }
 }

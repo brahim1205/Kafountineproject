@@ -13,7 +13,7 @@ export default function Penalites() {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [selectedPenalite, setSelectedPenalite] = useState<Penalite | null>(null);
   const [selectedContribuable, setSelectedContribuable] = useState<Contribuable | null>(null);
-  const [receiptData, setReceiptData] = useState<any>(null);
+  const [receiptData, setReceiptData] = useState<Record<string, unknown> | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 

@@ -1,9 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { exportReceiptPdf, openPdfBlob, printPdfBlob } from '../../services/pdf';
-import html2pdf from 'html2pdf.js';
-import { useToast } from './Toast';
-import { buildReceiptPayload, buildReceiptQrData, formatDateInFrench, normalizeRecuData, numberToWords } from './recuPdf.utils';
+import { buildReceiptQrData, formatDateInFrench, normalizeRecuData, numberToWords } from './recuPdf.utils';
 
 interface RecuPDFProps {
   ticketNumber?: string;
@@ -88,7 +85,6 @@ export default function RecuPDF({
   transaction,
   onClose 
 }: RecuPDFProps) {
-  const { showToast } = useToast();
   const recuData = normalizeRecuData({
     ticketNumber,
     date,
@@ -122,8 +118,8 @@ export default function RecuPDF({
   const formattedDate = formatDateInFrench(recuData.date);
 
   const qrData = useMemo(() => {
-    return buildReceiptQrData(recuData, formattedDate);
-  }, [recuData, formattedDate]);
+    return buildReceiptQrData(recuData);
+  }, [recuData]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -135,39 +131,6 @@ export default function RecuPDF({
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleDownload = () => {
-    const element = document.getElementById('recu-content');
-    if (!element) return;
-
-    // Masquer temporairement les éléments qui posent problème au canvas
-    const opt = {
-      margin: [0.3, 0.3],
-      filename: `recu-${recuData.ticketNumber}.pdf`,
-      image: { type: 'jpeg', quality: 1 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true,
-        letterRendering: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false
-      },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    };
-
-    // Utiliser worker pour plus de contrôle et un petit délai
-    const worker = html2pdf().from(element).set(opt);
-    
-    showToast('Préparation du document haute fidélité...', 'info');
-
-    worker.toPdf().get('pdf').then((pdf: any) => {
-      const totalPages = pdf.internal.getNumberOfPages();
-      if (totalPages > 1) {
-        for (let i = totalPages; i > 1; i--) pdf.deletePage(i);
-      }
-    }).save();
   };
 
   const amountInWords = numberToWords(recuData.amount);
@@ -427,7 +390,7 @@ export default function RecuPDF({
           }
 
           /* Masquer les boutons et le fond gris */
-          .no-print, .bg-gray-900\/50, button {
+          .no-print, .bg-gray-900\\/50, button {
             display: none !important;
           }
 

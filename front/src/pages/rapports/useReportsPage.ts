@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/feature/Toast';
 import { useYear } from '../../contexts/YearContext';
-import { exportReportPdf, openPdfBlob } from '../../services/pdf';
-import { getReportsOverview, getTopContribuablesApi, getDetailedReportData, type ReportsOverview } from '../../services/reports';
+import { getReportsOverview, getTopContribuablesApi, getDetailedReportData, type ReportsOverview, type JournalEntry } from '../../services/reports';
 
 type PrimitiveStat = number | string | string[] | undefined;
 export type ModuleStatRecord = Record<string, PrimitiveStat>;
@@ -111,7 +110,7 @@ export function useReportsPage() {
   const { showToast } = useToast();
   const [overview, setOverview] = useState<ReportsOverview | null>(null);
   const [topContribuables, setTopContribuables] = useState<TopContribuable[]>([]);
-  const [detailedJournal, setDetailedJournal] = useState<any[]>([]);
+  const [detailedJournal, setDetailedJournal] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -222,28 +221,6 @@ export function useReportsPage() {
     showToast('Rapport exporte en CSV', 'success');
   };
 
-  const exportPdf = async () => {
-    try {
-      const blob = await exportReportPdf({
-        year: selectedYear,
-        total,
-        tauxRecouvrement,
-        totalTransactions: overview?.txStats?.annee?.transactions || 0,
-        totalContribuables: overview?.totalContribuables || 0,
-        modules: moduleStats.map((module) => ({
-          name: module.name,
-          amount: module.amount,
-          evolution: Number(module.stats.evolution || 0),
-        })),
-        topContribuables,
-      });
-      openPdfBlob(blob, `rapport-annuel-${selectedYear}.pdf`);
-      showToast('Rapport exporté en PDF', 'success');
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Impossible de générer le PDF.', 'error');
-    }
-  };
-
   return {
     selectedYear,
     overview,
@@ -258,6 +235,5 @@ export function useReportsPage() {
     executiveSummary,
     totalExpenses,
     exportCsv,
-    exportPdf,
   };
 }

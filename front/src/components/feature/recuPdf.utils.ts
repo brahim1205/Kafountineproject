@@ -213,7 +213,7 @@ export function buildReceiptPayload(recuData: RecuData) {
   };
 }
 
-export function buildReceiptQrData(recuData: RecuData, formattedDate: string): string {
+export function buildReceiptQrData(recuData: RecuData): string {
   // On génère une URL de vérification officielle
   // Ce format est plus standard et facile à scanner que du JSON brut
   const baseUrl = 'https://kafountine.sn/verifier';

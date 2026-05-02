@@ -58,10 +58,10 @@ export interface DashboardLayoutProps {
 
 const playNotificationSound = () => {
   try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
     
-    const audioCtx = new AudioContext();
+    const audioCtx = new AudioContextClass();
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     
@@ -79,8 +79,8 @@ const playNotificationSound = () => {
     
     oscillator.start(audioCtx.currentTime);
     oscillator.stop(audioCtx.currentTime + 0.4);
-  } catch (e) {
-    console.log("Lecture audio bloquée par le navigateur");
+  } catch {
+    // Lecture audio bloquée par le navigateur
   }
 };
 

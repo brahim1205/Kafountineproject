@@ -178,7 +178,7 @@ export class PlaceholderDocumentsService {
         person: `${t.contribuable?.prenom || ''} ${t.contribuable?.nom || ''}`.trim(),
         type: `Recette (${t.categorie})`,
         amount: t.montant,
-        description: t.description || 'Paiement taxe',
+        description: t.service || 'Paiement taxe',
       });
     }
 
@@ -413,7 +413,7 @@ export class PlaceholderDocumentsService {
         person: `${t.contribuable?.prenom || ''} ${t.contribuable?.nom || ''}`.trim() || 'Inconnu',
         type: `Recette (${t.categorie})`,
         amount: t.montant,
-        description: t.description || 'Paiement taxe',
+        description: t.service || 'Paiement taxe',
         module: 'recettes'
       });
     }

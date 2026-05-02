@@ -54,6 +54,8 @@ export default function GestionDossiers() {
   const [typesPermis, setTypesPermis] = useState<TaxService[]>([]);
   const [formValues, setFormValues] = useState({
     nomComplet: '',
+    cni: '',
+    telephone: '',
     localisation: '',
     surface: '',
     nature: '',
@@ -147,7 +149,10 @@ export default function GestionDossiers() {
 
       // First ensure the contribuable exists
       const contribuable = await ensureContribuableByIdentity({
+        cni: (formData.get('cni') as string) || '',
         fullName: (formData.get('nomComplet') as string) || '',
+        telephone: (formData.get('telephone') as string) || '',
+        adresse: (formData.get('localisation') as string) || '',
       });
 
       // Create the urbanisme dossier
@@ -189,6 +194,8 @@ export default function GestionDossiers() {
       setTypePermis('');
       setFormValues({
         nomComplet: '',
+        cni: '',
+        telephone: '',
         localisation: '',
         surface: '',
         nature: '',
@@ -498,6 +505,42 @@ export default function GestionDossiers() {
                       onChange={(e) => setFormValues((current) => ({ ...current, nomComplet: e.target.value }))}
                       data-required="true"
                       placeholder="Ex: El Hadji Malick Sy"
+                      className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                    Numéro CNI / NIN <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <i className="ri-id-card-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input
+                      type="text"
+                      name="cni"
+                      value={formValues.cni}
+                      onChange={(e) => setFormValues((current) => ({ ...current, cni: e.target.value }))}
+                      data-required="true"
+                      placeholder="Ex: 1755198000123"
+                      className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+                    Numéro de Téléphone <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <i className="ri-phone-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input
+                      type="tel"
+                      name="telephone"
+                      value={formValues.telephone}
+                      onChange={(e) => setFormValues((current) => ({ ...current, telephone: e.target.value }))}
+                      data-required="true"
+                      placeholder="Ex: 771234567"
                       className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all"
                     />
                   </div>

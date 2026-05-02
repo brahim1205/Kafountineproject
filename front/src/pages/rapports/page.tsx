@@ -231,9 +231,7 @@ export default function Rapports() {
           totalTransactions={overview?.txStats?.annee?.transactions || 0}
           totalContribuables={overview?.totalContribuables || 0}
           moduleStats={moduleStats}
-          evolutionMensuelle={evolutionMensuelle}
           topContribuables={topContribuables}
-          executiveSummary={executiveSummary}
           journal={journalData}
           onClose={() => setShowPdfPreview(false)}
         />

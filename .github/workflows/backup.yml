@@ -4,40 +4,56 @@ on:
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      artifact_name:
+        type: string
+        default: database-backup
 
-env:
-  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE || 'kafontine' }}
-  POSTGRES_SELECTOR: ${{ secrets.POSTGRES_SELECTOR || 'app.kubernetes.io/instance=kafontine,app.kubernetes.io/name=postgresql' }}
+permissions:
+  contents: read
+
+concurrency:
+  group: production-database-backup
+  cancel-in-progress: false
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 30
+    env:
+      APP_DIR: ${{ vars.APP_DIR || '/opt/kafontine' }}
+      BACKUP_FILENAME: kafontine_${{ github.run_id }}_${{ github.run_attempt }}.dump
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
+      - uses: ./.github/actions/production-ssh
         with:
-          version: 'latest'
-
-      - name: Configure kubeconfig
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      - name: Create and validate database backup
+        shell: bash
         run: |
-          mkdir -p "$HOME/.kube"
-          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-
-      - name: Export database backup
+          set -euo pipefail
+          [[ "$APP_DIR" =~ ^/[a-zA-Z0-9/_-]+$ ]]
+          ssh kafontine-production "bash -s -- '$APP_DIR' '$BACKUP_FILENAME'" < scripts/backup-production.sh
+      - name: Download verified backup
         run: |
-          POD_NAME="$(kubectl get pods -n "${K8S_NAMESPACE}" -l "${POSTGRES_SELECTOR}" -o jsonpath='{.items[0].metadata.name}')"
-          test -n "${POD_NAME}"
-          kubectl exec -n "${K8S_NAMESPACE}" "${POD_NAME}" -- sh -lc 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "kafontine_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}.dump"
-
-      - name: Upload backup artifacts
+          set -euo pipefail
+          install -d -m 700 backups
+          scp "kafontine-production:$APP_DIR/backups/$BACKUP_FILENAME" "backups/$BACKUP_FILENAME"
+          test -s "backups/$BACKUP_FILENAME"
+      - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
-          name: database-backup
-          path: kafontine_${{ github.run_id }}_${{ github.run_attempt }}.dump
+          name: ${{ inputs.artifact_name || 'database-backup' }}
+          path: backups/${{ env.BACKUP_FILENAME }}
+          if-no-files-found: error
           retention-days: 30
+      - name: Remove temporary credentials and dump
+        if: always()
+        run: |
+          rm -f ~/.ssh/kafontine_actions
+          rm -f "backups/$BACKUP_FILENAME"

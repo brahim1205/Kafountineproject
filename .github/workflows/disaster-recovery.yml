@@ -4,79 +4,126 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: 'Action to perform'
+        description: Action to perform
         required: true
         type: choice
-        options:
-          - status
-          - restore-latest
+        options: [status, full-backup, restore-latest, restore-from-artifact]
+      confirm_restore:
+        description: Type RESTORE to replace production data (restore actions only)
+        type: string
+        default: ''
 
-env:
-  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE || 'kafontine' }}
-  POSTGRES_SELECTOR: ${{ secrets.POSTGRES_SELECTOR || 'app.kubernetes.io/instance=kafontine,app.kubernetes.io/name=postgresql' }}
-  BACKEND_DEPLOYMENT: ${{ secrets.BACKEND_DEPLOYMENT || 'kafontine-backend' }}
+permissions:
+  contents: read
+  actions: read
 
 jobs:
-  status:
+  full-backup:
+    if: inputs.action == 'full-backup'
+    uses: ./.github/workflows/backup.yml
+    with:
+      artifact_name: disaster-recovery-backup
+    secrets: inherit
+
+  status-or-restore:
+    if: inputs.action != 'full-backup'
     runs-on: ubuntu-latest
-    if: github.event.inputs.action == 'status'
-    environment: production
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
-
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p "$HOME/.kube"
-          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-
-      - name: Check cluster status
-        run: |
-          kubectl get pods -n "${K8S_NAMESPACE}"
-          kubectl get pvc -n "${K8S_NAMESPACE}"
-          kubectl get ingress -n "${K8S_NAMESPACE}" || true
-
-  restore-latest:
-    runs-on: ubuntu-latest
-    if: github.event.inputs.action == 'restore-latest'
     environment: production
     timeout-minutes: 30
+    concurrency:
+      group: production-mutation
+      cancel-in-progress: false
+    env:
+      APP_DIR: ${{ vars.APP_DIR || '/opt/kafontine' }}
+      RESTORE_FILENAME: restore_${{ github.run_id }}_${{ github.run_attempt }}.dump
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
-
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p "$HOME/.kube"
-          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
+      - name: Validate operation
         env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-
-      - name: Download latest backup
-        uses: dawidd6/action-download-artifact@v3
+          OPERATION: ${{ inputs.action }}
+          CONFIRM_RESTORE: ${{ inputs.confirm_restore }}
+        run: |
+          [[ "$APP_DIR" =~ ^/[a-zA-Z0-9/_-]+$ ]]
+          if [[ "$OPERATION" == restore-* && "$CONFIRM_RESTORE" != RESTORE ]]; then
+            echo '::error::Restoring production data requires confirm_restore=RESTORE'
+            exit 1
+          fi
+      - uses: ./.github/actions/production-ssh
         with:
-          workflow: backup.yml
-          name: database-backup
-
-      - name: Restore backup into postgres pod
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      - name: Check backup status and readiness
+        if: inputs.action == 'status'
         run: |
-          POD_NAME="$(kubectl get pods -n "${K8S_NAMESPACE}" -l "${POSTGRES_SELECTOR}" -o jsonpath='{.items[0].metadata.name}')"
-          test -n "${POD_NAME}"
-          LATEST="$(find . -name "*.dump" | sort | tail -1)"
-          test -n "${LATEST}"
-          cat "${LATEST}" | kubectl exec -i -n "${K8S_NAMESPACE}" "${POD_NAME}" -- sh -lc 'pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
-
-      - name: Verify backend readiness
+          ssh kafontine-production "bash -s -- '$APP_DIR'" <<'REMOTE'
+          set -euo pipefail
+          cd "$1"
+          ls -lht backups
+          docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend node -e 'fetch("http://127.0.0.1:3000/ready", {signal: AbortSignal.timeout(5000)}).then(async r => {if (!r.ok) process.exit(1); console.log(await r.text());}).catch(() => process.exit(1))' </dev/null
+          REMOTE
+      - name: Find latest successful backup run
+        if: startsWith(inputs.action, 'restore-')
+        id: backup-run
+        uses: actions/github-script@v7
+        env:
+          OPERATION: ${{ inputs.action }}
+        with:
+          script: |
+            const disaster = process.env.OPERATION === 'restore-from-artifact';
+            const workflow_id = disaster ? 'disaster-recovery.yml' : 'backup.yml';
+            const name = disaster ? 'disaster-recovery-backup' : 'database-backup';
+            for await (const page of github.paginate.iterator(github.rest.actions.listWorkflowRuns, {
+              ...context.repo, workflow_id, branch: context.payload.repository.default_branch,
+              status: 'success', per_page: 100
+            })) {
+              for (const run of page.data) {
+                const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                  ...context.repo, run_id: run.id
+                });
+                if (artifacts.some(a => a.name === name && !a.expired)) {
+                  core.setOutput('run_id', run.id);
+                  core.setOutput('name', name);
+                  return;
+                }
+              }
+            }
+            core.setFailed('No successful run with an unexpired backup artifact');
+      - uses: actions/download-artifact@v4
+        if: startsWith(inputs.action, 'restore-')
+        with:
+          name: ${{ steps.backup-run.outputs.name }}
+          run-id: ${{ steps.backup-run.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: restore
+      - name: Save current production database and transfer restore file
+        if: startsWith(inputs.action, 'restore-')
         run: |
-          kubectl rollout status deployment/"${BACKEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
+          set -euo pipefail
+          mapfile -t dumps < <(find restore -type f -name '*.dump')
+          test "${#dumps[@]}" -eq 1
+          test -s "${dumps[0]}"
+          ssh kafontine-production "bash -s -- '$APP_DIR' 'pre_restore_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}.dump'" < scripts/backup-production.sh
+          ssh kafontine-production "install -d -m 700 '$APP_DIR/backups/restore'"
+          scp "${dumps[0]}" "kafontine-production:$APP_DIR/backups/restore/$RESTORE_FILENAME"
+      - name: Restore in a single transaction
+        if: startsWith(inputs.action, 'restore-')
+        run: |
+          ssh kafontine-production "bash -s -- '$APP_DIR' '$RESTORE_FILENAME'" <<'REMOTE'
+          set -euo pipefail
+          cd "$1"
+          exec 9>.production.lock
+          flock -w 300 9
+          dump="backups/restore/$2"
+          trap 'rm -f "$dump"' EXIT
+          compose=(docker compose --env-file .env.prod -f docker-compose.prod.yml)
+          "${compose[@]}" exec -T postgres pg_restore --list < "$dump" >/dev/null
+          "${compose[@]}" exec -T postgres sh -ec 'exec pg_restore --single-transaction --exit-on-error --clean --if-exists --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$dump"
+          "${compose[@]}" exec -T backend node -e 'fetch("http://127.0.0.1:3000/ready", {signal: AbortSignal.timeout(5000)}).then(r => {if (!r.ok) process.exit(1);}).catch(() => process.exit(1))' </dev/null
+          REMOTE
+      - name: Remove temporary credentials and downloaded backup
+        if: always()
+        run: |
+          rm -f ~/.ssh/kafontine_actions
+          rm -rf restore

@@ -86,7 +86,7 @@ jobs:
 
       - name: Run frontend tests with coverage
         if: steps.sonar-check.outputs.enabled == 'true'
-        run: npm run test:coverage
+        run: npm run test:coverage -- --run
         working-directory: front
 
       - name: SonarQube Scan

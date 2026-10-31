@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAdmin } from './helpers/auth';
+import { restoreAdminSession as loginAsAdmin } from './helpers/auth';
 
 test.describe('Transactions', () => {
   test.beforeEach(async ({ page }) => {

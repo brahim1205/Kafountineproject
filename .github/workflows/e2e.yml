@@ -10,12 +10,18 @@ on:
       - 'front/src/**'
       - 'front/playwright.config.ts'
       - 'front/package.json'
+      - 'front/package-lock.json'
+      - 'backend/**'
+      - '.github/workflows/e2e.yml'
   pull_request:
     paths:
       - 'front/e2e/**'
       - 'front/src/**'
       - 'front/playwright.config.ts'
       - 'front/package.json'
+      - 'front/package-lock.json'
+      - 'backend/**'
+      - '.github/workflows/e2e.yml'
 
 env:
   NODE_VERSION: '22'
@@ -85,7 +91,7 @@ jobs:
           npx prisma db push --accept-data-loss --skip-generate
           npm run prisma:seed
           npm run build
-          node dist/index.js > /tmp/kafontine-backend.log 2>&1 &
+          npm start > /tmp/kafontine-backend.log 2>&1 &
           sleep 10
 
       - name: Start frontend for testing
@@ -114,6 +120,7 @@ jobs:
         env:
           FRONTEND_URL: http://localhost:4173
           CI: 'true'
+          PLAYWRIGHT_EXTERNAL_SERVER: 'true'
 
       - name: Upload Playwright report
         if: always()

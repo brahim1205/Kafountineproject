@@ -57,7 +57,12 @@ jobs:
       - name: Check backup status and readiness
         if: inputs.action == 'status'
         run: |
-          ssh kafontine-production "cd '$APP_DIR' && ls -lht backups && docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend wget -qO- http://localhost:3000/ready"
+          ssh kafontine-production "bash -s -- '$APP_DIR'" <<'REMOTE'
+          set -euo pipefail
+          cd "$1"
+          ls -lht backups
+          docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T backend node -e 'fetch("http://127.0.0.1:3000/ready", {signal: AbortSignal.timeout(5000)}).then(async r => {if (!r.ok) process.exit(1); console.log(await r.text());}).catch(() => process.exit(1))' </dev/null
+          REMOTE
       - name: Find latest successful backup run
         if: startsWith(inputs.action, 'restore-')
         id: backup-run
@@ -115,7 +120,7 @@ jobs:
           compose=(docker compose --env-file .env.prod -f docker-compose.prod.yml)
           "${compose[@]}" exec -T postgres pg_restore --list < "$dump" >/dev/null
           "${compose[@]}" exec -T postgres sh -ec 'exec pg_restore --single-transaction --exit-on-error --clean --if-exists --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$dump"
-          "${compose[@]}" exec -T backend wget -qO- http://localhost:3000/ready
+          "${compose[@]}" exec -T backend node -e 'fetch("http://127.0.0.1:3000/ready", {signal: AbortSignal.timeout(5000)}).then(r => {if (!r.ok) process.exit(1);}).catch(() => process.exit(1))' </dev/null
           REMOTE
       - name: Remove temporary credentials and downloaded backup
         if: always()

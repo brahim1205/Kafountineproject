@@ -42,7 +42,7 @@ if [[ "$operation" == deploy ]]; then
 fi
 "${compose[@]}" up -d --no-build --no-deps backend "$front_service" </dev/null
 for attempt in {1..30}; do
-  if "${compose[@]}" exec -T backend wget -qO- http://localhost:3000/ready </dev/null; then
+  if "${compose[@]}" exec -T backend node -e 'fetch("http://127.0.0.1:3000/ready", {signal: AbortSignal.timeout(5000)}).then(r => {if (!r.ok) process.exit(1);}).catch(() => process.exit(1))' </dev/null; then
     if [[ -f .compose-images.yml ]]; then
       cp .compose-images.yml .compose-images.previous.yml
     fi

@@ -11,5 +11,5 @@ case " $* " in
     cat >/dev/null
     [[ "${STUB_FAIL:-}" != archive ]]
     ;;
-  *'/ready '*) [[ "${STUB_FAIL:-}" != readiness ]] ;;
+  *'/ready'*) [[ "${STUB_FAIL:-}" != readiness ]] ;;
 esac

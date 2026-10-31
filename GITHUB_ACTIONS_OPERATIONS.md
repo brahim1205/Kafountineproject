@@ -82,3 +82,9 @@ Kubernetes sans kubeconfig (connexion refusee sur localhost:8080). Les workflows
 de production utilisent desormais SSH et Docker Compose, comme le serveur actif.
 Les secrets SSH ont ete configures avec une cle dediee aux Actions et la cle
 publique du serveur est epinglee dans le depot.
+
+Validation locale sur la version distante : 23 tests backend, 4 tests frontend
+avec couverture et 20 tests E2E reussis. Le lint, TypeScript et les builds passent.
+Le workflow de sauvegarde a aussi ete execute avec succes sur GitHub :
+https://github.com/brahim1205/Kafountineproject/actions/runs/41191643421
+L'artifact `database-backup` contient le dump telecharge depuis la production.

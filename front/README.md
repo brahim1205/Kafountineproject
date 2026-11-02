@@ -88,7 +88,7 @@ npm run e2e
 npm run e2e:ui
 ```
 
-Les tests E2E utilisent `baseURL` et le `webServer` déclarés dans [playwright.config.ts](/home/cherif/Bureau/E221/Soutenance/Kafontine-Gestion-municipale/front/playwright.config.ts). Les scénarios doivent donc utiliser des chemins relatifs comme `/login` plutôt que des URLs `http://localhost:5173` codées en dur.
+Les tests E2E utilisent `baseURL` et le `webServer` déclarés dans [playwright.config.ts](../front/playwright.config.ts). Les scénarios doivent donc utiliser des chemins relatifs comme `/login` plutôt que des URLs `http://localhost:5173` codées en dur.
 
 ### Écrire un test
 

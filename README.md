@@ -95,8 +95,8 @@ Des exemples sont fournis à la racine et dans chaque application :
 - `.env.dev.example`
 - `.env.prod.example`
 - `.env.staging.example`
-- [front/.env.example](/home/cherif/Bureau/E221/Soutenance/Kafontine-Gestion-municipale/front/.env.example)
-- [backend/.env.example](/home/cherif/Bureau/E221/Soutenance/Kafontine-Gestion-municipale/backend/.env.example)
+- [front/.env.example](./front/.env.example)
+- [backend/.env.example](./backend/.env.example)
 
 Copier les fichiers d'exemple vers `.env` ou `.env.prod` selon l'environnement ciblé, puis renseigner les valeurs réelles.
 
@@ -155,11 +155,11 @@ Contribuable portail seed :
 
 La documentation d'exploitation est déjà disponible dans le dépôt :
 
-- [DEPLOYMENT_ENTERPRISE_GUIDE.md](/home/cherif/Bureau/E221/Soutenance/Kafontine-Gestion-municipale/DEPLOYMENT_ENTERPRISE_GUIDE.md)
-- [RUNBOOK_PRODUCTION.md](/home/cherif/Bureau/E221/Soutenance/Kafontine-Gestion-municipale/RUNBOOK_PRODUCTION.md)
-- [PRODUCTION_CHECKLIST.md](/home/cherif/Bureau/E221/Soutenance/Kafontine-Gestion-municipale/PRODUCTION_CHECKLIST.md)
+- [DEPLOYMENT_ENTERPRISE_GUIDE.md](./DEPLOYMENT_ENTERPRISE_GUIDE.md)
+- [RUNBOOK_PRODUCTION.md](./RUNBOOK_PRODUCTION.md)
+- [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md)
 
 ## Références complémentaires
 
-- [front/README.md](/home/cherif/Bureau/E221/Soutenance/Kafontine-Gestion-municipale/front/README.md)
-- [backend/README.md](/home/cherif/Bureau/E221/Soutenance/Kafontine-Gestion-municipale/backend/README.md)
+- [front/README.md](./front/README.md)
+- [backend/README.md](./backend/README.md)

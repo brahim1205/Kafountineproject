@@ -79,7 +79,8 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(pending.body.data.datePaiement.startsWith(`${year}-02-10`)).toBe(true);
 
       const after = (await admin.get(`/marche/statistiques?year=${year}`)).body.data;
-      expect(after.recettesMois - before.recettesMois).toBe(8000);
+      // Le paiement en attente compte dans les retards, pas dans les recettes.
+      expect(after.recettesMois - before.recettesMois).toBe(5000);
       expect(after.recettesEnRetard - before.recettesEnRetard).toBe(3000);
     });
 

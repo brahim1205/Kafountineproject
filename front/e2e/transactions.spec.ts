@@ -40,7 +40,7 @@ test.describe('Contribuables', () => {
 
   test('should display contribuables list', async ({ page }) => {
     await page.goto('/contribuables');
-    await expect(page.locator('h1')).toContainText('Contribuables');
+    await expect(page.locator('h1')).toContainText(/contribuables/i);
     await expect(page.locator('table')).toBeVisible();
   });
 

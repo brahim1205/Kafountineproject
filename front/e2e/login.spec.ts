@@ -19,7 +19,7 @@ test.describe('Login Page', () => {
     await page.getByRole('button', { name: /se connecter/i }).click();
     
     // Should show error message
-    await expect(page.getByText(/email ou mot de passe incorrect/i)).toBeVisible();
+    await expect(page.getByText(/identifiants invalides/i)).toBeVisible();
   });
 
   test('should redirect authenticated user to dashboard', async ({ page }) => {

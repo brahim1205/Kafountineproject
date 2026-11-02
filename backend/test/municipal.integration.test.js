@@ -83,6 +83,12 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(after.recettesEnRetard - before.recettesEnRetard).toBe(3000);
     });
 
+    it("libère une place en retirant son occupant", async () => {
+      const res = await admin.put(`/marche/places/${placeId}`, { occupantId: null, statut: 'LIBRE' });
+      expect(res.status).toBe(200);
+      expect(res.body.data).toMatchObject({ occupantId: null, occupant: null, statut: 'LIBRE', activite: null, dateAttribution: null });
+    });
+
     it('refuse un paiement sur une place inconnue ou avec un montant nul', async () => {
       const unknown = await admin.post('/marche/paiements', { placeId: '00000000-0000-4000-8000-000000000000', montant: 1000, periode: 'Mars' });
       expect(unknown.status).toBe(404);

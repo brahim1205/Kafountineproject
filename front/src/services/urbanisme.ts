@@ -83,7 +83,6 @@ export async function createDossierUrbanisme(data: {
   localisation?: string;
   nature?: string;
   montant?: number;
-  numero?: string;
   statut?: string;
 }): Promise<DossierUrbanisme> {
   return apiRequest<DossierUrbanisme>('/urbanisme', {

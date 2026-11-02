@@ -2,6 +2,9 @@ import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import { ValidationError } from '../../errors/AppError';
 
+// Messages d'erreur par défaut de Zod en français, comme le reste de l'API.
+z.config(z.locales.fr());
+
 type ValidationTarget = 'body' | 'query' | 'params';
 
 export function validate(schema: z.ZodSchema, target: ValidationTarget = 'body') {

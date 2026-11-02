@@ -19,7 +19,7 @@ export class PrismaFormationRepository implements FormationRepository {
       LEFT JOIN "YouthEnrollment" e ON e."formationId" = f."id"
       WHERE f."year" = $1
       GROUP BY f."id"
-      ORDER BY f."dateDebut" DESC`,
+      ORDER BY f."dateDebut" DESC, f."createdAt" DESC, f."id"`,
       year
     );
   }

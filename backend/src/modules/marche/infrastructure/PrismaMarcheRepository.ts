@@ -30,21 +30,45 @@ const PLACE_RETURNING = `"id",
         $15::text AS "occupantNin",
         $16::text AS "occupantTelephone"`;
 
+const SQL_LIST_PLACES = `${SELECT_PLACE}
+      WHERE p."year" = $1
+      ORDER BY p."numeroPlace" ASC`;
+const SQL_FIND_PLACE_BY_ID = `${SELECT_PLACE}
+      WHERE p."id" = $1
+      LIMIT 1`;
+const SQL_CREATE_PLACE = `INSERT INTO "MarketPlace" ("id", "numeroPlace", "type", "zone", "occupantId", "activite", "telephone", "dateAttribution", "tarif", "periode", "statut", "year", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       RETURNING
+        ${PLACE_RETURNING}`;
+const SQL_UPDATE_PLACE = `UPDATE "MarketPlace"
+       SET
+        "numeroPlace" = $2,
+        "type" = $3,
+        "zone" = $4,
+        "occupantId" = $5,
+        "activite" = $6,
+        "telephone" = $7,
+        "dateAttribution" = $8,
+        "tarif" = $9,
+        "periode" = $10,
+        "statut" = $11,
+        "year" = $12,
+        "updatedAt" = CURRENT_TIMESTAMP
+       WHERE "id" = $1
+       RETURNING
+        ${PLACE_RETURNING}`;
+
 export class PrismaMarcheRepository implements MarcheRepository {
   listPlaces(year: number) {
     return prisma.$queryRawUnsafe<MarketPlace[]>(
-      `${SELECT_PLACE}
-      WHERE p."year" = $1
-      ORDER BY p."numeroPlace" ASC`,
+      SQL_LIST_PLACES,
       year
     );
   }
 
   async findPlaceById(id: string) {
     const [row] = await prisma.$queryRawUnsafe<MarketPlace[]>(
-      `${SELECT_PLACE}
-      WHERE p."id" = $1
-      LIMIT 1`,
+      SQL_FIND_PLACE_BY_ID,
       id
     );
     return row || null;
@@ -61,10 +85,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
 
   async createPlace(values: MarketPlaceValues, occupant: OccupantDisplay) {
     const [row] = await prisma.$queryRawUnsafe<MarketPlace[]>(
-      `INSERT INTO "MarketPlace" ("id", "numeroPlace", "type", "zone", "occupantId", "activite", "telephone", "dateAttribution", "tarif", "periode", "statut", "year", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING
-        ${PLACE_RETURNING}`,
+      SQL_CREATE_PLACE,
       randomUUID(),
       values.numeroPlace,
       values.type,
@@ -87,23 +108,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
 
   async updatePlace(id: string, values: MarketPlaceValues, occupant: OccupantDisplay) {
     const [row] = await prisma.$queryRawUnsafe<MarketPlace[]>(
-      `UPDATE "MarketPlace"
-       SET
-        "numeroPlace" = $2,
-        "type" = $3,
-        "zone" = $4,
-        "occupantId" = $5,
-        "activite" = $6,
-        "telephone" = $7,
-        "dateAttribution" = $8,
-        "tarif" = $9,
-        "periode" = $10,
-        "statut" = $11,
-        "year" = $12,
-        "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = $1
-       RETURNING
-        ${PLACE_RETURNING}`,
+      SQL_UPDATE_PLACE,
       id,
       values.numeroPlace,
       values.type,

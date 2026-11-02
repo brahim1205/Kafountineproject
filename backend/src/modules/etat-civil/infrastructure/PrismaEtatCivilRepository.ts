@@ -27,21 +27,52 @@ const RETURNING_COLUMNS = `"id",
         "createdAt",
         "updatedAt"`;
 
+const SQL_LIST = `${SELECT_WITH_RELATIONS}
+      WHERE e."year" = $1
+      ORDER BY e."createdAt" DESC`;
+const SQL_FIND_BY_ID = `${SELECT_WITH_RELATIONS}
+      WHERE e."id" = $1
+      LIMIT 1`;
+const SQL_CREATE = `INSERT INTO "EtatCivilRequest" ("id", "numero", "contribuableId", "agentId", "typeDocument", "exemplaires", "montant", "statut", "observations", "year", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       RETURNING
+        ${RETURNING_COLUMNS},
+        $11::text AS "contribuableNom",
+        $12::text AS "contribuablePrenom",
+        $13::text AS "contribuableNin",
+        $14::text AS "contribuableTelephone",
+        $15::text AS "agentNom",
+        $16::text AS "agentPrenom"`;
+const SQL_UPDATE = `UPDATE "EtatCivilRequest"
+       SET
+        "contribuableId" = $2,
+        "typeDocument" = $3,
+        "exemplaires" = $4,
+        "montant" = $5,
+        "statut" = $6,
+        "observations" = $7,
+        "updatedAt" = CURRENT_TIMESTAMP
+       WHERE "id" = $1
+       RETURNING
+        ${RETURNING_COLUMNS},
+        $8::text AS "contribuableNom",
+        $9::text AS "contribuablePrenom",
+        $10::text AS "contribuableNin",
+        $11::text AS "contribuableTelephone",
+        $12::text AS "agentNom",
+        $13::text AS "agentPrenom"`;
+
 export class PrismaEtatCivilRepository implements EtatCivilRepository {
   list(year: number) {
     return prisma.$queryRawUnsafe<EtatCivilRequest[]>(
-      `${SELECT_WITH_RELATIONS}
-      WHERE e."year" = $1
-      ORDER BY e."createdAt" DESC`,
+      SQL_LIST,
       year
     );
   }
 
   async findById(id: string) {
     const [row] = await prisma.$queryRawUnsafe<EtatCivilRequest[]>(
-      `${SELECT_WITH_RELATIONS}
-      WHERE e."id" = $1
-      LIMIT 1`,
+      SQL_FIND_BY_ID,
       id
     );
     return row || null;
@@ -52,16 +83,7 @@ export class PrismaEtatCivilRepository implements EtatCivilRepository {
     display: EtatCivilDisplay
   ) {
     const [row] = await prisma.$queryRawUnsafe<EtatCivilRequest[]>(
-      `INSERT INTO "EtatCivilRequest" ("id", "numero", "contribuableId", "agentId", "typeDocument", "exemplaires", "montant", "statut", "observations", "year", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING
-        ${RETURNING_COLUMNS},
-        $11::text AS "contribuableNom",
-        $12::text AS "contribuablePrenom",
-        $13::text AS "contribuableNin",
-        $14::text AS "contribuableTelephone",
-        $15::text AS "agentNom",
-        $16::text AS "agentPrenom"`,
+      SQL_CREATE,
       randomUUID(),
       values.numero,
       values.contribuableId,
@@ -84,24 +106,7 @@ export class PrismaEtatCivilRepository implements EtatCivilRepository {
 
   async update(id: string, values: EtatCivilValues, display: EtatCivilDisplay) {
     const [row] = await prisma.$queryRawUnsafe<EtatCivilRequest[]>(
-      `UPDATE "EtatCivilRequest"
-       SET
-        "contribuableId" = $2,
-        "typeDocument" = $3,
-        "exemplaires" = $4,
-        "montant" = $5,
-        "statut" = $6,
-        "observations" = $7,
-        "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = $1
-       RETURNING
-        ${RETURNING_COLUMNS},
-        $8::text AS "contribuableNom",
-        $9::text AS "contribuablePrenom",
-        $10::text AS "contribuableNin",
-        $11::text AS "contribuableTelephone",
-        $12::text AS "agentNom",
-        $13::text AS "agentPrenom"`,
+      SQL_UPDATE,
       id,
       values.contribuableId,
       values.typeDocument,

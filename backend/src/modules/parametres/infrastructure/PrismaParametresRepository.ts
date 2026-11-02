@@ -42,6 +42,11 @@ const DEFAULT_ROLE_MODULES: Record<string, string[] | 'all'> = {
   SUPER_ADMIN: 'all',
 };
 
+const SQL_LIST_TARIFFS = `${SELECT_TARIFF}
+      ORDER BY c."sortOrder" ASC, i."sortOrder" ASC, i."nom" ASC`;
+const SQL_FIND_TARIFF = `${SELECT_TARIFF}
+      WHERE i."id" = $1 LIMIT 1`;
+
 export class PrismaParametresRepository implements ParametresRepository {
   async ensureDefaults() {
     const [tariffCount, penaltyCount, permissionCount] = await Promise.all([
@@ -85,13 +90,11 @@ export class PrismaParametresRepository implements ParametresRepository {
   }
 
   listTariffs() {
-    return prisma.$queryRawUnsafe<MunicipalTariff[]>(`${SELECT_TARIFF}
-      ORDER BY c."sortOrder" ASC, i."sortOrder" ASC, i."nom" ASC`);
+    return prisma.$queryRawUnsafe<MunicipalTariff[]>(SQL_LIST_TARIFFS);
   }
 
   async findTariff(id: string) {
-    const [row] = await prisma.$queryRawUnsafe<MunicipalTariff[]>(`${SELECT_TARIFF}
-      WHERE i."id" = $1 LIMIT 1`, id);
+    const [row] = await prisma.$queryRawUnsafe<MunicipalTariff[]>(SQL_FIND_TARIFF, id);
     return row || null;
   }
 

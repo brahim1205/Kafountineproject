@@ -5,7 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 failures=0
-allowlisted_dynamic_sql='backend/src/modules/placeholders/presentation/PlaceholderSupportService.ts'
+# Seul fichier autorisé : noms de tables dynamiques, validés par quoteIdentifier().
+allowlisted_dynamic_sql='backend/src/modules/parametres/infrastructure/PrismaBackupStore.ts'
 
 echo "== SQL safety scan =="
 

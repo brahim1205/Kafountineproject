@@ -42,45 +42,13 @@ const MOTO_RETURNING = `"id",
         "createdAt",
         "updatedAt"`;
 
-export class PrismaMotoRepository implements MotoRepository {
-  list(year: number) {
-    return prisma.$queryRawUnsafe<MotoRegistration[]>(
-      `${SELECT_MOTO}
+const SQL_LIST = `${SELECT_MOTO}
       WHERE m."year" = $1
-      ORDER BY m."createdAt" DESC`,
-      year
-    );
-  }
-
-  async findById(id: string) {
-    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
-      `${SELECT_MOTO}
+      ORDER BY m."createdAt" DESC`;
+const SQL_FIND_BY_ID = `${SELECT_MOTO}
       WHERE m."id" = $1
-      LIMIT 1`,
-      id
-    );
-    return row || null;
-  }
-
-  async findIdByMatricule(matricule: string) {
-    const [row] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      'SELECT "id" FROM "MotoRegistration" WHERE "matricule" = $1 LIMIT 1',
-      matricule
-    );
-    return row?.id || null;
-  }
-
-  async findIdByPermis(permis: string) {
-    const [row] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      'SELECT "id" FROM "MotoRegistration" WHERE "permis" = $1 LIMIT 1',
-      permis
-    );
-    return row?.id || null;
-  }
-
-  async create(values: MotoValues, people: MotoPeopleDisplay) {
-    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
-      `INSERT INTO "MotoRegistration" ("id", "matricule", "marque", "modele", "annee", "couleur", "proprietaireId", "conducteurId", "permis", "statut", "photo", "enRetard", "montantPenalite", "prochainPaiement", "dernierPaiement", "year", "createdAt", "updatedAt")
+      LIMIT 1`;
+const SQL_CREATE = `INSERT INTO "MotoRegistration" ("id", "matricule", "marque", "modele", "annee", "couleur", "proprietaireId", "conducteurId", "permis", "statut", "photo", "enRetard", "montantPenalite", "prochainPaiement", "dernierPaiement", "year", "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING
         ${MOTO_RETURNING},
@@ -91,17 +59,8 @@ export class PrismaMotoRepository implements MotoRepository {
         $21::text AS "conducteurNom",
         $22::text AS "conducteurPrenom",
         $23::text AS "conducteurNin",
-        $24::text AS "conducteurTelephone"`,
-      randomUUID(),
-      ...this.valueParams(values),
-      ...this.peopleParams(people)
-    );
-    return row;
-  }
-
-  async update(id: string, values: MotoValues, people: MotoPeopleDisplay) {
-    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
-      `UPDATE "MotoRegistration"
+        $24::text AS "conducteurTelephone"`;
+const SQL_UPDATE = `UPDATE "MotoRegistration"
        SET
         "matricule" = $2,
         "marque" = $3,
@@ -129,7 +88,53 @@ export class PrismaMotoRepository implements MotoRepository {
         $21::text AS "conducteurNom",
         $22::text AS "conducteurPrenom",
         $23::text AS "conducteurNin",
-        $24::text AS "conducteurTelephone"`,
+        $24::text AS "conducteurTelephone"`;
+
+export class PrismaMotoRepository implements MotoRepository {
+  list(year: number) {
+    return prisma.$queryRawUnsafe<MotoRegistration[]>(
+      SQL_LIST,
+      year
+    );
+  }
+
+  async findById(id: string) {
+    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
+      SQL_FIND_BY_ID,
+      id
+    );
+    return row || null;
+  }
+
+  async findIdByMatricule(matricule: string) {
+    const [row] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      'SELECT "id" FROM "MotoRegistration" WHERE "matricule" = $1 LIMIT 1',
+      matricule
+    );
+    return row?.id || null;
+  }
+
+  async findIdByPermis(permis: string) {
+    const [row] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      'SELECT "id" FROM "MotoRegistration" WHERE "permis" = $1 LIMIT 1',
+      permis
+    );
+    return row?.id || null;
+  }
+
+  async create(values: MotoValues, people: MotoPeopleDisplay) {
+    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
+      SQL_CREATE,
+      randomUUID(),
+      ...this.valueParams(values),
+      ...this.peopleParams(people)
+    );
+    return row;
+  }
+
+  async update(id: string, values: MotoValues, people: MotoPeopleDisplay) {
+    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
+      SQL_UPDATE,
       id,
       ...this.valueParams(values),
       ...this.peopleParams(people)

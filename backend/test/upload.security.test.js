@@ -2,11 +2,17 @@ describe('upload security', () => {
   const fs = require('node:fs/promises');
   const path = require('node:path');
 
-  it('rejects files whose binary signature does not match an allowed image type', async () => {
-    const { PlaceholderDocumentsService } = require('../dist/src/modules/placeholders/presentation/PlaceholderDocumentsService');
-    const service = new PlaceholderDocumentsService({});
+  function buildImageService() {
+    const { randomUUID } = require('node:crypto');
+    const { ImageService } = require('../dist/src/modules/medias/application/ImageService');
+    const { LocalImageStorage } = require('../dist/src/modules/medias/infrastructure/LocalImageStorage');
+    return new ImageService(new LocalImageStorage(), randomUUID);
+  }
 
-    await expect(service.uploadImage({
+  it('rejects files whose binary signature does not match an allowed image type', async () => {
+    const service = buildImageService();
+
+    await expect(service.upload({
       mimetype: 'image/png',
       originalname: 'fake.png',
       buffer: Buffer.from('not a png'),
@@ -14,11 +20,10 @@ describe('upload security', () => {
   });
 
   it('accepts a valid PNG signature', async () => {
-    const { PlaceholderDocumentsService } = require('../dist/src/modules/placeholders/presentation/PlaceholderDocumentsService');
-    const service = new PlaceholderDocumentsService({});
+    const service = buildImageService();
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
 
-    const result = await service.uploadImage({
+    const result = await service.upload({
       mimetype: 'image/png',
       originalname: 'image.png',
       buffer: png,

@@ -16,7 +16,7 @@ import { buildContribuablesRoutes } from './modules/contribuables/presentation/c
 import { buildTransactionsRoutes } from './modules/transactions/presentation/transactions.routes';
 import { buildDashboardRoutes } from './modules/dashboard/presentation/dashboard.routes';
 import { buildPortalRoutes } from './modules/portal/presentation/portal.routes';
-import { buildPlaceholderRoutes } from './modules/placeholders/presentation/placeholders.routes';
+import { buildMunicipalRoutes } from './modules/municipal.routes';
 import { swaggerSpec } from './config/swagger';
 
 function buildMetricsPayload() {
@@ -125,7 +125,7 @@ export function createApp() {
   app.use('/api/v1/transactions', buildTransactionsRoutes(container.transactionsController));
   app.use('/api/v1/dashboard', buildDashboardRoutes(container.dashboardController));
   app.use('/api/v1/portal', buildPortalRoutes(container.portalController));
-  app.use('/api/v1', buildPlaceholderRoutes(container.placeholderController));
+  app.use('/api/v1', buildMunicipalRoutes(container.municipal));
 
   app.use((_req, res) => {
     res.status(404).json({ success: false, message: 'Route non trouvée' });

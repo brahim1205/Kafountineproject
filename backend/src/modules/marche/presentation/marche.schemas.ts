@@ -23,7 +23,8 @@ export const updateMarketPlaceSchema = z.object({
   numeroPlace: optionalTrimmedString(50),
   type: optionalTrimmedString(80),
   zone: optionalTrimmedString(80),
-  occupantId: uuidSchema.optional().or(z.literal('')).transform((value) => value || undefined),
+  // null libère la place ; une chaîne vide laisse l'occupant inchangé.
+  occupantId: uuidSchema.nullable().optional().or(z.literal('')).transform((value) => (value === '' ? undefined : value)),
   activite: optionalTrimmedString(120),
   telephone: optionalTrimmedString(20),
   tarif: nonNegativeNumberSchema.optional(),

@@ -44,9 +44,13 @@ export type CreatePlaceMarchePayload = {
   tarif: number;
   periode: string;
   statut?: string;
+  year?: number;
 };
 
-export type UpdatePlaceMarchePayload = Partial<CreatePlaceMarchePayload>;
+export type UpdatePlaceMarchePayload = Partial<Omit<CreatePlaceMarchePayload, 'occupantId'>> & {
+  /** null libère la place. */
+  occupantId?: string | null;
+};
 
 export type CreatePaiementMarchePayload = {
   placeId: string;

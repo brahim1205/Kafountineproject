@@ -8,7 +8,7 @@ export type MarketPlaceInput = {
   numero?: string;
   type?: string;
   zone?: string;
-  occupantId?: string;
+  occupantId?: string | null;
   activite?: string;
   tarif?: number;
   periode?: string;
@@ -122,6 +122,7 @@ export class MarcheService {
 
     const occupantId = input.occupantId === undefined ? existing.occupantId : String(input.occupantId || '').trim() || null;
     const occupant = await this.findOccupant(occupantId);
+    const liberee = existing.occupantId !== null && occupantId === null;
 
     const updated = await this.repository.updatePlace(
       placeId,
@@ -130,8 +131,8 @@ export class MarcheService {
         type: input.type ? String(input.type).trim() : existing.type,
         zone: input.zone ? String(input.zone).trim() : existing.zone,
         occupantId,
-        activite: input.activite === undefined ? existing.activite : String(input.activite || '').trim() || null,
-        telephone: occupant?.telephone || existing.telephone,
+        activite: liberee ? null : input.activite === undefined ? existing.activite : String(input.activite || '').trim() || null,
+        telephone: liberee ? null : occupant?.telephone || existing.telephone,
         dateAttribution: occupantId ? existing.dateAttribution || new Date() : null,
         tarif: input.tarif === undefined ? existing.tarif : Number(input.tarif),
         periode: input.periode ? String(input.periode).trim() : existing.periode,

@@ -1,0 +1,22 @@
+name: Workflow Checks
+on:
+  push:
+    paths: ['.github/**', 'scripts/**', 'infra/systemd/**', 'infra/ssh/**']
+  pull_request:
+    paths: ['.github/**', 'scripts/**', 'infra/systemd/**', 'infra/ssh/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate workflows
+        run: |
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz -o /tmp/actionlint.tar.gz
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint -shellcheck=''
+      - name: Test production scripts without touching production
+        run: bash scripts/tests/production-scripts.test.sh

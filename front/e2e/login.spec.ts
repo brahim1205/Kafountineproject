@@ -19,7 +19,8 @@ test.describe('Login Page', () => {
     await page.getByRole('button', { name: /se connecter/i }).click();
     
     // Should show error message
-    await expect(page.getByText(/identifiants invalides/i)).toBeVisible();
+    await expect(page.getByText('Identifiants invalides', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/login/);
   });
 
   test('should redirect authenticated user to dashboard', async ({ page }) => {
@@ -65,6 +66,7 @@ test.describe('Error Handling', () => {
     
     await page.getByRole('button', { name: /se connecter/i }).click();
     
-    await expect(page.getByText(/impossible de contacter le serveur de connexion|une erreur est survenue/i)).toBeVisible();
+    await expect(page.getByText(/impossible de contacter le serveur de connexion/i)).toBeVisible();
+    await expect(page).toHaveURL(/login/);
   });
 });

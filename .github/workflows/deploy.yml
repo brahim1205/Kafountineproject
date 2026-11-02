@@ -34,6 +34,7 @@ jobs:
           cache-dependency-path: |
             backend/package-lock.json
             front/package-lock.json
+      - run: bash ./scripts/security-repo-scan.sh
       - run: npm ci
         working-directory: backend
       - run: npm run check

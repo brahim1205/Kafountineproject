@@ -6,6 +6,9 @@ import AutoImport from "unplugin-auto-import/vite";
 const base = process.env.BASE_PATH || "/";
 const isPreview = process.env.IS_PREVIEW ? true : false;
 const devApiTarget = process.env.VITE_DEV_API_TARGET || "http://127.0.0.1:3000";
+const apiProxy = Object.fromEntries(
+  ["/api", "/health", "/ready", "/metrics"].map((path) => [path, { target: devApiTarget, changeOrigin: true }])
+);
 // https://vite.dev/config/
 export default defineConfig({
   define: {
@@ -70,7 +73,7 @@ export default defineConfig({
   base,
   esbuild: process.env.NODE_ENV === 'production' ? { drop: ['console', 'debugger'] } : undefined,
   build: {
-    sourcemap: process.env.NODE_ENV === 'development',
+    sourcemap: false,
     outDir: "out",
   },
   resolve: {
@@ -81,27 +84,12 @@ export default defineConfig({
   server: {
     port: 5173,
     host: process.env.HOST || "127.0.0.1",
-    proxy: {
-      "/api": {
-        target: devApiTarget,
-        changeOrigin: true,
-      },
-      "/health": {
-        target: devApiTarget,
-        changeOrigin: true,
-      },
-      "/ready": {
-        target: devApiTarget,
-        changeOrigin: true,
-      },
-      "/metrics": {
-        target: devApiTarget,
-        changeOrigin: true,
-      },
-    },
+    proxy: apiProxy,
   },
+  // `vite preview` sert le build de production, qui appelle l'API en relatif (/api/v1) : même proxy qu'en dev.
   preview: {
     port: 4173,
     host: process.env.HOST || "127.0.0.1",
+    proxy: apiProxy,
   },
 });

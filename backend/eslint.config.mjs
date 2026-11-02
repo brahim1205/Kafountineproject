@@ -3,7 +3,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**', '**/test/**'] },
+  { ignores: ['dist/**', 'node_modules/**', '**/test/**', 'scratch/**', 'test_pdf.js'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

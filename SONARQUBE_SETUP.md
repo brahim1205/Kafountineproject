@@ -67,7 +67,7 @@ Exclusions principales:
 
 ## Hotspots encore à surveiller
 
-- complexité métier restante dans `backend/src/modules/placeholders/presentation/PlaceholderController.ts`
+- SQL brut encore présent dans les repositories Prisma des modules métier (requêtes paramétrées)
 - composants encore relativement longs côté frontend, selon la Quality Gate utilisée
 - éventuelles rules de sécurité ou duplication propres à votre instance SonarQube
 

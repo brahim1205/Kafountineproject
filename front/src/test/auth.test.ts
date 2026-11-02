@@ -5,6 +5,7 @@ describe('Auth Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
     document.cookie.split(';').forEach((c) => {
       document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/');
     });
@@ -12,31 +13,26 @@ describe('Auth Service', () => {
   });
 
   describe('loginRequest', () => {
-    it('should return user and token on successful login', async () => {
+    it('should return user on successful login', async () => {
       const mockResponse = {
         success: true,
         data: {
           user: { id: '1', email: 'test@test.com', nom: 'Test', prenom: 'User', role: 'ADMIN' },
-          token: 'test-jwt-token',
-          accessToken: 'test-jwt-token',
-          refreshToken: 'test-refresh-token',
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
 
       const result = await loginRequest({ email: 'test@test.com', password: 'password123' });
 
-      expect(result.accessToken).toBe('test-jwt-token');
-      expect(result.refreshToken).toBe('test-refresh-token');
       expect(result.user.email).toBe('test@test.com');
     });
 
     it('should throw error on failed login', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         json: () => Promise.resolve({ success: false, message: 'Invalid credentials' }),
       });
@@ -44,15 +40,19 @@ describe('Auth Service', () => {
       await expect(loginRequest({ email: 'test@test.com', password: 'wrong' }))
         .rejects.toThrow('Invalid credentials');
     });
+
+    it('should report an unreachable server in French on network error', async () => {
+      globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+
+      await expect(loginRequest({ email: 'test@test.com', password: 'password123' }))
+        .rejects.toThrow('Impossible de contacter le serveur de connexion');
+    });
   });
 
   describe('saveSession', () => {
-    it('should save session data to localStorage', () => {
+    it('should save session data to sessionStorage', () => {
       const session = {
         user: { id: '1', email: 'test@test.com', nom: 'Test', prenom: 'User', role: 'ADMIN' },
-        token: 'test-token',
-        accessToken: 'test-token',
-        refreshToken: 'test-refresh',
       };
 
       saveSession(session);
@@ -64,11 +64,11 @@ describe('Auth Service', () => {
 
   describe('logoutRequest', () => {
     it('should call logout endpoint', async () => {
-      global.fetch = vi.fn().mockResolvedValue({ ok: true });
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
 
       await logoutRequest('test-token');
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         '/api/v1/auth/logout',
         expect.objectContaining({
           method: 'POST',

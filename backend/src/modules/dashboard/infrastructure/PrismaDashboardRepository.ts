@@ -21,7 +21,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
     return items.map((item) => ({
       id: item.id,
       numero: item.numero,
-      montant: item.montant,
+      montant: Number(item.montant),
       categorie: item.categorie,
       statut: item.statut,
       createdAt: item.createdAt.toISOString(),
@@ -44,7 +44,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
       _sum: { montant: true },
     });
 
-    return result._sum.montant || 0;
+    return Number(result._sum.montant || 0);
   }
 
   async getRevenueByCategoryByYear(year: number) {
@@ -56,7 +56,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
 
     return results.map((r) => ({
       categorie: r.categorie,
-      montant: r._sum.montant || 0,
+      montant: Number(r._sum.montant || 0),
     }));
   }
 
@@ -75,7 +75,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
       where: { year, statut: 'PAYE', createdAt: { gte: today } },
       _sum: { montant: true },
     });
-    return result._sum.montant || 0;
+    return Number(result._sum.montant || 0);
   }
 
   async getMonthlyRevenueByYear(year: number) {
@@ -85,7 +85,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
       where: { year, statut: 'PAYE', createdAt: { gte: startOfMonth } },
       _sum: { montant: true },
     });
-    return result._sum.montant || 0;
+    return Number(result._sum.montant || 0);
   }
 
   async getWeeklyEvolutionByYear(year: number) {
@@ -110,7 +110,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
 
       days.push({
         jour: date.toISOString().split('T')[0],
-        montant: transactions.reduce((sum, t) => sum + t.montant, 0),
+        montant: transactions.reduce((sum, t) => sum + Number(t.montant), 0),
         transactions: transactions.length,
       });
     }
@@ -139,7 +139,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
       
       months.push({
         mois: monthNames[i],
-        montant: result._sum.montant || 0,
+        montant: Number(result._sum.montant || 0),
         transactions: result._count.id || 0
       });
     }
@@ -167,7 +167,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
           id: contribuable.id,
           prenom: contribuable.prenom || '',
           nom: contribuable.nom || '',
-          montantTotal: tx._sum?.montant || 0
+          montantTotal: Number(tx._sum?.montant || 0)
         });
         if (results.length >= limit) break;
       }

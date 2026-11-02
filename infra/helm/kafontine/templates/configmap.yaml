@@ -33,6 +33,11 @@ stringData:
   REDIS_PASSWORD: {{ .Values.redis.auth.password | quote }}
   CORS_ORIGIN: {{ .Values.backend.secrets.CORS_ORIGIN | quote }}
   PORTAL_URL: {{ .Values.backend.secrets.PORTAL_URL | quote }}
+  PORTAL_OTP_TTL_SECONDS: {{ .Values.backend.secrets.PORTAL_OTP_TTL_SECONDS | quote }}
+  PORTAL_OTP_DELIVERY_MODE: {{ .Values.backend.secrets.PORTAL_OTP_DELIVERY_MODE | quote }}
+  PORTAL_OTP_WEBHOOK_URL: {{ .Values.backend.secrets.PORTAL_OTP_WEBHOOK_URL | quote }}
+  PORTAL_OTP_WEBHOOK_TOKEN: {{ .Values.backend.secrets.PORTAL_OTP_WEBHOOK_TOKEN | quote }}
+  METRICS_BEARER_TOKEN: {{ .Values.backend.secrets.METRICS_BEARER_TOKEN | quote }}
 ---
 {{- end }}
 {{- if .Values.serviceAccount.create }}

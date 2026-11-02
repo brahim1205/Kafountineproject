@@ -1,4 +1,114 @@
 describe('Portal use cases', () => {
+  it('creates an OTP challenge after matching NIN and phone', async () => {
+    const { RequestPortalOtpUseCase } = require('../dist/src/modules/portal/application/RequestPortalOtpUseCase');
+
+    const repository = {
+      findByNin: jest.fn().mockResolvedValue({
+        id: 'contrib-1',
+        nom: 'Sow',
+        prenom: 'Awa',
+        nin: 'NIN-001',
+        telephone: '+221771234567',
+      }),
+    };
+    const otpService = {
+      createChallenge: jest.fn().mockResolvedValue({
+        requestId: '89c24b74-6e12-44ff-8f7c-17d38488b55d',
+        expiresInSeconds: 600,
+        devCode: '123456',
+      }),
+    };
+
+    const useCase = new RequestPortalOtpUseCase(repository, otpService);
+    const result = await useCase.execute({ nin: 'NIN-001', telephone: '+221771234567' });
+
+    expect(otpService.createChallenge).toHaveBeenCalledWith('contrib-1', '+221771234567');
+    expect(result.requestId).toBe('89c24b74-6e12-44ff-8f7c-17d38488b55d');
+    expect(result.contribuable.id).toBe('contrib-1');
+  });
+
+  it('verifies an OTP challenge before issuing a portal token', async () => {
+    const { VerifyPortalOtpUseCase } = require('../dist/src/modules/portal/application/VerifyPortalOtpUseCase');
+
+    const repository = {
+      findById: jest.fn().mockResolvedValue({
+        id: 'contrib-1',
+        nom: 'Sow',
+        prenom: 'Awa',
+        nin: 'NIN-001',
+        telephone: '+221771234567',
+      }),
+    };
+    const tokenService = {
+      signPortalToken: jest.fn().mockReturnValue('portal-token'),
+    };
+    const otpService = {
+      verifyChallenge: jest.fn().mockResolvedValue('contrib-1'),
+    };
+
+    const useCase = new VerifyPortalOtpUseCase(repository, tokenService, otpService);
+    const result = await useCase.execute({
+      requestId: '89c24b74-6e12-44ff-8f7c-17d38488b55d',
+      code: '123456',
+    });
+
+    expect(otpService.verifyChallenge).toHaveBeenCalledWith('89c24b74-6e12-44ff-8f7c-17d38488b55d', '123456');
+    expect(tokenService.signPortalToken).toHaveBeenCalledWith({ id: 'contrib-1', role: 'CONTRIBUABLE' });
+    expect(result.token).toBe('portal-token');
+  });
+
+  it('rejects portal tax access for another contribuable id', async () => {
+    const { PortalController } = require('../dist/src/modules/portal/presentation/PortalController');
+
+    const getPortalTaxesUseCase = {
+      execute: jest.fn(),
+    };
+    const controller = new PortalController(
+      {},
+      {},
+      {},
+      {},
+      getPortalTaxesUseCase,
+      {},
+      {},
+      {},
+      {},
+    );
+
+    await expect(controller.listTaxes({
+      params: { id: 'contrib-2' },
+      user: { userId: 'contrib-1', role: 'CONTRIBUABLE', tokenType: 'portal' },
+    }, {})).rejects.toThrow('Accès interdit à ces taxes');
+
+    expect(getPortalTaxesUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects portal transaction access for another contribuable id', async () => {
+    const { PortalController } = require('../dist/src/modules/portal/presentation/PortalController');
+
+    const getPortalTransactionsUseCase = {
+      execute: jest.fn(),
+    };
+    const controller = new PortalController(
+      {},
+      {},
+      {},
+      {},
+      {},
+      getPortalTransactionsUseCase,
+      {},
+      {},
+      {},
+    );
+
+    await expect(controller.listTransactions({
+      params: { id: 'contrib-2' },
+      user: { userId: 'contrib-1', role: 'CONTRIBUABLE', tokenType: 'portal' },
+    }, {})).rejects.toThrow('Accès interdit à ces transactions');
+
+    expect(getPortalTransactionsUseCase.execute).not.toHaveBeenCalled();
+  });
+
   it('stores a pending portal payment before redirecting the user', async () => {
     const { InitiatePortalPaymentUseCase } = require('../dist/src/modules/portal/application/InitiatePortalPaymentUseCase');
 
@@ -90,7 +200,7 @@ describe('Portal use cases', () => {
       .rejects.toThrow('Ce paiement ne vous appartient pas');
   });
 
-  it('registers a contribuable and returns a portal token', async () => {
+  it('registers a contribuable without issuing a portal token', async () => {
     const { RegisterPortalContribuableUseCase } = require('../dist/src/modules/portal/application/RegisterPortalContribuableUseCase');
 
     const repository = {
@@ -104,11 +214,7 @@ describe('Portal use cases', () => {
         telephone: '+221771234567',
       }),
     };
-    const tokenService = {
-      signPortalToken: jest.fn().mockReturnValue('portal-token'),
-    };
-
-    const useCase = new RegisterPortalContribuableUseCase(repository, tokenService);
+    const useCase = new RegisterPortalContribuableUseCase(repository);
 
     const result = await useCase.execute({
       nin: 'NIN-001',
@@ -124,12 +230,7 @@ describe('Portal use cases', () => {
       telephone: '+221771234567',
       typeContribuable: 'PARTICULIER',
     }));
-    expect(tokenService.signPortalToken).toHaveBeenCalledWith({
-      id: 'contrib-1',
-      role: 'CONTRIBUABLE',
-    });
     expect(result).toEqual({
-      token: 'portal-token',
       contribuable: {
         id: 'contrib-1',
         nom: 'Sow',

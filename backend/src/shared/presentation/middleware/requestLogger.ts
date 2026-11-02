@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import type { AuthRequest } from '../../types/AuthRequest';
+import { redactUrl } from '../../logging/redaction';
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const authReq = req as AuthRequest;
@@ -12,16 +13,15 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 
   res.on('finish', () => {
     const durationMs = Date.now() - startedAt;
-    const forwardedFor = req.header('x-forwarded-for');
-    const ip = forwardedFor?.split(',')[0]?.trim() || req.ip || 'unknown';
-    const referer = req.header('referer');
+    const ip = req.ip || 'unknown';
+    const referer = redactUrl(req.header('referer'));
     const userAgent = req.header('user-agent');
 
     process.stdout.write(`${JSON.stringify({
       type: 'access',
       requestId,
       method: req.method,
-      path: req.originalUrl,
+      path: redactUrl(req.originalUrl),
       statusCode: res.statusCode,
       durationMs,
       ip,

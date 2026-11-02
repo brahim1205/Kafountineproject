@@ -21,7 +21,7 @@ export function isPortalAuthenticated(): boolean {
 
 export function savePortalSession(_token: string, contribuable: PortalContribuable): void {
   currentContribuable = contribuable;
-  localStorage.setItem(CONTRIBUABLE_KEY, JSON.stringify(contribuable));
+  sessionStorage.setItem(CONTRIBUABLE_KEY, JSON.stringify(contribuable));
 }
 
 export async function logoutPortalRequest(): Promise<void> {
@@ -37,18 +37,18 @@ export async function logoutPortalRequest(): Promise<void> {
 
 export function clearPortalSession(): void {
   currentContribuable = null;
-  localStorage.removeItem(CONTRIBUABLE_KEY);
+  sessionStorage.removeItem(CONTRIBUABLE_KEY);
 }
 
 export function getContribuable(): PortalContribuable | null {
   if (currentContribuable) return currentContribuable;
-  const raw = localStorage.getItem(CONTRIBUABLE_KEY);
+  const raw = sessionStorage.getItem(CONTRIBUABLE_KEY);
   if (!raw) return null;
   try {
     currentContribuable = JSON.parse(raw) as PortalContribuable;
     return currentContribuable;
   } catch {
-    localStorage.removeItem(CONTRIBUABLE_KEY);
+    sessionStorage.removeItem(CONTRIBUABLE_KEY);
     return null;
   }
 }

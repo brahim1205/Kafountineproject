@@ -6,6 +6,7 @@ import {
   clearFieldValidationError,
   validateFormElement,
 } from '../../../utils/formValidation';
+import { downloadCsv, today } from '../../../utils/csv';
 
 export default function EmbarcationsPage() {
   const [embarcations, setEmbarcations] = useState<Embarcation[]>([]);
@@ -36,15 +37,15 @@ export default function EmbarcationsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedYear]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setErrorMsg('');
       const [embarcationsData, pecheursData] = await Promise.all([
-        listEmbarcations({ limit: 100 }),
-        listPecheurs({ limit: 100 })
+        listEmbarcations({ year: selectedYear, limit: 100 }),
+        listPecheurs({ year: selectedYear, limit: 100 })
       ]);
       setEmbarcations(embarcationsData);
       setPecheurs(pecheursData);
@@ -140,12 +141,7 @@ export default function EmbarcationsPage() {
         e.nom, e.immatriculation, e.type, e.taille ? String(e.taille) : '-', e.moteur || '-', `${e.pecheur?.prenom || ''} ${e.pecheur?.nom || ''}`, e.statut
       ])
     ];
-    const csvContent = data.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `embarcations_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    downloadCsv(`embarcations_${today()}.csv`, data);
   };
 
   return (

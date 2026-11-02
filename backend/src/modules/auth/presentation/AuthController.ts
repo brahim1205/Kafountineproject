@@ -25,7 +25,7 @@ export class AuthController {
     });
 
     setAuthCookies(res, data.accessToken, data.refreshToken);
-    return ok(res, data);
+    return ok(res, { user: data.user });
   }
 
   async logout(req: AuthRequest, res: Response) {
@@ -48,7 +48,7 @@ export class AuthController {
 
     const data = await this.refreshTokenUseCase.execute(String(refreshToken));
     setAuthCookies(res, data.accessToken, data.refreshToken);
-    return ok(res, data);
+    return ok(res, {});
   }
 
   async forgotPassword(req: Request, res: Response) {

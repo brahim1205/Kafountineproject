@@ -8,13 +8,14 @@ import type {
 
 export class PrismaTransactionRepository implements TransactionRepository {
   async search(filters: TransactionFilters) {
-    return prisma.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: this.buildWhere(filters),
       include: { contribuable: true, agent: true },
       skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
       orderBy: { createdAt: 'desc' },
     });
+    return transactions.map((transaction) => this.mapTransaction(transaction));
   }
 
   async count(filters: TransactionFilters) {
@@ -71,23 +72,28 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async findByYear(year: number) {
-    return prisma.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: { year },
       select: { montant: true, statut: true },
     });
+    return transactions.map((transaction) => ({
+      ...transaction,
+      montant: Number(transaction.montant),
+    }));
   }
 
   async findRecentByYear(year: number, limit: number) {
-    return prisma.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: { year },
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: { agent: true },
     });
+    return transactions.map((transaction) => this.mapTransaction(transaction));
   }
 
   async findByContribuableId(contribuableId: string) {
-    return prisma.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: { contribuableId },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -101,10 +107,14 @@ export class PrismaTransactionRepository implements TransactionRepository {
         date: true,
       },
     });
+    return transactions.map((transaction) => ({
+      ...transaction,
+      montant: Number(transaction.montant),
+    }));
   }
 
   async findPortalPayables(contribuableId: string, transactionIds: string[]) {
-    return prisma.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: {
         contribuableId,
         id: { in: transactionIds },
@@ -116,6 +126,10 @@ export class PrismaTransactionRepository implements TransactionRepository {
         statut: true,
       },
     });
+    return transactions.map((transaction) => ({
+      ...transaction,
+      montant: Number(transaction.montant),
+    }));
   }
 
   async markPortalPaymentAsPaid(contribuableId: string, transactionIds: string[], modePaiement: string) {
@@ -132,7 +146,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
       },
     });
 
-    return prisma.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: {
         contribuableId,
         id: { in: transactionIds },
@@ -147,10 +161,14 @@ export class PrismaTransactionRepository implements TransactionRepository {
         date: true,
       },
     });
+    return transactions.map((transaction) => ({
+      ...transaction,
+      montant: Number(transaction.montant),
+    }));
   }
 
   async findDetailsById(transactionId: string) {
-    return prisma.transaction.findUnique({
+    const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
       select: {
         id: true,
@@ -172,6 +190,10 @@ export class PrismaTransactionRepository implements TransactionRepository {
         },
       },
     });
+    return transaction ? {
+      ...transaction,
+      montant: Number(transaction.montant),
+    } : null;
   }
 
   async update(id: string, payload: Partial<CreateTransactionPayload>) {
@@ -201,6 +223,14 @@ export class PrismaTransactionRepository implements TransactionRepository {
       ...(filters.categorie ? { categorie: filters.categorie } : {}),
       ...(filters.statut ? { statut: filters.statut } : {}),
       ...(filters.year ? { year: filters.year } : {}),
+    };
+  }
+
+  private mapTransaction<T extends { montant: unknown; tarifUnitaire?: unknown }>(transaction: T) {
+    return {
+      ...transaction,
+      montant: Number(transaction.montant),
+      ...(transaction.tarifUnitaire === undefined ? {} : { tarifUnitaire: Number(transaction.tarifUnitaire) }),
     };
   }
 }

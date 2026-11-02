@@ -71,8 +71,8 @@ export default function QuaiPecheDashboard() {
         
         // Charger données Quai de Pêche
         const [pecheursData, embarcationsData, commissionsData, quaiStatsData] = await Promise.all([
-          listPecheurs(),
-          listEmbarcations(),
+          listPecheurs({ year: selectedYear }),
+          listEmbarcations({ year: selectedYear }),
           listCommissions({ year: selectedYear }),
           getQuaiPecheStats(selectedYear),
         ]);

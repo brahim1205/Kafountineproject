@@ -9,24 +9,28 @@ import type {
 
 export class PrismaContribuableRepository implements ContribuableRepository {
   async findById(id: string) {
-    return prisma.contribuable.findUnique({ where: { id } });
+    const contribuable = await prisma.contribuable.findUnique({ where: { id } });
+    return contribuable ? this.mapContribuable(contribuable) : null;
   }
 
   async findByNin(nin: string) {
-    return prisma.contribuable.findUnique({ where: { nin } });
+    const contribuable = await prisma.contribuable.findUnique({ where: { nin } });
+    return contribuable ? this.mapContribuable(contribuable) : null;
   }
 
   async findByTelephone(telephone: string) {
-    return prisma.contribuable.findFirst({ where: { telephone } });
+    const contribuable = await prisma.contribuable.findFirst({ where: { telephone } });
+    return contribuable ? this.mapContribuable(contribuable) : null;
   }
 
   async search(filters: ContribuableFilters) {
-    return prisma.contribuable.findMany({
+    const contribuables = await prisma.contribuable.findMany({
       where: this.buildWhere(filters.search),
       skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
       orderBy: { createdAt: 'desc' },
     });
+    return contribuables.map((contribuable) => this.mapContribuable(contribuable));
   }
 
   async count(filters: ContribuableFilters) {
@@ -34,14 +38,16 @@ export class PrismaContribuableRepository implements ContribuableRepository {
   }
 
   async create(payload: CreateContribuablePayload) {
-    return prisma.contribuable.create({ data: payload });
+    const contribuable = await prisma.contribuable.create({ data: payload });
+    return this.mapContribuable(contribuable);
   }
 
   async update(id: string, payload: UpdateContribuablePayload) {
-    return prisma.contribuable.update({
+    const contribuable = await prisma.contribuable.update({
       where: { id },
       data: payload,
     });
+    return this.mapContribuable(contribuable);
   }
 
   async delete(id: string) {
@@ -60,6 +66,13 @@ export class PrismaContribuableRepository implements ContribuableRepository {
         { prenom: { contains: search, mode: 'insensitive' } },
         { telephone: { contains: search, mode: 'insensitive' } },
       ],
+    };
+  }
+
+  private mapContribuable(contribuable: Prisma.ContribuableGetPayload<object>) {
+    return {
+      ...contribuable,
+      montantImpot: Number(contribuable.montantImpot),
     };
   }
 }

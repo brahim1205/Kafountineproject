@@ -62,7 +62,7 @@ function ledgerTable(entries: LedgerEntry[]): PdfSection[] {
 
   const byMonth = new Map<string, LedgerEntry[]>();
   for (const entry of entries) {
-    const month = monthFormatter.format(entry.date).replace(/^\\w/, (c) => c.toUpperCase());
+    const month = monthFormatter.format(entry.date).replace(/^\p{L}/u, (c) => c.toUpperCase());
     byMonth.set(month, [...(byMonth.get(month) || []), entry]);
   }
 

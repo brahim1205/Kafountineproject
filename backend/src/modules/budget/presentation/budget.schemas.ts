@@ -31,6 +31,6 @@ export const updateBudgetRequestSchema = z.object({
   service: optionalTrimmedString(120),
   description: optionalTrimmedString(255),
   montant: positiveNumberSchema.optional(),
-  statut: optionalTrimmedString(40),
+  statut: z.enum(['EN_ATTENTE', 'APPROUVE', 'REJETE']).optional(),
   motif: optionalTrimmedString(255),
 }).strict();

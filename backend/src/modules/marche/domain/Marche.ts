@@ -61,7 +61,7 @@ export interface MarcheRepository {
   updatePlace(id: string, values: MarketPlaceValues, occupant: OccupantDisplay): Promise<MarketPlace>;
   listPayments(year: number): Promise<MarketPayment[]>;
   createPayment(
-    values: { placeId: string; montant: number; reference: string | null; periode: string; year: number },
+    values: Pick<MarketPayment, 'placeId' | 'montant' | 'reference' | 'periode' | 'statut' | 'year'> & { datePaiement: Date },
     place: MarketPlace
   ): Promise<MarketPayment>;
   listPlacesForStats(year: number): Promise<Array<Pick<MarketPlace, 'statut' | 'occupantId'>>>;

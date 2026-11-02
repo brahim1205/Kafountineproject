@@ -110,6 +110,6 @@ export interface MotoRepository {
   listForStats(year: number): Promise<Array<Pick<MotoRegistration, 'enRetard' | 'statut'>>>;
   listPaymentAmounts(year: number): Promise<Array<Pick<MotoPayment, 'montant'>>>;
   listPayments(year: number): Promise<MotoPayment[]>;
-  createPayment(values: MotoPaymentValues, moto: MotoRegistration): Promise<MotoPayment>;
-  markPaid(motoId: string, paidAt: Date, nextDueDate: Date): Promise<void>;
+  /** Enregistre le paiement et remet la moto à jour (échéance, retard) de façon atomique. */
+  recordPayment(values: MotoPaymentValues, moto: MotoRegistration): Promise<MotoPayment>;
 }

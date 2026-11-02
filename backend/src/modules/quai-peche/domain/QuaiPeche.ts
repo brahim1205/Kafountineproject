@@ -127,7 +127,8 @@ export interface QuaiPecheRepository {
   ): Promise<ShippingExpedition>;
   updateExpedition(id: string, values: ExpeditionValues, current: ShippingExpedition): Promise<ShippingExpedition>;
 
-  delete(collection: QuaiCollection, id: string): Promise<void>;
+  /** Renvoie false si la ressource n'existait pas. */
+  delete(collection: QuaiCollection, id: string): Promise<boolean>;
 
   listCommissionWeights(year: number): Promise<Array<Pick<FishCommission, 'poids' | 'statut'>>>;
   countActiveFishermen(year: number): Promise<number>;

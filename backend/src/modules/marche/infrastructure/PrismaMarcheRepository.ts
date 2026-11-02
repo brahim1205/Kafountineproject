@@ -152,12 +152,12 @@ export class PrismaMarcheRepository implements MarcheRepository {
   }
 
   async createPayment(
-    values: { placeId: string; montant: number; reference: string | null; periode: string; year: number },
+    values: Pick<MarketPayment, 'placeId' | 'montant' | 'reference' | 'periode' | 'statut' | 'year'> & { datePaiement: Date },
     place: MarketPlace
   ) {
     const [row] = await prisma.$queryRawUnsafe<MarketPayment[]>(
       `INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, 'PAYE', CURRENT_TIMESTAMP, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       VALUES ($1, $2, $3, $4, $5, $21, $22, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING
         "id",
         "placeId",
@@ -202,7 +202,9 @@ export class PrismaMarcheRepository implements MarcheRepository {
       place.occupantNom,
       place.occupantPrenom,
       place.occupantNin,
-      place.occupantTelephone
+      place.occupantTelephone,
+      values.statut,
+      values.datePaiement
     );
     return row;
   }

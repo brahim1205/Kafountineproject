@@ -163,31 +163,38 @@ export class QuaiPecheService {
   }
 
   async update(actor: Actor, collection: QuaiCollection, id: string, input: QuaiInput) {
+    // Mise à jour partielle : un champ absent du payload conserve sa valeur actuelle.
+    const pick = <T>(key: string, current: T, parse: (value: unknown) => T) =>
+      input[key] === undefined ? current : parse(input[key]);
+
     switch (collection) {
       case 'pecheurs': {
+        const current = this.required(collection, await this.repository.findFisherman(id));
         const row = await this.repository.updateFisherman(id, {
-          nom: text(input.nom),
-          prenom: text(input.prenom),
-          telephone: optionalText(input.telephone),
-          nin: optionalText(input.nin),
-          adresse: optionalText(input.adresse),
-          statut: status(input.statut, 'ACTIF'),
+          nom: pick('nom', current.nom, text),
+          prenom: pick('prenom', current.prenom, text),
+          telephone: pick('telephone', current.telephone, optionalText),
+          nin: pick('nin', current.nin, optionalText),
+          adresse: pick('adresse', current.adresse, optionalText),
+          statut: pick('statut', current.statut, (value) => status(value, 'ACTIF')),
         });
         await this.audit(actor, 'Mise à jour pêcheur', `Pêcheur ${row.prenom} ${row.nom} mis à jour`);
         return this.toFishermanView(row);
       }
       case 'embarcations': {
-        const owner = input.pecheurId ? await this.repository.findFisherman(String(input.pecheurId)) : null;
+        const current = this.required(collection, await this.repository.findBoat(id));
+        const pecheurId = pick('pecheurId', current.pecheurId, (value) => (value ? String(value) : null));
+        const owner = pecheurId ? this.required('pecheurs', await this.repository.findFisherman(pecheurId)) : null;
         const row = await this.repository.updateBoat(
           id,
           {
-            nom: text(input.nom),
-            immatriculation: text(input.immatriculation).toUpperCase(),
-            type: text(input.type),
-            taille: optionalNumber(input.taille),
-            moteur: optionalText(input.moteur),
-            statut: status(input.statut, 'ACTIF'),
-            pecheurId: input.pecheurId ? String(input.pecheurId) : null,
+            nom: pick('nom', current.nom, text),
+            immatriculation: pick('immatriculation', current.immatriculation, (value) => text(value).toUpperCase()),
+            type: pick('type', current.type, text),
+            taille: pick('taille', current.taille, optionalNumber),
+            moteur: pick('moteur', current.moteur, optionalText),
+            statut: pick('statut', current.statut, (value) => status(value, 'ACTIF')),
+            pecheurId,
           },
           owner
         );
@@ -195,15 +202,15 @@ export class QuaiPecheService {
         return this.toBoatView(row);
       }
       case 'commissions': {
-        const current = (await this.repository.findCommission(id)) as FishCommission;
+        const current = this.required(collection, await this.repository.findCommission(id));
         const row = await this.repository.updateCommission(
           id,
           {
-            poids: input.poids === undefined ? current.poids : Number(input.poids),
-            typePoisson: input.typePoisson ? text(input.typePoisson) : current.typePoisson,
-            temperatura: input.temperatura === undefined ? current.temperatura : Number(input.temperatura),
-            observations: input.observations === undefined ? current.observations : text(input.observations) || null,
-            statut: input.statut ? status(input.statut, '') : current.statut,
+            poids: pick('poids', current.poids, Number),
+            typePoisson: pick('typePoisson', current.typePoisson, text),
+            temperatura: pick('temperatura', current.temperatura, Number),
+            observations: pick('observations', current.observations, (value) => text(value) || null),
+            statut: pick('statut', current.statut, (value) => status(value, current.statut)),
           },
           current
         );
@@ -211,28 +218,29 @@ export class QuaiPecheService {
         return this.toCommissionView(row);
       }
       case 'camions': {
+        const current = this.required(collection, await this.repository.findTruck(id));
         const row = await this.repository.updateTruck(id, {
-          immatriculation: text(input.immatriculation).toUpperCase(),
-          marque: text(input.marque),
-          modele: optionalText(input.modele),
-          capacite: optionalNumber(input.capacite),
-          chauffeur: optionalText(input.chauffeur),
-          telephone: optionalText(input.telephone),
-          statut: status(input.statut, 'ACTIF'),
+          immatriculation: pick('immatriculation', current.immatriculation, (value) => text(value).toUpperCase()),
+          marque: pick('marque', current.marque, text),
+          modele: pick('modele', current.modele, optionalText),
+          capacite: pick('capacite', current.capacite, optionalNumber),
+          chauffeur: pick('chauffeur', current.chauffeur, optionalText),
+          telephone: pick('telephone', current.telephone, optionalText),
+          statut: pick('statut', current.statut, (value) => status(value, 'ACTIF')),
         });
         await this.audit(actor, 'Mise à jour camion', `Camion ${row.immatriculation} mis à jour`);
         return this.toTruckView(row);
       }
       case 'expeditions': {
-        const current = (await this.repository.findExpedition(id)) as ShippingExpedition;
+        const current = this.required(collection, await this.repository.findExpedition(id));
         const row = await this.repository.updateExpedition(
           id,
           {
-            poids: input.poids === undefined ? current.poids : Number(input.poids),
-            destination: input.destination === undefined ? current.destination : text(input.destination) || null,
-            montant: input.montant === undefined ? current.montant : Number(input.montant),
-            statut: input.statut ? status(input.statut, '') : current.statut,
-            observations: input.observations === undefined ? current.observations : text(input.observations) || null,
+            poids: pick('poids', current.poids, Number),
+            destination: pick('destination', current.destination, (value) => text(value) || null),
+            montant: pick('montant', current.montant, Number),
+            statut: pick('statut', current.statut, (value) => status(value, current.statut)),
+            observations: pick('observations', current.observations, (value) => text(value) || null),
           },
           current
         );
@@ -243,7 +251,9 @@ export class QuaiPecheService {
   }
 
   async delete(actor: Actor, collection: QuaiCollection, id: string) {
-    await this.repository.delete(collection, id);
+    if (!(await this.repository.delete(collection, id))) {
+      throw new NotFoundError(NOT_FOUND_MESSAGES[collection]);
+    }
     await this.audit(actor, 'Suppression ressource quai', `${collection} ${id} supprimé`, 'warning');
   }
 

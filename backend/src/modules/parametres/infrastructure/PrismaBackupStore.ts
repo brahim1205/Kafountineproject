@@ -161,7 +161,7 @@ export class PrismaBackupStore implements BackupStore {
     }
 
     const dbColumns = await prisma.$queryRawUnsafe<Array<{ tableName: string; columnName: string; dataType: string }>>(
-      `SELECT "table_name" AS "tableName", "column_name" AS "columnName", "data_type" AS "dataType"
+      `SELECT "table_name" AS "tableName", "column_name" AS "columnName", "udt_name" AS "dataType"
        FROM "information_schema"."columns"
        WHERE "table_schema" = 'public'`
     );
@@ -200,24 +200,13 @@ export class PrismaBackupStore implements BackupStore {
             }
           }
 
+          // Le JSON ne conserve pas les types SQL (les Decimal deviennent des chaînes) :
+          // chaque valeur est convertie explicitement vers le type de sa colonne.
           const columns = entries.map(([key]) => quoteIdentifier(key)).join(', ');
-          const placeholders = entries.map((_, index) => `$${index + 1}`).join(', ');
-          const values = entries.map(([key, value]) => {
-            if (value === null || value === undefined) {
-              return value;
-            }
-            const dataType = columnTypes.get(key);
-            if (typeof value === 'string' && dataType) {
-              const normalizedType = dataType.toLowerCase();
-              if (normalizedType.includes('timestamp') || normalizedType === 'date') {
-                const date = new Date(value);
-                if (!Number.isNaN(date.getTime())) {
-                  return date;
-                }
-              }
-            }
-            return value;
-          });
+          const placeholders = entries
+            .map(([key], index) => `$${index + 1}::${quoteIdentifier(columnTypes.get(key) as string)}`)
+            .join(', ');
+          const values = entries.map(([, value]) => value ?? null);
 
           await tx.$executeRawUnsafe(
             `INSERT INTO ${quoteIdentifier(table)} (${columns}) VALUES (${placeholders})`,

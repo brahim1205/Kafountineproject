@@ -187,8 +187,9 @@ export class PrismaMotoRepository implements MotoRepository {
     );
   }
 
-  async createPayment(values: MotoPaymentValues, moto: MotoRegistration) {
-    const [row] = await prisma.$queryRawUnsafe<MotoPayment[]>(
+  recordPayment(values: MotoPaymentValues, moto: MotoRegistration) {
+    return prisma.$transaction(async (tx) => {
+      const [row] = await tx.$queryRawUnsafe<MotoPayment[]>(
       `INSERT INTO "MotoPayment" ("id", "motoId", "montant", "reference", "statut", "datePaiement", "mois", "numeroRecu", "agent", "year", "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, 'PAYE', $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING
@@ -256,16 +257,16 @@ export class PrismaMotoRepository implements MotoRepository {
       moto.conducteurPrenom,
       moto.conducteurNin,
       moto.conducteurTelephone
-    );
-    return row;
-  }
+      );
 
-  async markPaid(motoId: string, paidAt: Date, nextDueDate: Date) {
-    await prisma.$executeRaw`
-      UPDATE "MotoRegistration"
-      SET "enRetard" = false, "dernierPaiement" = ${paidAt}, "prochainPaiement" = ${nextDueDate}, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ${motoId}
-    `;
+      await tx.$executeRaw`
+        UPDATE "MotoRegistration"
+        SET "enRetard" = false, "dernierPaiement" = ${values.datePaiement}, "prochainPaiement" = ${values.prochainPaiement}, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${values.motoId}
+      `;
+
+      return row;
+    });
   }
 
   private valueParams(values: MotoValues) {

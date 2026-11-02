@@ -38,7 +38,7 @@ export async function getTarifs(): Promise<Tarif[]> {
   return apiRequest<Tarif[]>('/settings/tarifs');
 }
 
-export async function createTarif(data: { categorie: string; nom: string; montant: number; unite: string; description?: string }): Promise<Tarif> {
+export async function createTarif(data: { categorie: string; nom: string; montant: number; unite: string; description?: string; actif?: boolean }): Promise<Tarif> {
   return apiRequest<Tarif>('/settings/tarifs', { method: 'POST', body: JSON.stringify(data) });
 }
 
@@ -74,11 +74,6 @@ export async function getPermissions(): Promise<Permission[]> {
 
 export async function updatePermission(data: { role: string; module: string; enabled: boolean }): Promise<{ message: string }> {
   return apiRequest<{ message: string }>('/settings/permissions', { method: 'POST', body: JSON.stringify(data) });
-}
-
-// SEED
-export async function seedSettings(): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>('/settings/seed', { method: 'POST' });
 }
 
 export async function listBackups(): Promise<BackupFile[]> {

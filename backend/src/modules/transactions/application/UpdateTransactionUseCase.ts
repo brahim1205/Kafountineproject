@@ -1,4 +1,4 @@
-import type { TransactionRepository } from '../domain/TransactionRepository';
+import type { CreateTransactionPayload, TransactionRepository } from '../domain/TransactionRepository';
 
 export class UpdateTransactionUseCase {
   constructor(private readonly transactionRepository: TransactionRepository) {}
@@ -13,7 +13,7 @@ export class UpdateTransactionUseCase {
     modePaiement?: string;
     statut?: string;
   }) {
-    const updateData: any = {};
+    const updateData: Partial<CreateTransactionPayload> & { tarifUnitaire?: number } = {};
     if (input.contribuableId !== undefined) updateData.contribuableId = input.contribuableId;
     if (input.categorie !== undefined) updateData.categorie = input.categorie;
     if (input.type !== undefined || input.categorie !== undefined) updateData.service = input.service || input.categorie || input.type;

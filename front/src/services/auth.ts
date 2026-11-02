@@ -17,9 +17,9 @@ type ApiAuthUser = {
 
 type LoginResponse = {
   user: ApiAuthUser;
-  token: string;
-  accessToken: string;
-  refreshToken: string;
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
 };
 
 type StoredSession = {
@@ -192,7 +192,7 @@ export async function refreshAccessToken(): Promise<string | null> {
       return null;
     }
 
-    return json.data?.accessToken || null;
+    return json.data?.accessToken || '';
   } catch {
     clearSession();
     return null;

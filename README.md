@@ -145,7 +145,7 @@ npm run check
 Seed backend :
 
 - `admin@kafountine.gouv.sn`
-- `password123`
+- mot de passe défini par `SEED_DEFAULT_PASSWORD` dans l'environnement local
 
 Contribuable portail seed :
 

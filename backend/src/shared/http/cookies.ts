@@ -10,14 +10,21 @@ function getCookieDomain(): string | undefined {
   return env.cookieDomain || undefined;
 }
 
+function getSameSite(): CookieOptions['sameSite'] {
+  if (env.cookieSameSite === 'strict') return 'strict';
+  if (env.cookieSameSite === 'none') return 'none';
+  return 'lax';
+}
+
 function buildCookieOptions(maxAgeMs: number): CookieOptions {
   return {
     httpOnly: true,
     secure: env.isProduction,
-    sameSite: 'lax',
+    sameSite: getSameSite(),
     path: '/',
     maxAge: maxAgeMs,
     domain: getCookieDomain(),
+    priority: env.isProduction ? 'high' : undefined,
   };
 }
 
@@ -49,7 +56,7 @@ export function clearAuthCookies(res: Response) {
     path: '/',
     domain: getCookieDomain(),
     secure: env.isProduction,
-    sameSite: 'lax' as const,
+    sameSite: getSameSite(),
     httpOnly: true,
   };
   res.clearCookie(AUTH_TOKEN_COOKIE, options);
@@ -65,7 +72,7 @@ export function clearPortalCookie(res: Response) {
     path: '/',
     domain: getCookieDomain(),
     secure: env.isProduction,
-    sameSite: 'lax',
+    sameSite: getSameSite(),
     httpOnly: true,
   });
 }

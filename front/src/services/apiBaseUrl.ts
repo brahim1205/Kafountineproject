@@ -4,12 +4,9 @@ function trimTrailingSlashes(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
-export function resolveApiBaseUrl(): string {
-  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
-  const isDevelopment = import.meta.env.DEV;
-
+export function resolveApiBaseUrlFromEnv(configuredUrl: string | undefined, isDevelopment: boolean): string {
   if (configuredUrl) {
-    const normalizedUrl = trimTrailingSlashes(configuredUrl);
+    const normalizedUrl = trimTrailingSlashes(configuredUrl.trim());
 
     // In Vite dev, keep relative API paths so the dev proxy can route requests.
     if (isDevelopment && normalizedUrl.startsWith('/')) {
@@ -27,4 +24,8 @@ export function resolveApiBaseUrl(): string {
   // No VITE_API_URL configured: always use relative path so the Vite proxy handles it in dev
   // and the same-origin nginx proxy handles it in production.
   return API_PATH_PREFIX;
+}
+
+export function resolveApiBaseUrl(): string {
+  return resolveApiBaseUrlFromEnv(import.meta.env.VITE_API_URL, import.meta.env.DEV);
 }

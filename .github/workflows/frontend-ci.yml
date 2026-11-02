@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - 'front/**'
+      - 'scripts/security-repo-scan.sh'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     paths:
       - 'front/**'
+      - 'scripts/security-repo-scan.sh'
       - '.github/workflows/frontend-ci.yml'
 
 env:
@@ -99,6 +101,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: front
+
+      - name: Repository security scan
+        run: bash ./scripts/security-repo-scan.sh
 
       - name: Run npm audit
         run: npm audit --audit-level=high

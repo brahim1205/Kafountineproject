@@ -51,12 +51,16 @@ Ce dossier contient l'ensemble des manifestes Kubernetes pour déployer Kafontin
 |---|---|---|
 | `00-namespace.yml` | Namespace | Isolation du projet |
 | `01-configmap.yml` | ConfigMap | Variables d'environnement non sensibles |
+| `02-secret.example.yml` | Secret exemple | Modèle non sensible à copier en `02-secret.yml` hors Git |
 | `03-postgres.yml` | StatefulSet + Service | Base de données PostgreSQL |
-| `04-redis.yml` | Deployment + Service | Cache Redis |
+| `04-redis.yml` | StatefulSet + Service | Cache Redis protégé par mot de passe |
 | `06-backend.yml` | Deployment + Service + HPA | API backend avec auto-scaling |
 | `07-frontend.yml` | Deployment + Service | Application React |
 | `09-prometheus.yml` | Deployment + Service | Métriques Prometheus |
 | `10-grafana.yml` | Deployment + Service | Dashboards Grafana |
+| `12-network-policy.yml` | NetworkPolicy | Isolation réseau |
+| `13-rbac.yml` | RBAC | Service accounts sans token monté automatiquement |
+| `14-pod-disruption-budget.yml` | PDB | Disponibilité pendant les maintenances |
 
 ---
 
@@ -66,13 +70,17 @@ Ce dossier contient l'ensemble des manifestes Kubernetes pour déployer Kafontin
 # 1. Vérifier les valeurs de prod et les secrets du cluster
 bash ./scripts/validate-prod-env.sh .env.prod
 
-# 2. Appliquer tous les manifestes
-kubectl apply -f infra/k8s/
+# 2. Préparer les secrets hors Git
+cp infra/k8s/02-secret.example.yml infra/k8s/02-secret.yml
+# Remplacer tous les placeholders __SET_... dans infra/k8s/02-secret.yml
 
-# 3. Vérifier le déploiement
+# 3. Appliquer les manifestes avec l'ordre contrôlé
+bash infra/k8s/deploy-k8s.sh production
+
+# 4. Vérifier le déploiement
 kubectl get all -n kafontine
 
-# 4. Vérifier les pods
+# 5. Vérifier les pods
 kubectl get pods -n kafontine -w
 
 # 5. Vérifier l'ingress
@@ -148,7 +156,7 @@ kubectl rollout undo deployment/backend -n kafontine
 |---|---|---|
 | Prometheus | http://localhost:9090 | `kubectl port-forward svc/prometheus 9090:9090 -n kafontine` |
 | Grafana | http://localhost:3001 | `kubectl port-forward svc/grafana 3001:3000 -n kafontine` |
-| Métriques app | `/metrics` | Accessible via l'ingress |
+| Métriques app | `/metrics` | Désactivées par défaut; si activées, protéger avec `METRICS_BEARER_TOKEN` et limiter l'accès réseau |
 
 ---
 
@@ -157,7 +165,7 @@ kubectl rollout undo deployment/backend -n kafontine
 - **Network Policies** : manifestes présents dans ce dépôt
 - **Pod Security Standards** : les conteneurs tournent sans privilèges
 - **RBAC** : manifestes présents dans ce dépôt
-- **Secrets** : utiliser des Secrets Kubernetes ou un gestionnaire externe
+- **Secrets** : créer `02-secret.yml` hors Git depuis `02-secret.example.yml` ou utiliser un gestionnaire externe
 
 ---
 

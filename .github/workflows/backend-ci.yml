@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - 'backend/**'
+      - 'scripts/security-repo-scan.sh'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     paths:
       - 'backend/**'
+      - 'scripts/security-repo-scan.sh'
       - '.github/workflows/backend-ci.yml'
 
 jobs:
@@ -39,11 +41,15 @@ jobs:
       NODE_ENV: test
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/vhm-finances?schema=public
-      JWT_SECRET: test-secret
-      JWT_REFRESH_SECRET: test-refresh-secret
+      JWT_SECRET: ci_backend_jwt_secret_32_chars_minimum
+      JWT_REFRESH_SECRET: ci_backend_refresh_secret_32_chars_minimum
       JWT_EXPIRES_IN: 24h
       SEED_DEFAULT_PASSWORD: TestPassword123!
       CORS_ORIGIN: http://localhost:5173
+      COOKIE_SAME_SITE: lax
+      PORTAL_URL: http://localhost:5173
+      PORTAL_OTP_DELIVERY_MODE: dev
+      PORTAL_OTP_TTL_SECONDS: 300
       REDIS_URL: redis://127.0.0.1:6379
       OTEL_ENABLED: 'false'
       RUN_INTEGRATION_TESTS: 'true'
@@ -64,11 +70,17 @@ jobs:
       - name: Prisma generate
         run: npm run prisma:generate
 
-      - name: Sync database schema
-        run: npx prisma db push --accept-data-loss --skip-generate
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Apply database migrations
+        run: npm run prisma:deploy
 
       - name: Seed data
         run: npm run prisma:seed
+
+      - name: Repository security scan
+        run: bash ../scripts/security-repo-scan.sh
 
       - name: Build + unit + integration tests
         run: npm run check

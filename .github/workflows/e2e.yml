@@ -10,12 +10,18 @@ on:
       - 'front/src/**'
       - 'front/playwright.config.ts'
       - 'front/package.json'
+      - 'backend/**'
+      - 'scripts/security-repo-scan.sh'
+      - '.github/workflows/e2e.yml'
   pull_request:
     paths:
       - 'front/e2e/**'
       - 'front/src/**'
       - 'front/playwright.config.ts'
       - 'front/package.json'
+      - 'backend/**'
+      - 'scripts/security-repo-scan.sh'
+      - '.github/workflows/e2e.yml'
 
 env:
   NODE_VERSION: '22'
@@ -27,10 +33,14 @@ jobs:
       NODE_ENV: test
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/vhm-finances?schema=public
-      JWT_SECRET: test-secret
-      JWT_REFRESH_SECRET: test-refresh-secret
+      JWT_SECRET: ci_e2e_jwt_secret_32_chars_minimum_value
+      JWT_REFRESH_SECRET: ci_e2e_refresh_secret_32_chars_minimum
       SEED_DEFAULT_PASSWORD: TestPassword123!
       CORS_ORIGIN: http://localhost:4173
+      COOKIE_SAME_SITE: lax
+      PORTAL_URL: http://localhost:4173
+      PORTAL_OTP_DELIVERY_MODE: dev
+      PORTAL_OTP_TTL_SECONDS: 300
       REDIS_URL: redis://127.0.0.1:6379
     
     services:
@@ -82,11 +92,15 @@ jobs:
           cd backend
           npm ci
           npm run prisma:generate
-          npx prisma db push --accept-data-loss --skip-generate
+          npx prisma validate
+          npm run prisma:deploy
           npm run prisma:seed
           npm run build
-          node dist/index.js > /tmp/kafontine-backend.log 2>&1 &
+          npm run start > /tmp/kafontine-backend.log 2>&1 &
           sleep 10
+
+      - name: Repository security scan
+        run: bash ./scripts/security-repo-scan.sh
 
       - name: Start frontend for testing
         run: npm run preview -- --host 0.0.0.0 --port 4173 > /tmp/kafontine-front.log 2>&1 &

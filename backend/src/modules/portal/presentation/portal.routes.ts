@@ -7,6 +7,7 @@ import { JwtTokenService } from '../../../shared/security/JwtTokenService';
 import type { PortalController } from './PortalController';
 import {
   portalLoginSchema,
+  portalOtpVerifySchema,
   portalPaymentInitiateSchema,
   portalPaymentConfirmSchema,
   portalRegisterSchema,
@@ -231,9 +232,12 @@ export function buildPortalRoutes(controller: PortalController) {
   const router = Router();
   const authenticatePortal = buildAuthenticatePortal(new JwtTokenService());
   const portalLoginRateLimit = rateLimit({ keyPrefix: 'portal-login', windowMs: 15 * 60 * 1000, max: 10 });
+  const portalOtpVerifyRateLimit = rateLimit({ keyPrefix: 'portal-otp-verify', windowMs: 15 * 60 * 1000, max: 10 });
   const portalPaymentRateLimit = rateLimit({ keyPrefix: 'portal-payment', windowMs: 5 * 60 * 1000, max: 20 });
 
-  router.post('/auth/contribuable', portalLoginRateLimit, validate(portalLoginSchema), asyncHandler((req, res) => controller.loginContribuable(req, res)));
+  router.post('/auth/contribuable', portalLoginRateLimit, validate(portalLoginSchema), asyncHandler((req, res) => controller.requestOtp(req, res)));
+  router.post('/auth/request-otp', portalLoginRateLimit, validate(portalLoginSchema), asyncHandler((req, res) => controller.requestOtp(req, res)));
+  router.post('/auth/verify-otp', portalOtpVerifyRateLimit, validate(portalOtpVerifySchema), asyncHandler((req, res) => controller.verifyOtp(req, res)));
   router.post('/auth/register', portalLoginRateLimit, validate(portalRegisterSchema), asyncHandler((req, res) => controller.registerContribuable(req, res)));
   router.get('/auth/me', authenticatePortal, asyncHandler((req, res) => controller.me(req as never, res)));
   router.post('/auth/logout', authenticatePortal, asyncHandler((req, res) => controller.logout(req, res)));

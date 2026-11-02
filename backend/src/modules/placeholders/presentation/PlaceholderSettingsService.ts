@@ -77,7 +77,6 @@ export class PlaceholderSettingsService {
     const nom = String(payload.nom || '').trim();
     const montant = Number(payload.montant || 0);
     const unite = String(payload.unite || '').trim();
-    const description = payload.description ? String(payload.description).trim() : null;
     const actif = payload.actif === undefined ? true : Boolean(payload.actif);
 
     if (!categorie || !nom || !unite) {
@@ -91,17 +90,10 @@ export class PlaceholderSettingsService {
     const itemId = randomUUID();
     const sortOrder = await this.nextTariffItemSortOrder(category.id);
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "MunicipalTariffItem" ("id", "categoryId", "nom", "tarif", "unite", "calcul", "legalSource", "effectiveDate", "sortOrder", "isActive", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, NULL, NULL, NULL, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      itemId,
-      category.id,
-      nom,
-      montant,
-      unite,
-      sortOrder,
-      actif
-    );
+    await prisma.$executeRaw`
+      INSERT INTO "MunicipalTariffItem" ("id", "categoryId", "nom", "tarif", "unite", "calcul", "legalSource", "effectiveDate", "sortOrder", "isActive", "createdAt", "updatedAt")
+      VALUES (${itemId}, ${category.id}, ${nom}, ${montant}, ${unite}, NULL, NULL, NULL, ${sortOrder}, ${actif}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `;
 
     const [row] = await prisma.$queryRawUnsafe<MunicipalTariffRow[]>(
       `SELECT
@@ -164,25 +156,22 @@ export class PlaceholderSettingsService {
     const nextDescription =
       payload.description === undefined ? existing.description : String(payload.description || '').trim() || null;
 
-    await prisma.$executeRawUnsafe(
-      `UPDATE "MunicipalTariffCategory"
-       SET "description" = $2, "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = $1`,
-      category.id,
-      nextDescription
-    );
+    await prisma.$executeRaw`
+      UPDATE "MunicipalTariffCategory"
+      SET "description" = ${nextDescription}, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${category.id}
+    `;
 
-    await prisma.$executeRawUnsafe(
-      `UPDATE "MunicipalTariffItem"
-       SET "categoryId" = $2, "nom" = $3, "tarif" = $4, "unite" = $5, "isActive" = $6, "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = $1`,
-      id,
-      category.id,
-      payload.nom ? String(payload.nom).trim() : existing.nom,
-      montant,
-      payload.unite ? String(payload.unite).trim() : existing.unite,
-      payload.actif === undefined ? existing.actif : Boolean(payload.actif)
-    );
+    await prisma.$executeRaw`
+      UPDATE "MunicipalTariffItem"
+      SET "categoryId" = ${category.id},
+          "nom" = ${payload.nom ? String(payload.nom).trim() : existing.nom},
+          "tarif" = ${montant},
+          "unite" = ${payload.unite ? String(payload.unite).trim() : existing.unite},
+          "isActive" = ${payload.actif === undefined ? existing.actif : Boolean(payload.actif)},
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${id}
+    `;
 
     const [row] = await prisma.$queryRawUnsafe<MunicipalTariffRow[]>(
       `SELECT
@@ -493,13 +482,10 @@ export class PlaceholderSettingsService {
     }
 
     const sortOrder = await this.nextTariffCategorySortOrder();
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "MunicipalTariffCategory" ("id", "nom", "sortOrder", "isActive", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      id,
-      normalized,
-      sortOrder
-    );
+    await prisma.$executeRaw`
+      INSERT INTO "MunicipalTariffCategory" ("id", "nom", "sortOrder", "isActive", "createdAt", "updatedAt")
+      VALUES (${id}, ${normalized}, ${sortOrder}, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `;
 
     return { id, nom: normalized };
   }

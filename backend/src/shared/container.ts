@@ -30,7 +30,9 @@ import { PrismaDashboardRepository } from '../modules/dashboard/infrastructure/P
 import { GetDashboardStatisticsUseCase } from '../modules/dashboard/application/GetDashboardStatisticsUseCase';
 import { GetTopContribuablesUseCase } from '../modules/dashboard/application/GetTopContribuablesUseCase';
 import { DashboardController } from '../modules/dashboard/presentation/DashboardController';
-import { PortalLoginContribuableUseCase } from '../modules/portal/application/PortalLoginContribuableUseCase';
+import { PortalOtpService } from '../modules/portal/application/PortalOtpService';
+import { RequestPortalOtpUseCase } from '../modules/portal/application/RequestPortalOtpUseCase';
+import { VerifyPortalOtpUseCase } from '../modules/portal/application/VerifyPortalOtpUseCase';
 import { GetPortalTaxesUseCase } from '../modules/portal/application/GetPortalTaxesUseCase';
 import { InitiatePortalPaymentUseCase } from '../modules/portal/application/InitiatePortalPaymentUseCase';
 import { ConfirmPortalPaymentUseCase } from '../modules/portal/application/ConfirmPortalPaymentUseCase';
@@ -53,6 +55,7 @@ export function buildContainer() {
   const taxCatalog = new PrismaTaxCatalog();
   const dashboardRepository = new PrismaDashboardRepository();
   const portalPaymentStore = new RedisPortalPaymentStore();
+  const portalOtpService = new PortalOtpService();
 
   const authController = new AuthController(
     new LoginUseCase(userRepository, tokenService, authSessionStore),
@@ -87,8 +90,9 @@ export function buildContainer() {
   );
 
   const portalController = new PortalController(
-    new PortalLoginContribuableUseCase(contribuableRepository, tokenService),
-    new RegisterPortalContribuableUseCase(contribuableRepository, tokenService),
+    new RequestPortalOtpUseCase(contribuableRepository, portalOtpService),
+    new VerifyPortalOtpUseCase(contribuableRepository, tokenService, portalOtpService),
+    new RegisterPortalContribuableUseCase(contribuableRepository),
     new GetPortalProfileUseCase(contribuableRepository),
     new GetPortalTaxesUseCase(transactionRepository),
     new GetPortalTransactionsUseCase(transactionRepository),

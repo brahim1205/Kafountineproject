@@ -70,7 +70,7 @@ export default defineConfig({
   base,
   esbuild: process.env.NODE_ENV === 'production' ? { drop: ['console', 'debugger'] } : undefined,
   build: {
-    sourcemap: process.env.NODE_ENV === 'development',
+    sourcemap: false,
     outDir: "out",
   },
   resolve: {

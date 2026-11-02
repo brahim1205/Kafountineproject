@@ -439,8 +439,12 @@ export default function DetailFormation({
                               <span className="w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center text-xs font-bold">
                                 {i + 1}
                               </span>
-                              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200">
-                                <img src={j.photo} alt="" className="w-full h-full object-cover object-top" />
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">
+                                {j.photo ? (
+                                  <img src={j.photo} alt="" className="w-full h-full object-cover object-top" />
+                                ) : (
+                                  `${j.prenom?.[0] || ''}${j.nom?.[0] || ''}`.toUpperCase() || 'J'
+                                )}
                               </div>
                               <span className="text-sm text-gray-900 flex-1">
                                 {j.prenom} {j.nom}

@@ -26,11 +26,6 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref();
 
 function getClientIp(req: Request) {
-  const forwardedFor = req.header('x-forwarded-for');
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0]?.trim() || req.ip || 'unknown';
-  }
-
   return req.ip || 'unknown';
 }
 

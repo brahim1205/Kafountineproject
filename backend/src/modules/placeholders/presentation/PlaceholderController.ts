@@ -2,30 +2,23 @@ import type { Request, Response } from 'express';
 import multer from 'multer';
 import { env } from '../../../shared/config/env';
 import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
-import { message, ok, okWithMeta } from '../../../shared/http/response';
+import { ok, okWithMeta, message } from '../../../shared/http/response';
 import type { AuthRequest } from '../../../shared/types/AuthRequest';
 import { ValidationError } from '../../../shared/errors/AppError';
 import { PlaceholderSupportService } from './PlaceholderSupportService';
 import { PlaceholderSettingsService } from './PlaceholderSettingsService';
 import { PlaceholderNotificationsService } from './PlaceholderNotificationsService';
 import { PlaceholderBudgetService } from './PlaceholderBudgetService';
-import { PlaceholderQuaiService, type QuaiCollection } from './PlaceholderQuaiService';
 import { PlaceholderFormationsService } from './PlaceholderFormationsService';
 import { PlaceholderEtatCivilUrbanismeService } from './PlaceholderEtatCivilUrbanismeService';
 import { PlaceholderMarketMotosService } from './PlaceholderMarketMotosService';
 import { PlaceholderAuditService } from './PlaceholderAuditService';
-import { PlaceholderUsersService } from './PlaceholderUsersService';
 import { PlaceholderDocumentsService } from './PlaceholderDocumentsService';
+import { PlaceholderQuaiController } from './PlaceholderQuaiController';
+import { PlaceholderUsersController } from './PlaceholderUsersController';
 
 type CollectionName =
-  | 'etatCivil'
-  | 'urbanisme'
   | 'notifications'
-  | 'pecheurs'
-  | 'embarcations'
-  | 'commissions'
-  | 'camions'
-  | 'expeditions'
   | 'settingsTarifs'
   | 'settingsPenalites'
   | 'settingsPermissions'
@@ -33,16 +26,18 @@ type CollectionName =
 
 export class PlaceholderController {
   private readonly supportService = new PlaceholderSupportService();
-  private readonly settingsService = new PlaceholderSettingsService(this.supportService);
-  private readonly notificationsService = new PlaceholderNotificationsService(this.supportService);
-  private readonly budgetService = new PlaceholderBudgetService(this.supportService);
-  private readonly quaiService = new PlaceholderQuaiService(this.supportService);
-  private readonly formationsService = new PlaceholderFormationsService(this.supportService);
-  private readonly etatCivilUrbanismeService = new PlaceholderEtatCivilUrbanismeService(this.supportService);
-  private readonly marketMotosService = new PlaceholderMarketMotosService(this.supportService);
-  private readonly auditService = new PlaceholderAuditService(this.supportService);
-  private readonly usersService = new PlaceholderUsersService(this.supportService);
-  private readonly documentsService = new PlaceholderDocumentsService(this.supportService);
+  readonly settingsService = new PlaceholderSettingsService(this.supportService);
+  readonly notificationsService = new PlaceholderNotificationsService(this.supportService);
+  readonly budgetService = new PlaceholderBudgetService(this.supportService);
+  readonly formationsService = new PlaceholderFormationsService(this.supportService);
+  readonly etatCivilUrbanismeService = new PlaceholderEtatCivilUrbanismeService(this.supportService);
+  readonly marketMotosService = new PlaceholderMarketMotosService(this.supportService);
+  readonly auditService = new PlaceholderAuditService(this.supportService);
+  readonly documentsService = new PlaceholderDocumentsService(this.supportService);
+
+  // Controllers délégués
+  readonly quaiController = new PlaceholderQuaiController(this.supportService);
+  readonly usersController = new PlaceholderUsersController(this.supportService);
 
   readonly upload = multer({
     storage: multer.memoryStorage(),
@@ -58,82 +53,12 @@ export class PlaceholderController {
   });
 
   async listCollection(collection: CollectionName, req: Request, res: Response) {
-    if (collection === 'pecheurs') {
-      return ok(res, await this.quaiService.listCollection('pecheurs', req.query.year ? Number(req.query.year) : new Date().getFullYear()));
-    }
-    if (collection === 'embarcations') {
-      return ok(res, await this.quaiService.listCollection('embarcations', req.query.year ? Number(req.query.year) : new Date().getFullYear()));
-    }
-    if (collection === 'commissions') {
-      return ok(res, await this.quaiService.listCollection('commissions', req.query.year ? Number(req.query.year) : new Date().getFullYear()));
-    }
-    if (collection === 'camions') {
-      return ok(res, await this.quaiService.listCollection('camions', req.query.year ? Number(req.query.year) : new Date().getFullYear()));
-    }
-    if (collection === 'expeditions') {
-      return ok(res, await this.quaiService.listCollection('expeditions', req.query.year ? Number(req.query.year) : new Date().getFullYear()));
-    }
     if (collection === 'notifications') {
       const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
       const limit = req.query.limit ? Number(req.query.limit) : 50;
       return ok(res, await this.notificationsService.listNotifications(year, limit));
     }
-    throw new ValidationError(`Collection non supportée: ${collection}`);
-  }
-
-  async getCollectionItem(collection: CollectionName, req: Request, res: Response) {
-    if (collection === 'pecheurs') {
-      return ok(res, await this.quaiService.getCollectionItem('pecheurs', String(req.params.id)));
-    }
-    if (collection === 'embarcations') {
-      return ok(res, await this.quaiService.getCollectionItem('embarcations', String(req.params.id)));
-    }
-    if (collection === 'commissions') {
-      return ok(res, await this.quaiService.getCollectionItem('commissions', String(req.params.id)));
-    }
-    if (collection === 'camions') {
-      return ok(res, await this.quaiService.getCollectionItem('camions', String(req.params.id)));
-    }
-    if (collection === 'expeditions') {
-      return ok(res, await this.quaiService.getCollectionItem('expeditions', String(req.params.id)));
-    }
-    throw new ValidationError(`Collection non supportée: ${collection}`);
-  }
-
-  async createCollectionItem(collection: CollectionName) {
-    throw new ValidationError(`Création non supportée pour la collection: ${collection}`);
-  }
-
-  async updateCollectionItem(collection: CollectionName, req: Request, res: Response) {
-    if (['pecheurs', 'embarcations', 'commissions', 'camions', 'expeditions'].includes(collection)) {
-      return ok(res, await this.quaiService.updateResource(collection as QuaiCollection, req as AuthRequest));
-    }
-    throw new ValidationError(`Mise à jour non supportée pour la collection: ${collection}`);
-  }
-
-  async deleteCollectionItem(collection: CollectionName, req: Request, res: Response) {
-    if (['pecheurs', 'embarcations', 'commissions', 'camions', 'expeditions'].includes(collection)) {
-      await this.quaiService.deleteResource(collection as QuaiCollection, req as AuthRequest);
-      return message(res, 'Suppression effectuée');
-    }
-    throw new ValidationError(`Suppression non supportée pour la collection: ${collection}`);
-  }
-
-  async listUsers(req: Request, res: Response) {
-    return ok(res, await this.usersService.listUsers(String(req.query.search || '')));
-  }
-
-  async createUser(req: Request, res: Response) {
-    return ok(res, await this.usersService.createUser(req as AuthRequest), 201);
-  }
-
-  async updateUser(req: Request, res: Response) {
-    return ok(res, await this.usersService.updateUser(req as AuthRequest, String(req.params.id)));
-  }
-
-  async deleteUser(req: Request, res: Response) {
-    const result = await this.usersService.deleteUser(req as AuthRequest, String(req.params.id));
-    return message(res, result.message);
+    throw new ValidationError(`Collection non supportée par listCollection: ${collection}`);
   }
 
   async listFormations(req: Request, res: Response) {
@@ -294,7 +219,6 @@ export class PlaceholderController {
   }
 
   async changeMotoDriver(req: Request, res: Response) {
-    req.body = { ...(req.body || {}), conducteurId: req.body?.conducteurId, permis: req.body?.permis };
     return this.updateMoto(req, res);
   }
 
@@ -341,19 +265,6 @@ export class PlaceholderController {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${exported.filename}"`);
     res.send(exported.content);
-  }
-
-  async quaiPecheStats(_req: Request, res: Response) {
-    const year = _req.query.year ? Number(_req.query.year) : new Date().getFullYear();
-    return ok(res, await this.quaiService.getStats(year));
-  }
-
-  async createQuaiResource(
-    collection: 'pecheurs' | 'embarcations' | 'commissions' | 'camions' | 'expeditions',
-    req: Request,
-    res: Response
-  ) {
-    return ok(res, await this.quaiService.createResource(collection as QuaiCollection, req as AuthRequest), 201);
   }
 
   async markRead(req: Request, res: Response) {

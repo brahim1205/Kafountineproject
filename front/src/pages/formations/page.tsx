@@ -102,7 +102,7 @@ function mapJeuneToUi(jeune: Jeune, enrollment: JeuneFormationEnrollment | null)
     niveauEtude: jeune.niveauEtude,
     sexe: jeune.sexe,
     dateNaissance: jeune.dateNaiss,
-    photo: jeune.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent((jeune.prenom || 'J') + '+' + (jeune.nom || 'N'))}&background=0D8ABC&color=fff&size=128`,
+    photo: jeune.photo || '',
     dateInscription: enrollment?.dateInscription || jeune.createdAt || '',
     tauxAssiduite: enrollment?.tauxAssiduite || 0,
     statutFinal: enrollment?.statutFinal || 'En cours',

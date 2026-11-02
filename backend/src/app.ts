@@ -2,6 +2,7 @@ import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import swaggerUi from 'swagger-ui-express';
 import { buildContainer } from './shared/container';
@@ -38,13 +39,40 @@ function buildMetricsPayload() {
   return `${lines.join('\n')}\n`;
 }
 
+function isValidBearerToken(headerValue: string | undefined, expectedToken: string) {
+  const prefix = 'Bearer ';
+  if (!headerValue?.startsWith(prefix)) {
+    return false;
+  }
+
+  const providedToken = headerValue.slice(prefix.length);
+  const provided = Buffer.from(providedToken);
+  const expected = Buffer.from(expectedToken);
+
+  return provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
+}
+
+function requireMetricsBearerToken(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (!env.isProduction || !env.metricsBearerToken) {
+    return next();
+  }
+
+  if (!isValidBearerToken(req.header('authorization'), env.metricsBearerToken)) {
+    return res.status(401).json({ success: false, message: 'Token métriques requis' });
+  }
+
+  return next();
+}
+
 export function createApp() {
   const app = express();
   const container = buildContainer();
 
   app.disable('x-powered-by');
-  app.set('trust proxy', 1);
-  app.use(helmet());
+  app.set('trust proxy', env.trustProxy === 'false' ? false : env.trustProxy);
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'same-site' },
+  }));
   if (env.compressionEnabled) {
     app.use(compression());
   }
@@ -52,7 +80,15 @@ export function createApp() {
   app.use(requestLogger);
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-  app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+  app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads'), {
+    fallthrough: false,
+    immutable: true,
+    maxAge: '1d',
+    setHeaders: (res) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
+    },
+  }));
   app.use(csrfProtection);
   app.use('/api', rateLimit({
     keyPrefix: 'api-global',
@@ -75,7 +111,7 @@ export function createApp() {
   });
 
   if (env.enableMetrics) {
-    app.get('/metrics', (_req, res) => {
+    app.get('/metrics', requireMetricsBearerToken, (_req, res) => {
       res.type('text/plain').send(buildMetricsPayload());
     });
   }
@@ -99,4 +135,3 @@ export function createApp() {
 
   return app;
 }
-

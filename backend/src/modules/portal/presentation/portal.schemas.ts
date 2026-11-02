@@ -8,13 +8,15 @@ export const dashboardStatisticsQuerySchema = z.object({
 
 export const portalLoginSchema = z
   .object({
-    nin: optionalTrimmedString(30),
-    telephone: optionalTrimmedString(20),
+    nin: trimmedString(3, 30, 'NIN requis'),
+    telephone: trimmedString(3, 20, 'Téléphone requis'),
   })
-  .strict()
-  .refine((value) => Boolean(value.nin || value.telephone), {
-    message: 'Veuillez renseigner un NIN ou un numéro de téléphone',
-  });
+  .strict();
+
+export const portalOtpVerifySchema = z.object({
+  requestId: z.string().uuid('Demande OTP invalide'),
+  code: z.string().trim().regex(/^\d{6}$/, 'Code OTP invalide'),
+}).strict();
 
 export const portalRegisterSchema = z.object({
   nin: trimmedString(3, 30, 'NIN requis'),

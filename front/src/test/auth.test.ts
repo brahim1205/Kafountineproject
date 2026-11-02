@@ -5,6 +5,7 @@ describe('Auth Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
     document.cookie.split(';').forEach((c) => {
       document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/');
     });
@@ -12,14 +13,11 @@ describe('Auth Service', () => {
   });
 
   describe('loginRequest', () => {
-    it('should return user and token on successful login', async () => {
+    it('should return user on successful login', async () => {
       const mockResponse = {
         success: true,
         data: {
           user: { id: '1', email: 'test@test.com', nom: 'Test', prenom: 'User', role: 'ADMIN' },
-          token: 'test-jwt-token',
-          accessToken: 'test-jwt-token',
-          refreshToken: 'test-refresh-token',
         },
       };
 
@@ -30,8 +28,6 @@ describe('Auth Service', () => {
 
       const result = await loginRequest({ email: 'test@test.com', password: 'password123' });
 
-      expect(result.accessToken).toBe('test-jwt-token');
-      expect(result.refreshToken).toBe('test-refresh-token');
       expect(result.user.email).toBe('test@test.com');
     });
 
@@ -47,12 +43,9 @@ describe('Auth Service', () => {
   });
 
   describe('saveSession', () => {
-    it('should save session data to localStorage', () => {
+    it('should save session data to sessionStorage', () => {
       const session = {
         user: { id: '1', email: 'test@test.com', nom: 'Test', prenom: 'User', role: 'ADMIN' },
-        token: 'test-token',
-        accessToken: 'test-token',
-        refreshToken: 'test-refresh',
       };
 
       saveSession(session);

@@ -40,6 +40,7 @@ module "rds" {
   allocated_storage    = 20
   max_allocated_storage = 100
   storage_type         = "gp3"
+  storage_encrypted    = true
   db_name              = "kafontine"
   username             = var.db_username
   password             = var.db_password
@@ -47,10 +48,13 @@ module "rds" {
 
   vpc_security_group_ids = [module.rds.security_group_id]
   db_subnet_group_name   = module.vpc.database_subnet_group_name
-  skip_final_snapshot = true
+  deletion_protection = true
+  skip_final_snapshot = false
+  final_snapshot_identifier_prefix = "kafontine-db-final"
 
-  backup_retention_period = 7
-  multi_az                = false
+  backup_retention_period = var.db_backup_retention_days
+  multi_az                = var.db_multi_az
+  publicly_accessible     = false
 
   performance_insights_enabled = true
   monitoring_interval         = "5"

@@ -10,7 +10,7 @@ spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: kafontine-backend
+      app: backend
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -21,4 +21,4 @@ spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: kafontine-frontend
+      app: frontend

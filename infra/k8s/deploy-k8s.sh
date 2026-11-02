@@ -18,6 +18,17 @@ echo "=========================================="
 # Vérifier les prérequis
 command -v kubectl >/dev/null 2>&1 || { echo "kubectl est requis"; exit 1; }
 
+apply_if_present() {
+    local file="$1"
+    local label="$2"
+    if [[ -s "$file" ]]; then
+        echo "→ ${label}..."
+        kubectl apply -f "$file"
+    else
+        echo "→ ${label}: fichier absent ou vide, étape ignorée."
+    fi
+}
+
 # Vérifier la connexion au cluster
 if ! kubectl cluster-info >/dev/null 2>&1; then
     echo "ERREUR: Impossible de se connecter au cluster Kubernetes"
@@ -34,7 +45,21 @@ kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1 || {
 echo ""
 echo "→ Déploiement des ConfigMaps et Secrets..."
 kubectl apply -f "${SCRIPT_DIR}/01-configmap.yml"
+if [[ ! -f "${SCRIPT_DIR}/02-secret.yml" ]]; then
+    echo "ERREUR: ${SCRIPT_DIR}/02-secret.yml est requis et ne doit pas être commité."
+    echo "Copiez ${SCRIPT_DIR}/02-secret.example.yml vers 02-secret.yml et remplacez tous les placeholders."
+    exit 1
+fi
+if grep -q "__SET_" "${SCRIPT_DIR}/02-secret.yml"; then
+    echo "ERREUR: ${SCRIPT_DIR}/02-secret.yml contient encore des placeholders __SET_." >&2
+    exit 1
+fi
 kubectl apply -f "${SCRIPT_DIR}/02-secret.yml"
+
+echo ""
+echo "→ Déploiement RBAC et NetworkPolicies..."
+kubectl apply -f "${SCRIPT_DIR}/13-rbac.yml"
+kubectl apply -f "${SCRIPT_DIR}/12-network-policy.yml"
 
 echo ""
 echo "→ Déploiement de la base de données..."
@@ -45,8 +70,7 @@ echo "→ Déploiement de Redis..."
 kubectl apply -f "${SCRIPT_DIR}/04-redis.yml"
 
 echo ""
-echo "→ Déploiement de PgBouncer..."
-kubectl apply -f "${SCRIPT_DIR}/05-pgbouncer.yml"
+apply_if_present "${SCRIPT_DIR}/05-pgbouncer.yml" "Déploiement de PgBouncer"
 
 echo ""
 echo "→ Attente de la disponibilité de la base de données..."
@@ -61,13 +85,16 @@ echo "→ Déploiement du frontend..."
 kubectl apply -f "${SCRIPT_DIR}/07-frontend.yml"
 
 echo ""
-echo "→ Déploiement de l'ingress..."
-kubectl apply -f "${SCRIPT_DIR}/08-ingress.yml"
+apply_if_present "${SCRIPT_DIR}/08-ingress.yml" "Déploiement de l'ingress"
 
 echo ""
 echo "→ Déploiement de l'observabilité..."
 kubectl apply -f "${SCRIPT_DIR}/09-prometheus.yml"
-kubectl apply -f "${SCRIPT_DIR}/10-grafana.yml"
+apply_if_present "${SCRIPT_DIR}/10-grafana.yml" "Déploiement de Grafana"
+
+echo ""
+echo "→ Déploiement des PodDisruptionBudgets..."
+kubectl apply -f "${SCRIPT_DIR}/14-pod-disruption-budget.yml"
 
 echo ""
 echo "=========================================="

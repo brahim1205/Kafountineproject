@@ -83,7 +83,7 @@ export default function Utilisateurs() {
         nom,
         role: String(fd.get('role') || 'AGENT'),
         telephone: String(fd.get('phone') || '').trim(),
-        password: String(fd.get('password') || 'password123'),
+        password: String(fd.get('password') || '').trim(),
       });
       setShowAddModal(false);
       await loadData();
@@ -255,7 +255,7 @@ export default function Utilisateurs() {
 
       {showAddModal && (
         <Modal title="Nouvel utilisateur" onClose={() => setShowAddModal(false)}>
-          <UserForm onSubmit={handleCreate} onCancel={() => setShowAddModal(false)} />
+          <UserForm onSubmit={handleCreate} onCancel={() => setShowAddModal(false)} requirePassword />
         </Modal>
       )}
 
@@ -354,10 +354,12 @@ function UserForm({
   onSubmit,
   onCancel,
   defaultValues,
+  requirePassword = false,
 }: {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   defaultValues?: { name?: string; email?: string; role?: string; phone?: string; status?: string };
+  requirePassword?: boolean;
 }) {
   return (
     <form onSubmit={onSubmit} onInput={clearFieldValidationError} noValidate className="space-y-4">
@@ -388,7 +390,7 @@ function UserForm({
       
       {/* Troisième ligne: Mot de passe + Statut */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Mot de passe" name="password" type="password" />
+        <Field label="Mot de passe" name="password" type="password" required={requirePassword} minLength={12} autoComplete="new-password" />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
           <select
@@ -420,12 +422,16 @@ function Field({
   type = 'text',
   required,
   defaultValue,
+  minLength,
+  autoComplete,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
   defaultValue?: string;
+  minLength?: number;
+  autoComplete?: string;
 }) {
   return (
     <div>
@@ -434,6 +440,8 @@ function Field({
         name={name}
         type={type}
         data-required={required ? 'true' : undefined}
+        minLength={minLength}
+        autoComplete={autoComplete}
         defaultValue={defaultValue}
         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
       />

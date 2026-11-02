@@ -13,7 +13,8 @@ API REST pour la gestion municipale de Kafountine.
 ### Authentication
 L'API utilise l'authentification JWT. Pour accéder aux endpoints protégés:
 1. Authentifiez-vous via POST /api/v1/auth/login
-2. Utilisez le token JWT dans le header Authorization: Bearer <token>
+2. Le serveur pose des cookies HTTP-only (auth_token, refresh_token)
+3. Pour les clients non navigateur, le header Authorization: Bearer <token> reste supporté
 
 ### Rate Limiting
 - Auth endpoints: 5 requêtes par 15 minutes
@@ -57,8 +58,8 @@ Tous les endpoints peuvent retourner:
         cookieAuth: {
           type: 'apiKey',
           in: 'cookie',
-          name: 'token',
-          description: 'Cookie d\'authentification JWT',
+          name: 'auth_token',
+          description: 'Cookie HTTP-only d\'authentification JWT',
         },
       },
       schemas: {
@@ -129,8 +130,6 @@ Tous les endpoints peuvent retourner:
               type: 'object',
               properties: {
                 user: { $ref: '#/components/schemas/User' },
-                accessToken: { type: 'string', description: 'JWT access token' },
-                refreshToken: { type: 'string', description: 'JWT refresh token' },
               },
             },
           },

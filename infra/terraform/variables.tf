@@ -39,3 +39,15 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "db_backup_retention_days" {
+  description = "Number of days to retain RDS automated backups"
+  type        = number
+  default     = 30
+}
+
+variable "db_multi_az" {
+  description = "Deploy RDS in Multi-AZ mode"
+  type        = bool
+  default     = true
+}

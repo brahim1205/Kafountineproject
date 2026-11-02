@@ -44,6 +44,16 @@ if [ ! -f .env ]; then
     log_info "Fichier .env créé. Veuillez le modifier si nécessaire."
 fi
 
+if ! grep -q '^SEED_DEFAULT_PASSWORD=' .env; then
+    seed_password="$(openssl rand -base64 24 | tr -d '\n')"
+    printf '\nSEED_DEFAULT_PASSWORD=%s\n' "$seed_password" >> .env
+    log_info "Mot de passe seed local généré dans .env."
+fi
+
+set -a
+source .env
+set +a
+
 # Démarrer les services de base (PostgreSQL, Redis)
 log_info "Démarrage des services Docker (PostgreSQL, Redis)..."
 docker compose -f docker-compose.dev.yml up -d
@@ -106,8 +116,8 @@ log_info ""
 log_info "Ou avec Docker:"
 log_info "  docker compose -f docker-compose.dev.yml up -d"
 log_info ""
-log_info "Comptes créés:"
-log_info "  Admin: admin@kafountine.gouv.sn / password123"
-log_info "  Agent: agent@kafountine.gouv.sn / password123"
-log_info "  Comptable: comptable@kafountine.gouv.sn / password123"
+log_info "Comptes de démonstration créés avec le mot de passe SEED_DEFAULT_PASSWORD défini dans .env."
+log_info "  Admin: admin@kafountine.gouv.sn"
+log_info "  Agent: agent@kafountine.gouv.sn"
+log_info "  Comptable: comptable@kafountine.gouv.sn"
 log_info ""

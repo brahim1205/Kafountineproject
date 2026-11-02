@@ -7,6 +7,9 @@ const positiveNumberSchema = z.coerce.number().positive('Valeur positive requise
 const nonNegativeNumberSchema = z.coerce.number().min(0, 'Valeur positive ou nulle requise');
 const dateStringSchema = trimmedString(1, 50, 'Date invalide').refine((value) => !Number.isNaN(Date.parse(value)), 'Date invalide');
 const optionalDateStringSchema = optionalTrimmedString(50).refine((value) => value === undefined || !Number.isNaN(Date.parse(value)), 'Date invalide');
+const backupFilenameSchema = z
+  .string()
+  .regex(/^backup-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.json$/, 'Nom de fichier de sauvegarde invalide');
 const paginationSchema = {
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(300).optional().default(20),
@@ -26,7 +29,7 @@ export const publicIdParamsSchema = z.object({
 }).strict();
 
 export const backupFilenameParamsSchema = z.object({
-  filename: trimmedString(1, 255, 'Nom de fichier invalide'),
+  filename: backupFilenameSchema,
 }).strict();
 
 export const yearQuerySchema = z.object({
@@ -368,7 +371,7 @@ export const updatePermissionSchema = z.object({
 export const createBackupSchema = z.object({}).strict();
 
 export const restoreBackupSchema = z.object({
-  filename: trimmedString(1, 255, 'Nom du fichier requis'),
+  filename: backupFilenameSchema,
 }).strict();
 
 export const exportReceiptPdfSchema = z.object({

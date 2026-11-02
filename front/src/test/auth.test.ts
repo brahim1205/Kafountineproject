@@ -21,7 +21,7 @@ describe('Auth Service', () => {
         },
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       });
@@ -32,7 +32,7 @@ describe('Auth Service', () => {
     });
 
     it('should throw error on failed login', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         json: () => Promise.resolve({ success: false, message: 'Invalid credentials' }),
       });
@@ -42,7 +42,7 @@ describe('Auth Service', () => {
     });
 
     it('should report an unreachable server in French on network error', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+      globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
       await expect(loginRequest({ email: 'test@test.com', password: 'password123' }))
         .rejects.toThrow('Impossible de contacter le serveur de connexion');
@@ -64,11 +64,11 @@ describe('Auth Service', () => {
 
   describe('logoutRequest', () => {
     it('should call logout endpoint', async () => {
-      global.fetch = vi.fn().mockResolvedValue({ ok: true });
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
 
       await logoutRequest('test-token');
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         '/api/v1/auth/logout',
         expect.objectContaining({
           method: 'POST',

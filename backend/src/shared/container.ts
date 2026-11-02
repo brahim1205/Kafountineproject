@@ -44,6 +44,8 @@ import { GetPortalProfileUseCase } from '../modules/portal/application/GetPortal
 import { RedisPortalPaymentStore } from '../modules/portal/infrastructure/RedisPortalPaymentStore';
 import { randomUUID } from 'node:crypto';
 import { PrismaAuditTrail } from './infrastructure/audit/PrismaAuditTrail';
+import { PrismaUnitOfWork } from './infrastructure/prisma/transactionContext';
+import { transactional } from './application/UnitOfWork';
 import { PrismaActorDirectory } from './infrastructure/audit/PrismaActorDirectory';
 import { PrismaContribuableLookup } from './infrastructure/contribuables/PrismaContribuableLookup';
 import { AuditController } from '../modules/audit/presentation/AuditController';
@@ -162,25 +164,75 @@ function buildMunicipalControllers() {
   const auditTrail = new PrismaAuditTrail();
   const actors = new PrismaActorDirectory();
   const contribuables = new PrismaContribuableLookup();
+  // Chaque écriture et son entrée d'audit sont validées ensemble, ou pas du tout.
+  const uow = new PrismaUnitOfWork();
 
   return {
-    formations: new FormationsController(new FormationService(new PrismaFormationRepository(), auditTrail)),
-    etatCivil: new EtatCivilController(new EtatCivilService(new PrismaEtatCivilRepository(), contribuables, auditTrail), actors),
-    urbanisme: new UrbanismeController(new UrbanismeService(new PrismaUrbanismeRepository(), contribuables, auditTrail), actors),
-    marche: new MarcheController(new MarcheService(new PrismaMarcheRepository(), contribuables, auditTrail)),
-    motos: new MotosController(new MotoService(new PrismaMotoRepository(), contribuables, actors, auditTrail)),
-    audit: new AuditController(new AuditService(new PrismaAuditLogRepository(), auditTrail)),
-    notifications: new NotificationsController(new NotificationService(new PrismaNotificationRepository(), auditTrail)),
-    utilisateurs: new UtilisateursController(
-      new UtilisateurService(new PrismaUtilisateurRepository(), new BcryptPasswordHasher(), auditTrail)
+    formations: new FormationsController(
+      transactional(new FormationService(new PrismaFormationRepository(), auditTrail), uow, [
+        'createFormation',
+        'updateFormation',
+        'deleteFormation',
+        'createJeune',
+        'deleteJeune',
+        'inscrireJeune',
+      ])
     ),
-    quaiPeche: new QuaiPecheController(new QuaiPecheService(new PrismaQuaiPecheRepository(), auditTrail)),
+    etatCivil: new EtatCivilController(
+      transactional(new EtatCivilService(new PrismaEtatCivilRepository(), contribuables, auditTrail), uow, ['create', 'update', 'delete']),
+      actors
+    ),
+    urbanisme: new UrbanismeController(
+      transactional(new UrbanismeService(new PrismaUrbanismeRepository(), contribuables, auditTrail), uow, ['create', 'update', 'delete']),
+      actors
+    ),
+    marche: new MarcheController(
+      transactional(new MarcheService(new PrismaMarcheRepository(), contribuables, auditTrail), uow, [
+        'createPlace',
+        'updatePlace',
+        'createPayment',
+      ])
+    ),
+    motos: new MotosController(
+      transactional(new MotoService(new PrismaMotoRepository(), contribuables, actors, auditTrail), uow, ['create', 'update', 'createPayment'])
+    ),
+    audit: new AuditController(new AuditService(new PrismaAuditLogRepository(), auditTrail)),
+    notifications: new NotificationsController(
+      transactional(new NotificationService(new PrismaNotificationRepository(), auditTrail), uow, ['openCurrentYear'])
+    ),
+    utilisateurs: new UtilisateursController(
+      transactional(new UtilisateurService(new PrismaUtilisateurRepository(), new BcryptPasswordHasher(), auditTrail), uow, [
+        'create',
+        'update',
+        'delete',
+      ])
+    ),
+    quaiPeche: new QuaiPecheController(
+      transactional(new QuaiPecheService(new PrismaQuaiPecheRepository(), auditTrail), uow, ['create', 'update', 'delete'])
+    ),
+    // Les sauvegardes restent hors unité de travail : la restauration gère sa propre transaction.
     parametres: new ParametresController(
-      new ParametresService(new PrismaParametresRepository(), new PrismaBackupStore(), auditTrail)
+      transactional(new ParametresService(new PrismaParametresRepository(), new PrismaBackupStore(), auditTrail), uow, [
+        'createTariff',
+        'updateTariff',
+        'deleteTariff',
+        'createPenalty',
+        'updatePenalty',
+        'deletePenalty',
+        'updatePermission',
+      ])
     ),
     medias: new MediasController(new ImageService(new LocalImageStorage(), randomUUID)),
     rapports: new RapportsController(new RapportService(new PrismaLedgerSource(), auditTrail)),
-    budget: new BudgetController(new BudgetService(new PrismaBudgetRepository(), auditTrail)),
+    budget: new BudgetController(
+      transactional(new BudgetService(new PrismaBudgetRepository(), auditTrail), uow, [
+        'createLine',
+        'updateLine',
+        'deleteLine',
+        'createRequest',
+        'updateRequest',
+      ])
+    ),
   };
 }
 

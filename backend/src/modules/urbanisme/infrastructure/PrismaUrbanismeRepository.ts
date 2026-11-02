@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type { UrbanismeCase, UrbanismeDisplay, UrbanismeRepository, UrbanismeValues } from '../domain/Urbanisme';
 
 const SELECT_WITH_RELATIONS = `SELECT
@@ -71,14 +71,14 @@ const SQL_UPDATE = `UPDATE "UrbanismeCase"
 
 export class PrismaUrbanismeRepository implements UrbanismeRepository {
   list(year: number) {
-    return prisma.$queryRawUnsafe<UrbanismeCase[]>(
+    return db().$queryRawUnsafe<UrbanismeCase[]>(
       SQL_LIST,
       year
     );
   }
 
   async findById(id: string) {
-    const [row] = await prisma.$queryRawUnsafe<UrbanismeCase[]>(
+    const [row] = await db().$queryRawUnsafe<UrbanismeCase[]>(
       SQL_FIND_BY_ID,
       id
     );
@@ -89,7 +89,7 @@ export class PrismaUrbanismeRepository implements UrbanismeRepository {
     values: UrbanismeValues & { contribuableId: string; agentId: string | null; year: number },
     display: UrbanismeDisplay
   ) {
-    const [row] = await prisma.$queryRawUnsafe<UrbanismeCase[]>(
+    const [row] = await db().$queryRawUnsafe<UrbanismeCase[]>(
       SQL_CREATE,
       randomUUID(),
       values.numero,
@@ -115,7 +115,7 @@ export class PrismaUrbanismeRepository implements UrbanismeRepository {
   }
 
   async update(id: string, values: UrbanismeValues, display: UrbanismeDisplay) {
-    const [row] = await prisma.$queryRawUnsafe<UrbanismeCase[]>(
+    const [row] = await db().$queryRawUnsafe<UrbanismeCase[]>(
       SQL_UPDATE,
       id,
       values.numero,
@@ -138,11 +138,11 @@ export class PrismaUrbanismeRepository implements UrbanismeRepository {
   }
 
   async delete(id: string) {
-    await prisma.$executeRaw`DELETE FROM "UrbanismeCase" WHERE "id" = ${id}`;
+    await db().$executeRaw`DELETE FROM "UrbanismeCase" WHERE "id" = ${id}`;
   }
 
   listForStats(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<UrbanismeCase, 'montant' | 'statut'>>>(
+    return db().$queryRawUnsafe<Array<Pick<UrbanismeCase, 'montant' | 'statut'>>>(
       'SELECT "montant", "statut" FROM "UrbanismeCase" WHERE "year" = $1',
       year
     );

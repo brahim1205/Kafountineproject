@@ -1,4 +1,4 @@
-import { prisma } from '../prisma/prismaClient';
+import { db } from '../prisma/transactionContext';
 import type { ActorDirectory } from '../../audit/AuditTrail';
 
 export class PrismaActorDirectory implements ActorDirectory {
@@ -6,7 +6,7 @@ export class PrismaActorDirectory implements ActorDirectory {
     if (!userId) {
       return 'Agent municipal';
     }
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await db().user.findUnique({ where: { id: userId } });
     return user ? `${user.prenom} ${user.nom}`.trim() : 'Agent municipal';
   }
 }

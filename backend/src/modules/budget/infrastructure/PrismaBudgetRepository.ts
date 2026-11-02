@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type {
   BudgetLine,
   BudgetLineValues,
@@ -10,19 +10,19 @@ import type {
 
 export class PrismaBudgetRepository implements BudgetRepository {
   listLines(year: number) {
-    return prisma.$queryRawUnsafe<BudgetLine[]>(
+    return db().$queryRawUnsafe<BudgetLine[]>(
       'SELECT * FROM "BudgetLine" WHERE "year" = $1 ORDER BY "code" ASC, "libelle" ASC',
       year
     );
   }
 
   async findLineById(id: string) {
-    const [line] = await prisma.$queryRawUnsafe<BudgetLine[]>('SELECT * FROM "BudgetLine" WHERE "id" = $1 LIMIT 1', id);
+    const [line] = await db().$queryRawUnsafe<BudgetLine[]>('SELECT * FROM "BudgetLine" WHERE "id" = $1 LIMIT 1', id);
     return line || null;
   }
 
   async findLineByCode(code: string, year: number) {
-    const [line] = await prisma.$queryRawUnsafe<BudgetLine[]>(
+    const [line] = await db().$queryRawUnsafe<BudgetLine[]>(
       'SELECT * FROM "BudgetLine" WHERE "code" = $1 AND "year" = $2 LIMIT 1',
       code,
       year
@@ -31,7 +31,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async createLine(values: BudgetLineValues) {
-    const [line] = await prisma.$queryRawUnsafe<BudgetLine[]>(
+    const [line] = await db().$queryRawUnsafe<BudgetLine[]>(
       'INSERT INTO "BudgetLine" ("id", "code", "libelle", "description", "prevu", "depense", "year", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
       randomUUID(),
       values.code,
@@ -45,7 +45,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async updateLine(id: string, values: BudgetLineValues) {
-    const [line] = await prisma.$queryRawUnsafe<BudgetLine[]>(
+    const [line] = await db().$queryRawUnsafe<BudgetLine[]>(
       'UPDATE "BudgetLine" SET "code" = $2, "libelle" = $3, "description" = $4, "prevu" = $5, "depense" = $6, "year" = $7, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = $1 RETURNING *',
       id,
       values.code,
@@ -59,18 +59,18 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async deleteLine(id: string) {
-    await prisma.$executeRaw`DELETE FROM "BudgetLine" WHERE "id" = ${id}`;
+    await db().$executeRaw`DELETE FROM "BudgetLine" WHERE "id" = ${id}`;
   }
 
   listRequests(year: number) {
-    return prisma.$queryRawUnsafe<BudgetRequest[]>(
+    return db().$queryRawUnsafe<BudgetRequest[]>(
       'SELECT * FROM "BudgetRequest" WHERE "year" = $1 ORDER BY "createdAt" DESC',
       year
     );
   }
 
   async findRequestById(id: string) {
-    const [request] = await prisma.$queryRawUnsafe<BudgetRequest[]>(
+    const [request] = await db().$queryRawUnsafe<BudgetRequest[]>(
       'SELECT * FROM "BudgetRequest" WHERE "id" = $1 LIMIT 1',
       id
     );
@@ -78,7 +78,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async createRequest(values: Omit<BudgetRequest, 'id' | 'createdAt' | 'updatedAt'>) {
-    const [request] = await prisma.$queryRawUnsafe<BudgetRequest[]>(
+    const [request] = await db().$queryRawUnsafe<BudgetRequest[]>(
       'INSERT INTO "BudgetRequest" ("id", "service", "description", "montant", "statut", "motif", "year", "requestedById", "approvedById", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
       randomUUID(),
       values.service,
@@ -94,7 +94,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async updateRequest(id: string, values: BudgetRequestValues) {
-    const [request] = await prisma.$queryRawUnsafe<BudgetRequest[]>(
+    const [request] = await db().$queryRawUnsafe<BudgetRequest[]>(
       'UPDATE "BudgetRequest" SET "service" = $2, "description" = $3, "montant" = $4, "statut" = $5, "motif" = $6, "approvedById" = $7, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = $1 RETURNING *',
       id,
       values.service,

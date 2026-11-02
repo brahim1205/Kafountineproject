@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db, inTransaction } from '../../../shared/infrastructure/prisma/transactionContext';
 import type {
   MotoPayment,
   MotoPaymentValues,
@@ -92,14 +92,14 @@ const SQL_UPDATE = `UPDATE "MotoRegistration"
 
 export class PrismaMotoRepository implements MotoRepository {
   list(year: number) {
-    return prisma.$queryRawUnsafe<MotoRegistration[]>(
+    return db().$queryRawUnsafe<MotoRegistration[]>(
       SQL_LIST,
       year
     );
   }
 
   async findById(id: string) {
-    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
+    const [row] = await db().$queryRawUnsafe<MotoRegistration[]>(
       SQL_FIND_BY_ID,
       id
     );
@@ -107,7 +107,7 @@ export class PrismaMotoRepository implements MotoRepository {
   }
 
   async findIdByMatricule(matricule: string) {
-    const [row] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    const [row] = await db().$queryRawUnsafe<Array<{ id: string }>>(
       'SELECT "id" FROM "MotoRegistration" WHERE "matricule" = $1 LIMIT 1',
       matricule
     );
@@ -115,7 +115,7 @@ export class PrismaMotoRepository implements MotoRepository {
   }
 
   async findIdByPermis(permis: string) {
-    const [row] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    const [row] = await db().$queryRawUnsafe<Array<{ id: string }>>(
       'SELECT "id" FROM "MotoRegistration" WHERE "permis" = $1 LIMIT 1',
       permis
     );
@@ -123,7 +123,7 @@ export class PrismaMotoRepository implements MotoRepository {
   }
 
   async create(values: MotoValues, people: MotoPeopleDisplay) {
-    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
+    const [row] = await db().$queryRawUnsafe<MotoRegistration[]>(
       SQL_CREATE,
       randomUUID(),
       ...this.valueParams(values),
@@ -133,7 +133,7 @@ export class PrismaMotoRepository implements MotoRepository {
   }
 
   async update(id: string, values: MotoValues, people: MotoPeopleDisplay) {
-    const [row] = await prisma.$queryRawUnsafe<MotoRegistration[]>(
+    const [row] = await db().$queryRawUnsafe<MotoRegistration[]>(
       SQL_UPDATE,
       id,
       ...this.valueParams(values),
@@ -143,21 +143,21 @@ export class PrismaMotoRepository implements MotoRepository {
   }
 
   listForStats(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<MotoRegistration, 'enRetard' | 'statut'>>>(
+    return db().$queryRawUnsafe<Array<Pick<MotoRegistration, 'enRetard' | 'statut'>>>(
       'SELECT "enRetard", "statut" FROM "MotoRegistration" WHERE "year" = $1',
       year
     );
   }
 
   listPaymentAmounts(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<MotoPayment, 'montant'>>>(
+    return db().$queryRawUnsafe<Array<Pick<MotoPayment, 'montant'>>>(
       'SELECT "montant" FROM "MotoPayment" WHERE "year" = $1',
       year
     );
   }
 
   listPayments(year: number) {
-    return prisma.$queryRawUnsafe<MotoPayment[]>(
+    return db().$queryRawUnsafe<MotoPayment[]>(
       `SELECT
         mp.*,
         m."matricule",
@@ -193,7 +193,7 @@ export class PrismaMotoRepository implements MotoRepository {
   }
 
   recordPayment(values: MotoPaymentValues, moto: MotoRegistration) {
-    return prisma.$transaction(async (tx) => {
+    return inTransaction(async (tx) => {
       const [row] = await tx.$queryRawUnsafe<MotoPayment[]>(
       `INSERT INTO "MotoPayment" ("id", "motoId", "montant", "reference", "statut", "datePaiement", "mois", "numeroRecu", "agent", "year", "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, 'PAYE', $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)

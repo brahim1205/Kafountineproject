@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type { EtatCivilDisplay, EtatCivilRepository, EtatCivilRequest, EtatCivilValues } from '../domain/EtatCivil';
 
 const SELECT_WITH_RELATIONS = `SELECT
@@ -64,14 +64,14 @@ const SQL_UPDATE = `UPDATE "EtatCivilRequest"
 
 export class PrismaEtatCivilRepository implements EtatCivilRepository {
   list(year: number) {
-    return prisma.$queryRawUnsafe<EtatCivilRequest[]>(
+    return db().$queryRawUnsafe<EtatCivilRequest[]>(
       SQL_LIST,
       year
     );
   }
 
   async findById(id: string) {
-    const [row] = await prisma.$queryRawUnsafe<EtatCivilRequest[]>(
+    const [row] = await db().$queryRawUnsafe<EtatCivilRequest[]>(
       SQL_FIND_BY_ID,
       id
     );
@@ -82,7 +82,7 @@ export class PrismaEtatCivilRepository implements EtatCivilRepository {
     values: EtatCivilValues & { numero: string; agentId: string | null; year: number },
     display: EtatCivilDisplay
   ) {
-    const [row] = await prisma.$queryRawUnsafe<EtatCivilRequest[]>(
+    const [row] = await db().$queryRawUnsafe<EtatCivilRequest[]>(
       SQL_CREATE,
       randomUUID(),
       values.numero,
@@ -105,7 +105,7 @@ export class PrismaEtatCivilRepository implements EtatCivilRepository {
   }
 
   async update(id: string, values: EtatCivilValues, display: EtatCivilDisplay) {
-    const [row] = await prisma.$queryRawUnsafe<EtatCivilRequest[]>(
+    const [row] = await db().$queryRawUnsafe<EtatCivilRequest[]>(
       SQL_UPDATE,
       id,
       values.contribuableId,
@@ -125,11 +125,11 @@ export class PrismaEtatCivilRepository implements EtatCivilRepository {
   }
 
   async delete(id: string) {
-    await prisma.$executeRaw`DELETE FROM "EtatCivilRequest" WHERE "id" = ${id}`;
+    await db().$executeRaw`DELETE FROM "EtatCivilRequest" WHERE "id" = ${id}`;
   }
 
   listForStats(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<EtatCivilRequest, 'montant' | 'statut'>>>(
+    return db().$queryRawUnsafe<Array<Pick<EtatCivilRequest, 'montant' | 'statut'>>>(
       'SELECT "montant", "statut" FROM "EtatCivilRequest" WHERE "year" = $1',
       year
     );

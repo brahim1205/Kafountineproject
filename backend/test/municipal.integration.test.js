@@ -204,4 +204,37 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(after.body.data).toEqual(before.body.data);
     });
   });
+
+  describe('unité de travail', () => {
+    const load = (path) => require(`../dist/src/${path}`);
+    const { transactional } = load('shared/application/UnitOfWork');
+    const { PrismaUnitOfWork } = load('shared/infrastructure/prisma/transactionContext');
+    const { PrismaAuditTrail } = load('shared/infrastructure/audit/PrismaAuditTrail');
+    const { BudgetService } = load('modules/budget/application/BudgetService');
+    const { PrismaBudgetRepository } = load('modules/budget/infrastructure/PrismaBudgetRepository');
+    const actor = { userId: null, role: 'ADMIN', ipAddress: '127.0.0.1' };
+    const repository = new PrismaBudgetRepository();
+    const budget = (auditTrail) => transactional(new BudgetService(repository, auditTrail), new PrismaUnitOfWork(), ['createLine']);
+
+    it("annule l'écriture quand l'audit échoue", async () => {
+      const code = `UOW-KO-${suffix}`;
+      const failingAudit = { record: () => Promise.reject(new Error('audit indisponible')) };
+
+      await expect(budget(failingAudit).createLine(actor, { code, libelle: 'Rollback', prevu: 1000, year })).rejects.toThrow(
+        'audit indisponible'
+      );
+      expect(await repository.findLineByCode(code, year)).toBeNull();
+    });
+
+    it("valide ensemble l'écriture et son entrée d'audit", async () => {
+      const code = `UOW-OK-${suffix}`;
+
+      await budget(new PrismaAuditTrail()).createLine(actor, { code, libelle: 'Commit', prevu: 1000, year });
+
+      expect(await repository.findLineByCode(code, year)).toMatchObject({ code });
+      const logs = (await admin.get(`/audit?year=${year}&limit=200`)).body.data;
+      const items = logs.items || logs.logs || logs;
+      expect(JSON.stringify(items)).toContain(code);
+    });
+  });
 });

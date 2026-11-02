@@ -151,7 +151,7 @@ model EtatCivilRequest {
   observations   String?
   year           Int
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  updatedAt      DateTime @default(now()) @updatedAt
 
   contribuable Contribuable @relation(fields: [contribuableId], references: [id], onDelete: Cascade)
   agent        User?        @relation("EtatCivilAgent", fields: [agentId], references: [id], onDelete: SetNull)
@@ -177,7 +177,7 @@ model UrbanismeCase {
   statut         String   @default("EN_ATTENTE")
   year           Int
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  updatedAt      DateTime @default(now()) @updatedAt
 
   contribuable Contribuable @relation(fields: [contribuableId], references: [id], onDelete: Cascade)
   agent        User?        @relation("UrbanismeAgent", fields: [agentId], references: [id], onDelete: SetNull)
@@ -203,7 +203,7 @@ model MarketPlace {
   statut          String    @default("LIBRE")
   year            Int
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime  @default(now()) @updatedAt
 
   occupant Contribuable?   @relation(fields: [occupantId], references: [id], onDelete: SetNull)
   payments MarketPayment[]
@@ -224,7 +224,7 @@ model MarketPayment {
   datePaiement DateTime?
   year         Int
   createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  updatedAt    DateTime  @default(now()) @updatedAt
 
   place MarketPlace @relation(fields: [placeId], references: [id], onDelete: Cascade)
 
@@ -251,7 +251,7 @@ model MotoRegistration {
   dernierPaiement  DateTime?
   year             Int
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  updatedAt        DateTime  @default(now()) @updatedAt
 
   proprietaire Contribuable  @relation("MotoOwner", fields: [proprietaireId], references: [id], onDelete: Cascade)
   conducteur   Contribuable? @relation("MotoDriver", fields: [conducteurId], references: [id], onDelete: SetNull)
@@ -275,7 +275,7 @@ model MotoPayment {
   agent        String?
   year         Int
   createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  updatedAt    DateTime  @default(now()) @updatedAt
 
   moto MotoRegistration @relation(fields: [motoId], references: [id], onDelete: Cascade)
 
@@ -296,7 +296,7 @@ model TrainingProgram {
   statut      String   @default("PLANIFIEE")
   year        Int
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
 
   enrollments YouthEnrollment[]
 
@@ -317,7 +317,7 @@ model YouthProfile {
   photo       String?
   year        Int
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
 
   enrollments YouthEnrollment[]
 
@@ -334,7 +334,7 @@ model YouthEnrollment {
   presences       Int      @default(0)
   absences        Int      @default(0)
   createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime @default(now()) @updatedAt
 
   jeune     YouthProfile    @relation(fields: [jeuneId], references: [id], onDelete: Cascade)
   formation TrainingProgram @relation(fields: [formationId], references: [id], onDelete: Cascade)
@@ -352,7 +352,7 @@ model Fisherman {
   statut    String   @default("ACTIF")
   year      Int
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   boats       FishingBoat[]    @relation("FishingBoatOwner")
   commissions FishCommission[]
@@ -372,7 +372,7 @@ model FishingBoat {
   pecheurId       String?
   year            Int
   createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime @default(now()) @updatedAt
 
   pecheur Fisherman? @relation("FishingBoatOwner", fields: [pecheurId], references: [id], onDelete: SetNull)
 
@@ -393,7 +393,7 @@ model FishCommission {
   pecheurId    String
   year         Int
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
 
   pecheur Fisherman @relation(fields: [pecheurId], references: [id], onDelete: Cascade)
 
@@ -413,7 +413,7 @@ model RefrigeratedTruck {
   statut          String   @default("ACTIF")
   year            Int
   createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime @default(now()) @updatedAt
 
   expeditions ShippingExpedition[]
 
@@ -433,7 +433,7 @@ model ShippingExpedition {
   camionId     String
   year         Int
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
 
   camion RefrigeratedTruck @relation(fields: [camionId], references: [id], onDelete: Cascade)
 
@@ -451,7 +451,7 @@ model AppSettingTariff {
   description String?
   actif       Boolean  @default(true)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
 
   @@index([categorie])
   @@index([actif])
@@ -465,7 +465,7 @@ model AppSettingPenalty {
   delai       String
   actif       Boolean  @default(true)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
 
   @@index([actif])
 }
@@ -476,7 +476,7 @@ model AppSettingPermission {
   role      String
   enabled   Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@unique([module, role])
   @@index([role])
@@ -489,7 +489,7 @@ model BackupRecord {
   snapshot   String
   restoredAt DateTime?
   createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  updatedAt  DateTime  @default(now()) @updatedAt
 
   @@index([createdAt])
 }
@@ -507,7 +507,7 @@ model AppNotification {
   readAt       DateTime?
   year         Int
   createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  updatedAt    DateTime  @default(now()) @updatedAt
 
   @@index([year])
   @@index([lu])
@@ -525,7 +525,7 @@ model MunicipalTariffCategory {
   sortOrder     Int       @default(0)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime  @default(now()) @updatedAt
 
   items MunicipalTariffItem[]
 
@@ -545,7 +545,7 @@ model MunicipalTariffItem {
   sortOrder     Int       @default(0)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime  @default(now()) @updatedAt
 
   category MunicipalTariffCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 

@@ -11,6 +11,7 @@ import {
   getErrorMessage,
   validateFormElement,
 } from '../../utils/formValidation';
+import { downloadCsv, today } from '../../utils/csv';
 
 type RecetteRow = {
   id: string;
@@ -106,15 +107,10 @@ export default function Recettes() {
   };
 
   const handleExport = () => {
-    const csvContent = [
-      ['N° Ticket', 'Type', 'Contribuable', 'Agent', 'Montant', 'Date', 'Heure'].join(','),
-      ...filteredData.map((item) => [item.ticketNumber, item.type, item.contributor, item.agent, item.amount, item.date, item.time].join(',')),
-    ].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `recettes_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    downloadCsv(`recettes_${today()}.csv`, [
+      ['N° Ticket', 'Type', 'Contribuable', 'Agent', 'Montant', 'Date', 'Heure'],
+      ...filteredData.map((item) => [item.ticketNumber, item.type, item.contributor, item.agent, item.amount, item.date, item.time]),
+    ]);
   };
 
   const handleSubmitTicket = async (e: React.FormEvent<HTMLFormElement>) => {

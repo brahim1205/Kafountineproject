@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/feature/Toast';
 import { useYear } from '../../contexts/YearContext';
 import { getReportsOverview, getTopContribuablesApi, getDetailedReportData, type ReportsOverview, type JournalEntry } from '../../services/reports';
+import { downloadCsv } from '../../utils/csv';
 
 type PrimitiveStat = number | string | string[] | undefined;
 export type ModuleStatRecord = Record<string, PrimitiveStat>;
@@ -212,12 +213,7 @@ export function useReportsPage() {
       ...moduleStats.map((module) => [module.name, String(module.amount), String(Number(module.stats.evolution || 0))]),
       ['TOTAL', String(total), ''],
     ];
-    const csv = rows.map((row) => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `rapport-annuel-${selectedYear}.csv`;
-    link.click();
+    downloadCsv(`rapport-annuel-${selectedYear}.csv`, rows);
     showToast('Rapport exporte en CSV', 'success');
   };
 

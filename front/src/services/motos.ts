@@ -70,6 +70,8 @@ export type CreateMotoPayload = {
   conducteurId?: string;
   permis?: string;
   photo?: string;
+  /** Année d'exercice à laquelle la moto est rattachée (par défaut : année en cours). */
+  year?: number;
 };
 
 export type UpdateMotoPayload = Partial<CreateMotoPayload> & {

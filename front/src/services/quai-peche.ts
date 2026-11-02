@@ -92,18 +92,18 @@ export interface Expedition {
 // Pêcheurs
 // ============================================
 
-export async function listPecheurs(params?: {
-  search?: string;
-  statut?: string;
-  limit?: number;
-}): Promise<Pecheur[]> {
-  const queryParams = new URLSearchParams();
-  if (params?.search) queryParams.set('search', params.search);
-  if (params?.statut) queryParams.set('statut', params.statut);
-  if (params?.limit) queryParams.set('limit', String(params.limit));
-  
-  const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-  const result = await apiRequest<Pecheur[]>(`/quai-peche/pecheurs${query}`);
+/** Paramètres de liste acceptés par l'API du quai de pêche. */
+export type QuaiListParams = { year?: number; limit?: number };
+
+function quaiListQuery(params?: QuaiListParams) {
+  const query = new URLSearchParams();
+  if (params?.year) query.set('year', String(params.year));
+  if (params?.limit) query.set('limit', String(params.limit));
+  return query.toString() ? `?${query.toString()}` : '';
+}
+
+export async function listPecheurs(params?: QuaiListParams): Promise<Pecheur[]> {
+  const result = await apiRequest<Pecheur[]>(`/quai-peche/pecheurs${quaiListQuery(params)}`);
   return Array.isArray(result) ? result : [];
 }
 
@@ -151,20 +151,8 @@ export async function deletePecheur(id: string): Promise<void> {
 // Embarcations
 // ============================================
 
-export async function listEmbarcations(params?: {
-  search?: string;
-  statut?: string;
-  pecheurId?: string;
-  limit?: number;
-}): Promise<Embarcation[]> {
-  const queryParams = new URLSearchParams();
-  if (params?.search) queryParams.set('search', params.search);
-  if (params?.statut) queryParams.set('statut', params.statut);
-  if (params?.pecheurId) queryParams.set('pecheurId', params.pecheurId);
-  if (params?.limit) queryParams.set('limit', String(params.limit));
-  
-  const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-  const result = await apiRequest<Embarcation[]>(`/quai-peche/embarcations${query}`);
+export async function listEmbarcations(params?: QuaiListParams): Promise<Embarcation[]> {
+  const result = await apiRequest<Embarcation[]>(`/quai-peche/embarcations${quaiListQuery(params)}`);
   return Array.isArray(result) ? result : [];
 }
 
@@ -214,22 +202,8 @@ export async function deleteEmbarcation(id: string): Promise<void> {
 // Commissions Frigorifiques
 // ============================================
 
-export async function listCommissions(params?: {
-  search?: string;
-  statut?: string;
-  pecheurId?: string;
-  year?: number;
-  limit?: number;
-}): Promise<Commission[]> {
-  const queryParams = new URLSearchParams();
-  if (params?.search) queryParams.set('search', params.search);
-  if (params?.statut) queryParams.set('statut', params.statut);
-  if (params?.pecheurId) queryParams.set('pecheurId', params.pecheurId);
-  if (params?.year) queryParams.set('year', String(params.year));
-  if (params?.limit) queryParams.set('limit', String(params.limit));
-  
-  const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-  const result = await apiRequest<Commission[]>(`/quai-peche/commissions${query}`);
+export async function listCommissions(params?: QuaiListParams): Promise<Commission[]> {
+  const result = await apiRequest<Commission[]>(`/quai-peche/commissions${quaiListQuery(params)}`);
   return Array.isArray(result) ? result : [];
 }
 
@@ -289,18 +263,8 @@ export async function getQuaiPecheStats(year?: number): Promise<QuaiPecheStats> 
 // Camions Frigorifiques
 // ============================================
 
-export async function listCamions(params?: {
-  search?: string;
-  statut?: string;
-  limit?: number;
-}): Promise<CamionFrigorifique[]> {
-  const queryParams = new URLSearchParams();
-  if (params?.search) queryParams.set('search', params.search);
-  if (params?.statut) queryParams.set('statut', params.statut);
-  if (params?.limit) queryParams.set('limit', String(params.limit));
-  
-  const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-  const result = await apiRequest<CamionFrigorifique[]>(`/quai-peche/camions${query}`);
+export async function listCamions(params?: QuaiListParams): Promise<CamionFrigorifique[]> {
+  const result = await apiRequest<CamionFrigorifique[]>(`/quai-peche/camions${quaiListQuery(params)}`);
   return Array.isArray(result) ? result : [];
 }
 
@@ -350,20 +314,8 @@ export async function deleteCamion(id: string): Promise<void> {
 // Expeditions (Transports)
 // ============================================
 
-export async function listExpeditions(params?: {
-  search?: string;
-  statut?: string;
-  camionId?: string;
-  limit?: number;
-}): Promise<Expedition[]> {
-  const queryParams = new URLSearchParams();
-  if (params?.search) queryParams.set('search', params.search);
-  if (params?.statut) queryParams.set('statut', params.statut);
-  if (params?.camionId) queryParams.set('camionId', params.camionId);
-  if (params?.limit) queryParams.set('limit', String(params.limit));
-  
-  const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-  const result = await apiRequest<Expedition[]>(`/quai-peche/expeditions${query}`);
+export async function listExpeditions(params?: QuaiListParams): Promise<Expedition[]> {
+  const result = await apiRequest<Expedition[]>(`/quai-peche/expeditions${quaiListQuery(params)}`);
   return Array.isArray(result) ? result : [];
 }
 
@@ -377,7 +329,6 @@ export async function createExpedition(payload: {
   destination?: string;
   montant?: number;
   observations?: string;
-  commissionIds?: string[];
 }): Promise<Expedition> {
   return apiRequest<Expedition>('/quai-peche/expeditions', {
     method: 'POST',

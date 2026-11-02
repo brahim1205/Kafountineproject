@@ -1,4 +1,5 @@
 import { formatDate, type MotoConfig, type UiMoto } from '../types';
+import { downloadCsv, today } from '../../../utils/csv';
 
 type MotosEnRetardProps = {
   motos: UiMoto[];
@@ -8,26 +9,19 @@ type MotosEnRetardProps = {
 };
 
 function exportCsv(motos: UiMoto[]) {
-  const csvContent = [
-    ['Matricule', 'Marque', 'Modèle', 'Propriétaire', 'Téléphone', 'Jours de retard', 'Montant pénalité', 'Dernier paiement'].join(','),
-    ...motos.map((m) =>
-      [
-        m.matricule,
-        m.marque,
-        m.modele,
-        m.proprietaire?.nom || '',
-        m.proprietaire?.telephone || '',
-        m.joursRetard,
-        m.montantPenalite,
-        m.dernierPaiement ? new Date(m.dernierPaiement).toLocaleDateString('fr-FR') : 'Aucun',
-      ].join(',')
-    ),
-  ].join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `motos-retard-${new Date().toISOString().split('T')[0]}.csv`;
-  link.click();
+  downloadCsv(`motos-retard-${today()}.csv`, [
+    ['Matricule', 'Marque', 'Modèle', 'Propriétaire', 'Téléphone', 'Jours de retard', 'Montant pénalité', 'Dernier paiement'],
+    ...motos.map((m) => [
+      m.matricule,
+      m.marque,
+      m.modele,
+      m.proprietaire?.nom,
+      m.proprietaire?.telephone,
+      m.joursRetard,
+      m.montantPenalite,
+      m.dernierPaiement ? new Date(m.dernierPaiement).toLocaleDateString('fr-FR') : 'Aucun',
+    ]),
+  ]);
 }
 
 export default function MotosEnRetard({ motos, motoConfig, canManage, onPaiement }: MotosEnRetardProps) {

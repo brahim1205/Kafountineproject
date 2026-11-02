@@ -1,12 +1,25 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page, type BrowserContext } from '@playwright/test';
 
-/** Mot de passe des comptes seedés (SEED_DEFAULT_PASSWORD en CI). */
-const E2E_PASSWORD = process.env.E2E_PASSWORD || process.env.SEED_DEFAULT_PASSWORD || 'password123';
+let adminCookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
+
+// Business-page tests reuse a real session instead of exhausting login rate limits.
+export async function restoreAdminSession(page: Page) {
+  if (!adminCookies) {
+    await loginAsAdmin(page);
+    adminCookies = await page.context().cookies();
+    return;
+  }
+  await page.context().addCookies(adminCookies);
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/dashboard/);
+}
 
 export async function loginAsAdmin(page: Page) {
   await page.goto('/login');
   await page.getByLabel('Adresse email').fill('admin@kafountine.gouv.sn');
-  await page.getByLabel('Mot de passe').fill(E2E_PASSWORD);
+  const password = process.env.SEED_DEFAULT_PASSWORD;
+  if (!password) throw new Error('SEED_DEFAULT_PASSWORD must match the test database seed');
+  await page.getByLabel('Mot de passe').fill(password);
   await page.getByRole('button', { name: /se connecter/i }).click();
   await page.waitForURL('**/dashboard', { timeout: 10_000 });
 }

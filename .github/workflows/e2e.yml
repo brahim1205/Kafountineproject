@@ -10,6 +10,7 @@ on:
       - 'front/src/**'
       - 'front/playwright.config.ts'
       - 'front/package.json'
+      - 'front/package-lock.json'
       - 'backend/**'
       - 'scripts/security-repo-scan.sh'
       - '.github/workflows/e2e.yml'
@@ -19,6 +20,7 @@ on:
       - 'front/src/**'
       - 'front/playwright.config.ts'
       - 'front/package.json'
+      - 'front/package-lock.json'
       - 'backend/**'
       - 'scripts/security-repo-scan.sh'
       - '.github/workflows/e2e.yml'
@@ -98,7 +100,7 @@ jobs:
           npm run prisma:deploy
           npm run prisma:seed
           npm run build
-          npm run start > /tmp/kafontine-backend.log 2>&1 &
+          npm start > /tmp/kafontine-backend.log 2>&1 &
           sleep 10
 
       - name: Repository security scan
@@ -130,6 +132,7 @@ jobs:
         env:
           FRONTEND_URL: http://localhost:4173
           CI: 'true'
+          PLAYWRIGHT_EXTERNAL_SERVER: 'true'
 
       - name: Upload Playwright report
         if: always()

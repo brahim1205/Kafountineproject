@@ -63,9 +63,9 @@ if [[ -n "$frontend_third_party_assets" ]]; then
   failures=1
 fi
 
-if rg -q '/etc/nginx/templates/.*\.template' front/Dockerfile.prod &&
-   rg -q '\$(host|remote_addr|proxy_add_x_forwarded_for|scheme)' front/nginx.conf &&
-   ! rg -q 'NGINX_ENVSUBST_FILTER=.*NGINX_BACKEND_URL' front/Dockerfile.prod; then
+if grep -Eq '/etc/nginx/templates/.*\.template' front/Dockerfile.prod &&
+   grep -Eq '\$(host|remote_addr|proxy_add_x_forwarded_for|scheme)' front/nginx.conf &&
+   ! grep -Eq 'NGINX_ENVSUBST_FILTER=.*NGINX_BACKEND_URL' front/Dockerfile.prod; then
   echo "Nginx template uses native Nginx variables without NGINX_ENVSUBST_FILTER." >&2
   failures=1
 fi

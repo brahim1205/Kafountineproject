@@ -1,220 +1,116 @@
 name: Deploy Production
-
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+    branches: [main]
+    tags: ['v*']
+    paths: ['backend/**', 'front/**', '.github/workflows/deploy.yml', 'scripts/deploy-images.sh']
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - staging
-
-env:
-  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'docker.io' }}
-  IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME || 'kafontine' }}
-  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE || 'kafontine' }}
-  HELM_RELEASE: ${{ secrets.HELM_RELEASE || 'kafontine' }}
-  BACKEND_DEPLOYMENT: ${{ secrets.BACKEND_DEPLOYMENT || 'kafontine-backend' }}
-  FRONTEND_DEPLOYMENT: ${{ secrets.FRONTEND_DEPLOYMENT || 'kafontine-frontend' }}
+      deploy:
+        description: Deploy the verified images to production
+        type: boolean
+        default: false
 
 permissions:
-  actions: read
   contents: read
-  id-token: write
-  security-events: write
 
 concurrency:
-  group: production-deploy-${{ github.ref }}
+  group: production-mutation
   cancel-in-progress: false
 
+env:
+  IMAGE_PREFIX: ghcr.io/brahim1205/kafontine
+
 jobs:
-  security-scan:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: |
             backend/package-lock.json
             front/package-lock.json
-
-      - name: Validate production environment template
-        run: bash ./scripts/validate-prod-env.sh --allow-placeholders .env.prod.example
-
-      - name: Repository security scan
-        run: bash ./scripts/security-repo-scan.sh
-
-      - name: Install backend dependencies
-        run: npm ci
+      - run: bash ./scripts/security-repo-scan.sh
+      - run: npm ci
         working-directory: backend
-
-      - name: Install frontend dependencies
-        run: npm ci
+      - run: npm run check
+        working-directory: backend
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: backend
+      - run: npm ci
         working-directory: front
-
-      - name: Audit backend production dependencies
-        run: npm audit --omit=dev --audit-level=high
-        working-directory: backend
-
-      - name: Audit frontend production dependencies
-        run: npm audit --omit=dev --audit-level=high
+      - run: npm run lint && npm run type-check && npm run test:run && npm run build
+        working-directory: front
+      - run: npm audit --omit=dev --audit-level=high
         working-directory: front
 
   build-and-push:
+    needs: verify
     runs-on: ubuntu-latest
-    needs: security-scan
     timeout-minutes: 30
-    outputs:
-      enabled: ${{ steps.registry-check.outputs.enabled }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - component: backend
+            context: backend
+          - component: frontend
+            context: front
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check registry credentials
-        id: registry-check
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          if [ -n "${DOCKER_USERNAME}" ] && [ -n "${DOCKER_PASSWORD}" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Docker registry credentials are not configured. Skipping build-and-push."
-          fi
-
-      - name: Set up Docker Buildx
-        if: steps.registry-check.outputs.enabled == 'true'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Registry
-        if: steps.registry-check.outputs.enabled == 'true'
-        uses: docker/login-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push backend
-        if: steps.registry-check.outputs.enabled == 'true'
-        uses: docker/build-push-action@v5
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
         with:
-          context: ./backend
-          file: ./backend/Dockerfile.prod
+          context: ./${{ matrix.context }}
+          file: ./${{ matrix.context }}/Dockerfile.prod
           push: true
-          tags: |
-            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
-            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push frontend
-        if: steps.registry-check.outputs.enabled == 'true'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./front
-          file: ./front/Dockerfile.prod
-          push: true
-          tags: |
-            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
-            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ env.IMAGE_PREFIX }}-${{ matrix.component }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
 
   deploy:
-    runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name != 'pull_request' && needs.build-and-push.outputs.enabled == 'true'
+    if: inputs.deploy == true || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    env:
+      APP_DIR: ${{ vars.APP_DIR || '/opt/kafontine' }}
+      HEALTH_URL: ${{ secrets.HEALTH_URL || 'https://orbyteconsulting.tech/ready' }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check deployment prerequisites
-        id: deploy-check
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-          HEALTH_URL: ${{ secrets.HEALTH_URL }}
-        run: |
-          if [ -n "${KUBE_CONFIG_DATA}" ] && [ -n "${HEALTH_URL}" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Deployment secrets are incomplete. Skipping deploy job."
-          fi
-
-      - name: Setup kubectl
-        if: steps.deploy-check.outputs.enabled == 'true'
-        uses: azure/setup-kubectl@v4
+      - uses: ./.github/actions/production-ssh
         with:
-          version: 'latest'
-
-      - name: Setup Helm
-        if: steps.deploy-check.outputs.enabled == 'true'
-        uses: azure/setup-helm@v4
-
-      - name: Configure kubeconfig
-        if: steps.deploy-check.outputs.enabled == 'true'
-        run: |
-          mkdir -p "$HOME/.kube"
-          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      - name: Back up and deploy release images
         env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-
-      - name: Deploy with Helm
-        if: steps.deploy-check.outputs.enabled == 'true'
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          helm upgrade --install "${HELM_RELEASE}" infra/helm/kafontine \
-            --namespace "${K8S_NAMESPACE}" \
-            --create-namespace \
-            --set frontend.image.repository="${DOCKER_REGISTRY}/${IMAGE_NAME}-frontend" \
-            --set frontend.image.tag="${GITHUB_SHA}" \
-            --set backend.image.repository="${DOCKER_REGISTRY}/${IMAGE_NAME}-backend" \
-            --set backend.image.tag="${GITHUB_SHA}"
-        env:
-          GITHUB_SHA: ${{ github.sha }}
-
-      - name: Wait for rollout
-        if: steps.deploy-check.outputs.enabled == 'true'
-        run: |
-          kubectl rollout status deployment/"${BACKEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
-          kubectl rollout status deployment/"${FRONTEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
-
-      - name: Health Check
-        if: steps.deploy-check.outputs.enabled == 'true'
-        run: |
-          curl -f --max-time 60 "${HEALTH_URL}"
-        env:
-          HEALTH_URL: ${{ secrets.HEALTH_URL }}
-
-      - name: Notify deployment
-        if: always() && steps.deploy-check.outputs.enabled == 'true'
-        uses: slackapi/slack-github-action@v1.25.0
-        with:
-          payload: |
-            {
-              "text": "Deployment ${{ job.status }} for Kafontine",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "Deployment *${{ job.status }}* for Kafontine Municipal\nVersion: `${{ github.sha }}`\nEnvironment: Production"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          set -euo pipefail
+          [[ "$APP_DIR" =~ ^/[a-zA-Z0-9/_-]+$ ]]
+          [[ "$GITHUB_ACTOR" =~ ^[a-zA-Z0-9_-]+$ ]]
+          printf '%s' "$REGISTRY_TOKEN" | ssh kafontine-production "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin"
+          ssh kafontine-production "bash -s -- '$APP_DIR' 'pre_deploy_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}.dump'" < scripts/backup-production.sh
+          ssh kafontine-production "bash -s -- '$APP_DIR' '$IMAGE_PREFIX-backend:$GITHUB_SHA' '$IMAGE_PREFIX-frontend:$GITHUB_SHA' deploy" < scripts/deploy-images.sh
+      - name: Verify public readiness
+        run: curl -fsS --max-time 60 "$HEALTH_URL"
+      - name: Remove temporary SSH key
+        if: always()
+        run: rm -f ~/.ssh/kafontine_actions

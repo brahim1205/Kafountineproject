@@ -1,0 +1,58 @@
+name: Production SSH
+description: Configure an isolated SSH identity and verify the production host key
+inputs:
+  host:
+    required: true
+    description: Production host
+  username:
+    required: true
+    description: SSH user
+  key:
+    required: true
+    description: Private deployment key
+  known-hosts:
+    required: false
+    default: ''
+    description: Override the checked-in public host key for a different server
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        SSH_HOST: ${{ inputs.host }}
+        SSH_USERNAME: ${{ inputs.username }}
+        SSH_KEY: ${{ inputs.key }}
+        SSH_KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        set -euo pipefail
+        for key in SSH_HOST SSH_USERNAME SSH_KEY; do
+          if [ -z "${!key}" ]; then
+            echo "::error::Missing production secret: $key"
+            exit 1
+          fi
+        done
+        [[ "$SSH_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+        [[ "$SSH_USERNAME" =~ ^[a-zA-Z0-9_-]+$ ]]
+        install -d -m 700 ~/.ssh
+        umask 077
+        printf '%s\n' "$SSH_KEY" > ~/.ssh/kafontine_actions
+        if [ -n "$SSH_KNOWN_HOSTS" ]; then
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/kafontine_known_hosts
+        else
+          cp infra/ssh/known_hosts ~/.ssh/kafontine_known_hosts
+        fi
+        ssh-keygen -F "$SSH_HOST" -f ~/.ssh/kafontine_known_hosts >/dev/null
+        cat > ~/.ssh/config <<EOF
+        Host kafontine-production
+          HostName $SSH_HOST
+          User $SSH_USERNAME
+          IdentityFile ~/.ssh/kafontine_actions
+          IdentitiesOnly yes
+          BatchMode yes
+          StrictHostKeyChecking yes
+          UserKnownHostsFile ~/.ssh/kafontine_known_hosts
+          ConnectTimeout 15
+          ServerAliveInterval 15
+          ServerAliveCountMax 3
+        EOF
+        ssh kafontine-production true

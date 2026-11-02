@@ -3,31 +3,19 @@ name: Rollback Production
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to rollback'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - staging
       target_version:
-        description: 'Docker image tag to rollback to'
+        description: Existing Docker image tag (full commit SHA)
         required: true
       reason:
-        description: 'Reason for rollback'
+        description: Reason for rollback
         required: true
 
-env:
-  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY || 'docker.io' }}
-  IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME || 'kafontine' }}
-  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE || 'kafontine' }}
-  HELM_RELEASE: ${{ secrets.HELM_RELEASE || 'kafontine' }}
-  BACKEND_DEPLOYMENT: ${{ secrets.BACKEND_DEPLOYMENT || 'kafontine-backend' }}
-  FRONTEND_DEPLOYMENT: ${{ secrets.FRONTEND_DEPLOYMENT || 'kafontine-frontend' }}
+permissions:
+  contents: read
+  packages: read
 
 concurrency:
-  group: production-rollback
+  group: production-mutation
   cancel-in-progress: false
 
 jobs:
@@ -35,63 +23,47 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 30
+    env:
+      APP_DIR: ${{ vars.APP_DIR || '/opt/kafontine' }}
+      DOCKER_REGISTRY: ghcr.io
+      IMAGE_NAME: brahim1205/kafontine
+      DOCKER_USERNAME: ${{ github.actor }}
+      DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+      TARGET_VERSION: ${{ inputs.target_version }}
+      HEALTH_URL: ${{ secrets.HEALTH_URL }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
+      - name: Validate rollback configuration
+        run: |
+          set -euo pipefail
+          [[ "$APP_DIR" =~ ^/[a-zA-Z0-9/_-]+$ ]]
+          [[ "$DOCKER_REGISTRY" =~ ^[a-zA-Z0-9][a-zA-Z0-9.:-]*$ ]]
+          [[ "$DOCKER_USERNAME" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$IMAGE_NAME" =~ ^[a-z0-9][a-z0-9/_-]*$ ]]
+          [[ "$TARGET_VERSION" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]
+          test -n "$DOCKER_PASSWORD"
+          test -n "$HEALTH_URL"
+      - uses: ./.github/actions/production-ssh
         with:
-          version: 'latest'
-
-      - name: Setup Helm
-        uses: azure/setup-helm@v4
-
-      - name: Configure kubeconfig
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      - name: Back up and restore application images
         run: |
-          mkdir -p "$HOME/.kube"
-          echo "${KUBE_CONFIG_DATA}" | base64 -d > "$HOME/.kube/config"
-        env:
-          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
-
-      - name: Rollback with Helm
-        run: |
-          helm upgrade --install "${HELM_RELEASE}" infra/helm/kafontine \
-            --namespace "${K8S_NAMESPACE}" \
-            --create-namespace \
-            --set frontend.image.repository="${DOCKER_REGISTRY}/${IMAGE_NAME}-frontend" \
-            --set frontend.image.tag="${TARGET_VERSION}" \
-            --set backend.image.repository="${DOCKER_REGISTRY}/${IMAGE_NAME}-backend" \
-            --set backend.image.tag="${TARGET_VERSION}"
-        env:
-          TARGET_VERSION: ${{ github.event.inputs.target_version }}
-
-      - name: Wait for rollout
-        run: |
-          kubectl rollout status deployment/"${BACKEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
-          kubectl rollout status deployment/"${FRONTEND_DEPLOYMENT}" -n "${K8S_NAMESPACE}" --timeout=180s
-
-      - name: Health Check
-        run: |
-          curl -f --max-time 30 "${HEALTH_URL}"
-        env:
-          HEALTH_URL: ${{ secrets.HEALTH_URL }}
-
-      - name: Notify rollback
+          set -euo pipefail
+          printf '%s' "$DOCKER_PASSWORD" | ssh kafontine-production "docker login '$DOCKER_REGISTRY' -u '$DOCKER_USERNAME' --password-stdin"
+          ssh kafontine-production "bash -s -- '$APP_DIR' 'pre_rollback_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}.dump'" < scripts/backup-production.sh
+          ssh kafontine-production "bash -s -- '$APP_DIR' '$DOCKER_REGISTRY/$IMAGE_NAME-backend:$TARGET_VERSION' '$DOCKER_REGISTRY/$IMAGE_NAME-frontend:$TARGET_VERSION' rollback" < scripts/deploy-images.sh
+      - name: Verify public readiness
+        run: curl -fsS --max-time 60 "$HEALTH_URL"
+      - name: Record rollback result
         if: always()
-        uses: slackapi/slack-github-action@v1.25.0
-        with:
-          payload: |
-            {
-              "text": "Rollback ${{ job.status }} for Kafontine",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "Rollback *${{ job.status }}* for Kafontine Municipal\nTarget: `${{ github.event.inputs.target_version }}`\nReason: ${{ github.event.inputs.reason }}"
-                  }
-                }
-              ]
-            }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REASON: ${{ inputs.reason }}
+          RESULT: ${{ job.status }}
+        run: |
+          printf 'Rollback: %s\nVersion: %s\nReason: %s\n' "$RESULT" "$TARGET_VERSION" "$REASON" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary SSH key
+        if: always()
+        run: rm -f ~/.ssh/kafontine_actions

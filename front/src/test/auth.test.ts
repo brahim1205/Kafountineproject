@@ -40,6 +40,13 @@ describe('Auth Service', () => {
       await expect(loginRequest({ email: 'test@test.com', password: 'wrong' }))
         .rejects.toThrow('Invalid credentials');
     });
+
+    it('should report an unreachable server in French on network error', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+
+      await expect(loginRequest({ email: 'test@test.com', password: 'password123' }))
+        .rejects.toThrow('Impossible de contacter le serveur de connexion');
+    });
   });
 
   describe('saveSession', () => {

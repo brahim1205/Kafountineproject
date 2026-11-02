@@ -157,19 +157,27 @@ export function subscribeAuthState(listener: AuthStateListener): () => void {
   };
 }
 
+const LOGIN_UNREACHABLE = 'Impossible de contacter le serveur de connexion';
+
 export async function loginRequest(payload: LoginPayload): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // Erreur réseau (serveur injoignable, hors ligne) : fetch rejette avec un message technique en anglais.
+    throw new Error(LOGIN_UNREACHABLE);
+  }
 
   const json = await response.json().catch(() => null);
   if (!response.ok || !json?.success) {
-    throw new Error(json?.message || 'Impossible de contacter le serveur de connexion');
+    throw new Error(json?.message || LOGIN_UNREACHABLE);
   }
 
   return json.data as LoginResponse;

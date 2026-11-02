@@ -6,6 +6,7 @@ import { validate } from '../../../shared/presentation/middleware/validation';
 import { JwtTokenService } from '../../../shared/security/JwtTokenService';
 import type { AuthController } from './AuthController';
 import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas';
+import { env } from '../../../shared/config/env';
 
 /**
  * @swagger
@@ -147,7 +148,7 @@ import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas
 export function buildAuthRoutes(controller: AuthController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
-  const loginRateLimit = rateLimit({ keyPrefix: 'auth-login', windowMs: 15 * 60 * 1000, max: 5 });
+  const loginRateLimit = rateLimit({ keyPrefix: 'auth-login', windowMs: env.loginRateLimitWindowMs, max: env.loginRateLimitMax });
   const refreshRateLimit = rateLimit({ keyPrefix: 'auth-refresh', windowMs: 5 * 60 * 1000, max: 20 });
   const forgotPasswordRateLimit = rateLimit({ keyPrefix: 'auth-forgot-password', windowMs: 15 * 60 * 1000, max: 5 });
 

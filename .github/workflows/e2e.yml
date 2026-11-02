@@ -42,7 +42,9 @@ jobs:
       PORTAL_OTP_DELIVERY_MODE: dev
       PORTAL_OTP_TTL_SECONDS: 300
       REDIS_URL: redis://127.0.0.1:6379
-    
+      # La suite se connecte des dizaines de fois depuis la même IP : on lève la limite anti-bruteforce en test.
+      LOGIN_RATE_LIMIT_MAX: 1000
+
     services:
       postgres:
         image: postgres:16

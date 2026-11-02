@@ -11,12 +11,15 @@ export default defineConfig({
     baseURL: process.env.FRONTEND_URL || 'http://127.0.0.1:5173',
     trace: 'on-first-retry',
   },
-  webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 5173',
-    url: process.env.FRONTEND_URL || 'http://127.0.0.1:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  // Avec FRONTEND_URL, le frontend est déjà servi (ex. `vite preview` en CI) : Playwright ne lance rien.
+  webServer: process.env.FRONTEND_URL
+    ? undefined
+    : {
+        command: 'npm run dev -- --host 127.0.0.1 --port 5173',
+        url: 'http://127.0.0.1:5173',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
   projects: [
     {
       name: 'chromium',

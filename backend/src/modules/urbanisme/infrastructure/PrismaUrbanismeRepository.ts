@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { db } from '../../../shared/infrastructure/prisma/transactionContext';
-import type { UrbanismeCase, UrbanismeDisplay, UrbanismeRepository, UrbanismeValues } from '../domain/Urbanisme';
+import type { UrbanismeCase, UrbanismeCriteria, UrbanismeDisplay, UrbanismeRepository, UrbanismeValues } from '../domain/Urbanisme';
 
 const SELECT_WITH_RELATIONS = `SELECT
         u.*,
@@ -30,9 +30,15 @@ const RETURNING_COLUMNS = `"id",
         "createdAt",
         "updatedAt"`;
 
-const SQL_LIST = `${SELECT_WITH_RELATIONS}
+// $1 année, $2 statut, $3 type (null = pas de filtre).
+const SQL_LIST_FILTER = `
       WHERE u."year" = $1
-      ORDER BY u."createdAt" DESC`;
+        AND ($2::text IS NULL OR u."statut" = $2)
+        AND ($3::text IS NULL OR u."type" = $3)`;
+const SQL_SEARCH_PAGE = `${SELECT_WITH_RELATIONS}${SQL_LIST_FILTER}
+      ORDER BY u."createdAt" DESC, u."id" DESC
+      OFFSET $4 LIMIT $5`;
+const SQL_SEARCH_COUNT = `SELECT COUNT(*)::int AS "total" FROM "UrbanismeCase" u${SQL_LIST_FILTER}`;
 const SQL_FIND_BY_ID = `${SELECT_WITH_RELATIONS}
       WHERE u."id" = $1
       LIMIT 1`;
@@ -70,11 +76,13 @@ const SQL_UPDATE = `UPDATE "UrbanismeCase"
         $16::text AS "agentPrenom"`;
 
 export class PrismaUrbanismeRepository implements UrbanismeRepository {
-  list(year: number) {
-    return db().$queryRawUnsafe<UrbanismeCase[]>(
-      SQL_LIST,
-      year
-    );
+  async search(criteria: UrbanismeCriteria) {
+    const filter = [criteria.year, criteria.statut, criteria.type];
+    const [rows, [{ total }]] = await Promise.all([
+      db().$queryRawUnsafe<UrbanismeCase[]>(SQL_SEARCH_PAGE, ...filter, criteria.offset, criteria.limit),
+      db().$queryRawUnsafe<Array<{ total: number }>>(SQL_SEARCH_COUNT, ...filter),
+    ]);
+    return { rows, total };
   }
 
   async findById(id: string) {

@@ -39,8 +39,17 @@ export type UrbanismeDisplay = Pick<
   | 'agentPrenom'
 >;
 
+export type UrbanismeCriteria = {
+  year: number;
+  /** null : pas de filtre. */
+  statut: string | null;
+  type: string | null;
+  offset: number;
+  limit: number;
+};
+
 export interface UrbanismeRepository {
-  list(year: number): Promise<UrbanismeCase[]>;
+  search(criteria: UrbanismeCriteria): Promise<{ rows: UrbanismeCase[]; total: number }>;
   findById(id: string): Promise<UrbanismeCase | null>;
   create(
     values: UrbanismeValues & { contribuableId: string; agentId: string | null; year: number },

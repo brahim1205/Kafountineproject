@@ -56,17 +56,14 @@ export class UrbanismeService {
 
   async list(filters: UrbanismeListFilters) {
     const { page, limit, year, statut, type } = filters;
-    const rows = await this.repository.list(year);
-    const filtered = rows.filter((row) => {
-      const matchesStatus = !statut || row.statut === statut;
-      const matchesType = !type || row.type === type;
-      return matchesStatus && matchesType;
+    const { rows, total } = await this.repository.search({
+      year,
+      statut: statut || null,
+      type: type || null,
+      offset: (page - 1) * limit,
+      limit,
     });
-
-    return {
-      data: filtered.slice((page - 1) * limit, page * limit).map((row) => this.toView(row)),
-      total: filtered.length,
-    };
+    return { data: rows.map((row) => this.toView(row)), total };
   }
 
   async show(id: string) {

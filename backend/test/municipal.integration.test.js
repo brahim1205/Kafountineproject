@@ -237,4 +237,25 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(JSON.stringify(items)).toContain(code);
     });
   });
+
+  describe('journal d’audit', () => {
+    it('filtre, compte et pagine en base', async () => {
+      const all = (await admin.get(`/audit?year=${year}&limit=1`)).body.data;
+      expect(all.logs).toHaveLength(1);
+      expect(all.pagination.total).toBe(all.stats.total);
+      expect(all.stats.success + all.stats.warning + all.stats.error).toBeLessThanOrEqual(all.stats.total);
+
+      const page2 = (await admin.get(`/audit?year=${year}&limit=1&page=2`)).body.data;
+      if (all.stats.total > 1) expect(page2.logs[0].id).not.toBe(all.logs[0].id);
+
+      const warnings = (await admin.get(`/audit?year=${year}&statut=warning&limit=200`)).body.data;
+      expect(warnings.logs.every((item) => item.status === 'warning')).toBe(true);
+      expect(warnings.stats.total).toBe(all.stats.warning);
+    });
+
+    it('traite les jokers SQL de la recherche comme du texte', async () => {
+      const res = (await admin.get(`/audit?year=${year}&search=${encodeURIComponent('%_%')}`)).body.data;
+      expect(res.stats.total).toBe(0);
+    });
+  });
 });

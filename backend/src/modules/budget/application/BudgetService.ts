@@ -190,8 +190,9 @@ export class BudgetService {
     }
 
     const nextStatut = input.statut ? String(input.statut).trim().toUpperCase() : existing.statut;
+    // L'auteur de la décision n'est enregistré qu'au moment où la demande est approuvée ou rejetée.
     const approvedById =
-      nextStatut === 'APPROUVE' || nextStatut === 'REJETE'
+      nextStatut !== existing.statut && (nextStatut === 'APPROUVE' || nextStatut === 'REJETE')
         ? actor.userId || existing.approvedById
         : existing.approvedById;
 

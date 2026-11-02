@@ -205,14 +205,16 @@ export class MarcheService {
     ]);
     const placesTotales = places.length;
     const placesOccupees = places.filter((item) => item.statut === 'OCCUPEE').length;
+    const total = (items: typeof paiements) => items.reduce((sum, item) => sum + Number(item.montant || 0), 0);
     return {
       placesTotales,
       placesOccupees,
       placesDisponibles: Math.max(placesTotales - placesOccupees, 0),
-      recettesMois: paiements.reduce((sum, item) => sum + Number(item.montant || 0), 0),
+      // Seuls les paiements encaissés sont des recettes ; les paiements annulés ne comptent nulle part.
+      recettesMois: total(paiements.filter((item) => item.statut === 'PAYE')),
       tauxOccupation: placesTotales > 0 ? Math.round((placesOccupees / placesTotales) * 100) : 0,
       nouveauxCommercants: places.filter((item) => item.occupantId).length,
-      recettesEnRetard: paiements.filter((item) => item.statut !== 'PAYE').reduce((sum, item) => sum + Number(item.montant || 0), 0),
+      recettesEnRetard: total(paiements.filter((item) => item.statut !== 'PAYE' && item.statut !== 'ANNULE')),
     };
   }
 

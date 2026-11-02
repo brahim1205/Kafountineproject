@@ -309,12 +309,7 @@ export class PlaceholderSupportService {
   ) {
     const actorId = req.user?.userId;
     const actor = actorId ? await prisma.user.findUnique({ where: { id: actorId } }) : null;
-    const ipAddressHeader = req.headers['x-forwarded-for'];
-    const ipAddress = Array.isArray(ipAddressHeader)
-      ? ipAddressHeader[0]
-      : typeof ipAddressHeader === 'string'
-        ? ipAddressHeader.split(',')[0]?.trim()
-        : req.ip || null;
+    const ipAddress = req.ip || null;
 
     await prisma.$executeRaw`
       INSERT INTO "AuditLog" ("id", "userId", "userName", "role", "action", "module", "details", "status", "ipAddress", "year", "timestamp")

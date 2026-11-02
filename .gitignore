@@ -62,8 +62,13 @@ mobile/.env.*
 *.sqlite
 *.sqlite3
 *.db
+*.db-journal
 *.dump
 *.sql
+!backend/prisma/migrations/**/*.sql
+pg_data/
+backend/prisma/*.backup
+infra/k8s/02-secret.yml
 
 # Backups and generated storage
 backups/

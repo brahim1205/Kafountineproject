@@ -1038,41 +1038,41 @@ export function buildPlaceholderRoutes(controller: PlaceholderController) {
   router.patch('/notifications/:id/read', authenticate, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.markRead(req, res)));
   router.patch('/notifications/read-all', authenticate, validate(markAllReadQuerySchema, 'query'), asyncHandler((req, res) => controller.markAllRead(req, res)));
 
-  router.get('/users', authenticate, adminOnly, asyncHandler((req, res) => controller.listUsers(req, res)));
-  router.post('/users', authenticate, adminOnly, validate(createUserSchema), asyncHandler((req, res) => controller.createUser(req, res)));
-  router.put('/users/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), validate(updateUserSchema), asyncHandler((req, res) => controller.updateUser(req, res)));
-  router.delete('/users/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteUser(req, res)));
+  router.get('/users', authenticate, adminOnly, asyncHandler((req, res) => controller.usersController.listUsers(req, res)));
+  router.post('/users', authenticate, adminOnly, validate(createUserSchema), asyncHandler((req, res) => controller.usersController.createUser(req, res)));
+  router.put('/users/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), validate(updateUserSchema), asyncHandler((req, res) => controller.usersController.updateUser(req, res)));
+  router.delete('/users/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.usersController.deleteUser(req, res)));
 
-  router.get('/quai-peche/pecheurs', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listCollection(crudCollections.pecheurs, req, res)));
-  router.get('/quai-peche/pecheurs/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.getCollectionItem(crudCollections.pecheurs, req, res)));
-  router.post('/quai-peche/pecheurs', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createFishermanSchema), asyncHandler((req, res) => controller.createQuaiResource('pecheurs', req, res)));
-  router.put('/quai-peche/pecheurs/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateFishermanSchema), asyncHandler((req, res) => controller.updateCollectionItem(crudCollections.pecheurs, req, res)));
-  router.delete('/quai-peche/pecheurs/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteCollectionItem(crudCollections.pecheurs, req, res)));
+  router.get('/quai-peche/pecheurs', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.quaiController.listCollection('pecheurs', req, res)));
+  router.get('/quai-peche/pecheurs/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.getCollectionItem('pecheurs', req, res)));
+  router.post('/quai-peche/pecheurs', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createFishermanSchema), asyncHandler((req, res) => controller.quaiController.createResource('pecheurs', req, res)));
+  router.put('/quai-peche/pecheurs/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateFishermanSchema), asyncHandler((req, res) => controller.quaiController.updateResource('pecheurs', req, res)));
+  router.delete('/quai-peche/pecheurs/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.deleteResource('pecheurs', req, res)));
 
-  router.get('/quai-peche/embarcations', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listCollection(crudCollections.embarcations, req, res)));
-  router.get('/quai-peche/embarcations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.getCollectionItem(crudCollections.embarcations, req, res)));
-  router.post('/quai-peche/embarcations', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createFishingBoatSchema), asyncHandler((req, res) => controller.createQuaiResource('embarcations', req, res)));
-  router.put('/quai-peche/embarcations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateFishingBoatSchema), asyncHandler((req, res) => controller.updateCollectionItem(crudCollections.embarcations, req, res)));
-  router.delete('/quai-peche/embarcations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteCollectionItem(crudCollections.embarcations, req, res)));
+  router.get('/quai-peche/embarcations', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.quaiController.listCollection('embarcations', req, res)));
+  router.get('/quai-peche/embarcations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.getCollectionItem('embarcations', req, res)));
+  router.post('/quai-peche/embarcations', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createFishingBoatSchema), asyncHandler((req, res) => controller.quaiController.createResource('embarcations', req, res)));
+  router.put('/quai-peche/embarcations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateFishingBoatSchema), asyncHandler((req, res) => controller.quaiController.updateResource('embarcations', req, res)));
+  router.delete('/quai-peche/embarcations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.deleteResource('embarcations', req, res)));
 
-  router.get('/quai-peche/commissions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listCollection(crudCollections.commissions, req, res)));
-  router.get('/quai-peche/commissions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.getCollectionItem(crudCollections.commissions, req, res)));
-  router.post('/quai-peche/commissions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createFishCommissionSchema), asyncHandler((req, res) => controller.createQuaiResource('commissions', req, res)));
-  router.put('/quai-peche/commissions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateFishCommissionSchema), asyncHandler((req, res) => controller.updateCollectionItem(crudCollections.commissions, req, res)));
-  router.delete('/quai-peche/commissions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteCollectionItem(crudCollections.commissions, req, res)));
+  router.get('/quai-peche/commissions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.quaiController.listCollection('commissions', req, res)));
+  router.get('/quai-peche/commissions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.getCollectionItem('commissions', req, res)));
+  router.post('/quai-peche/commissions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createFishCommissionSchema), asyncHandler((req, res) => controller.quaiController.createResource('commissions', req, res)));
+  router.put('/quai-peche/commissions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateFishCommissionSchema), asyncHandler((req, res) => controller.quaiController.updateResource('commissions', req, res)));
+  router.delete('/quai-peche/commissions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.deleteResource('commissions', req, res)));
 
-  router.get('/quai-peche/camions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listCollection(crudCollections.camions, req, res)));
-  router.get('/quai-peche/camions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.getCollectionItem(crudCollections.camions, req, res)));
-  router.post('/quai-peche/camions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createTruckSchema), asyncHandler((req, res) => controller.createQuaiResource('camions', req, res)));
-  router.put('/quai-peche/camions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateTruckSchema), asyncHandler((req, res) => controller.updateCollectionItem(crudCollections.camions, req, res)));
-  router.delete('/quai-peche/camions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteCollectionItem(crudCollections.camions, req, res)));
+  router.get('/quai-peche/camions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.quaiController.listCollection('camions', req, res)));
+  router.get('/quai-peche/camions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.getCollectionItem('camions', req, res)));
+  router.post('/quai-peche/camions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createTruckSchema), asyncHandler((req, res) => controller.quaiController.createResource('camions', req, res)));
+  router.put('/quai-peche/camions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateTruckSchema), asyncHandler((req, res) => controller.quaiController.updateResource('camions', req, res)));
+  router.delete('/quai-peche/camions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.deleteResource('camions', req, res)));
 
-  router.get('/quai-peche/expeditions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listCollection(crudCollections.expeditions, req, res)));
-  router.get('/quai-peche/expeditions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.getCollectionItem(crudCollections.expeditions, req, res)));
-  router.post('/quai-peche/expeditions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createExpeditionSchema), asyncHandler((req, res) => controller.createQuaiResource('expeditions', req, res)));
-  router.put('/quai-peche/expeditions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateExpeditionSchema), asyncHandler((req, res) => controller.updateCollectionItem(crudCollections.expeditions, req, res)));
-  router.delete('/quai-peche/expeditions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteCollectionItem(crudCollections.expeditions, req, res)));
-  router.get('/quai-peche/statistiques', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'SERVICE_FINANCES'), validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.quaiPecheStats(req, res)));
+  router.get('/quai-peche/expeditions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.quaiController.listCollection('expeditions', req, res)));
+  router.get('/quai-peche/expeditions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'AGENT'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.getCollectionItem('expeditions', req, res)));
+  router.post('/quai-peche/expeditions', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(createExpeditionSchema), asyncHandler((req, res) => controller.quaiController.createResource('expeditions', req, res)));
+  router.put('/quai-peche/expeditions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE'), validate(resourceIdParamsSchema, 'params'), validate(updateExpeditionSchema), asyncHandler((req, res) => controller.quaiController.updateResource('expeditions', req, res)));
+  router.delete('/quai-peche/expeditions/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.quaiController.deleteResource('expeditions', req, res)));
+  router.get('/quai-peche/statistiques', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'QUAI_PECHE', 'SERVICE_FINANCES'), validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.quaiController.getStats(req, res)));
 
   router.get('/settings/tarifs', authenticate, adminOnly, asyncHandler((req, res) => controller.getTarifs(req, res)));
   router.post('/settings/tarifs', authenticate, adminOnly, validate(createTarifSchema), asyncHandler((req, res) => controller.createTarif(req, res)));
@@ -1097,7 +1097,7 @@ export function buildPlaceholderRoutes(controller: PlaceholderController) {
 
   router.get('/years', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.years(req, res)));
   router.get('/years/current', authenticate, asyncHandler((req, res) => controller.currentYear(req, res)));
-  router.post('/years/auto-create', asyncHandler((req, res) => controller.autoCreateYear(req, res)));
+  router.post('/years/auto-create', authenticate, adminOnly, asyncHandler((req, res) => controller.autoCreateYear(req, res)));
 
   router.post('/upload/image', authenticate, controller.upload.single('image'), asyncHandler((req, res) => controller.uploadImage(req, res)));
   router.delete('/upload/image/:publicId', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(publicIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteImage(req, res)));

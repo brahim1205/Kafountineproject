@@ -79,8 +79,12 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     // Handle 401 with token refresh
     if (response.status === 401 && auth && hasStoredSession()) {
       const newToken = await refreshAccessToken();
-      if (newToken) {
-        requestHeaders.set('Authorization', `Bearer ${newToken}`);
+      if (newToken !== null) {
+        if (newToken) {
+          requestHeaders.set('Authorization', `Bearer ${newToken}`);
+        } else {
+          requestHeaders.delete('Authorization');
+        }
         const retryController = new AbortController();
         const retryTimeoutId = setTimeout(() => retryController.abort(), timeout);
         try {

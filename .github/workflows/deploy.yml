@@ -54,6 +54,9 @@ jobs:
       - name: Validate production environment template
         run: bash ./scripts/validate-prod-env.sh --allow-placeholders .env.prod.example
 
+      - name: Repository security scan
+        run: bash ./scripts/security-repo-scan.sh
+
       - name: Install backend dependencies
         run: npm ci
         working-directory: backend

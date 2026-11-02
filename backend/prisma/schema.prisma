@@ -8,43 +8,43 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String    @id @default(uuid())
+  email     String    @unique
   password  String
   nom       String
   prenom    String
-  role      String   @default("AGENT")
+  role      String    @default("AGENT")
   telephone String?
-  isActive  Boolean  @default(true)
+  isActive  Boolean   @default(true)
   lastLogin DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  transactions       Transaction[]
-  auditLogs          AuditLog[]
-  budgetDemandes     BudgetRequest[] @relation("BudgetRequestRequester")
-  budgetApprovals    BudgetRequest[] @relation("BudgetRequestApprover")
-  etatCivilRequests  EtatCivilRequest[] @relation("EtatCivilAgent")
-  urbanismeCases     UrbanismeCase[] @relation("UrbanismeAgent")
+  transactions      Transaction[]
+  auditLogs         AuditLog[]
+  budgetDemandes    BudgetRequest[]    @relation("BudgetRequestRequester")
+  budgetApprovals   BudgetRequest[]    @relation("BudgetRequestApprover")
+  etatCivilRequests EtatCivilRequest[] @relation("EtatCivilAgent")
+  urbanismeCases    UrbanismeCase[]    @relation("UrbanismeAgent")
 }
 
 model Contribuable {
-  id              String   @id @default(uuid())
-  nin             String   @unique
-  nom             String
-  prenom          String
-  dateNaiss       DateTime
-  lieuNaiss       String
-  adresse         String
-  telephone       String
-  email           String?
-  profession      String?
-  typeContribuable String  @default("PARTICULIER")
-  zone            String?
-  montantImpot    Float    @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(uuid())
+  nin              String   @unique
+  nom              String
+  prenom           String
+  dateNaiss        DateTime
+  lieuNaiss        String
+  adresse          String
+  telephone        String
+  email            String?
+  profession       String?
+  typeContribuable String   @default("PARTICULIER")
+  zone             String?
+  montantImpot     Decimal  @default(0) @db.Decimal(14, 2)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   transactions      Transaction[]
   etatCivilRequests EtatCivilRequest[]
@@ -52,26 +52,26 @@ model Contribuable {
   marketPlaces      MarketPlace[]
   ownedMotos        MotoRegistration[] @relation("MotoOwner")
   drivenMotos       MotoRegistration[] @relation("MotoDriver")
-  
+
   @@index([nom, prenom])
 }
 
 model Transaction {
-  id             String       @id @default(uuid())
-  numero         String       @unique
+  id             String   @id @default(uuid())
+  numero         String   @unique
   contribuableId String
   agentId        String
   categorie      String
   service        String
-  quantite       Int          @default(1)
-  tarifUnitaire  Float
-  montant        Float
-  modePaiement   String       @default("ESPECE")
-  statut         String       @default("PAYE")
-  date           DateTime     @default(now())
+  quantite       Int      @default(1)
+  tarifUnitaire  Decimal  @db.Decimal(14, 2)
+  montant        Decimal  @db.Decimal(14, 2)
+  modePaiement   String   @default("ESPECE")
+  statut         String   @default("PAYE")
+  date           DateTime @default(now())
   year           Int
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   contribuable Contribuable @relation(fields: [contribuableId], references: [id], onDelete: Cascade)
   agent        User         @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -86,21 +86,21 @@ model BudgetLine {
   code        String
   libelle     String
   description String?
-  prevu       Float    @default(0)
-  depense     Float    @default(0)
+  prevu       Decimal  @default(0) @db.Decimal(14, 2)
+  depense     Decimal  @default(0) @db.Decimal(14, 2)
   year        Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([year])
   @@unique([code, year])
+  @@index([year])
 }
 
 model BudgetRequest {
   id            String   @id @default(uuid())
   service       String
   description   String
-  montant       Float
+  montant       Decimal  @db.Decimal(14, 2)
   statut        String   @default("EN_ATTENTE")
   motif         String?
   year          Int
@@ -146,7 +146,7 @@ model EtatCivilRequest {
   agentId        String?
   typeDocument   String
   exemplaires    Int      @default(1)
-  montant        Float    @default(0)
+  montant        Decimal  @default(0) @db.Decimal(14, 2)
   statut         String   @default("EN_ATTENTE")
   observations   String?
   year           Int
@@ -173,7 +173,7 @@ model UrbanismeCase {
   surface        Float?
   localisation   String?
   nature         String?
-  montant        Float    @default(0)
+  montant        Decimal  @default(0) @db.Decimal(14, 2)
   statut         String   @default("EN_ATTENTE")
   year           Int
   createdAt      DateTime @default(now())
@@ -190,7 +190,7 @@ model UrbanismeCase {
 }
 
 model MarketPlace {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   numeroPlace     String
   type            String
   zone            String
@@ -198,33 +198,33 @@ model MarketPlace {
   activite        String?
   telephone       String?
   dateAttribution DateTime?
-  tarif           Float    @default(0)
-  periode         String   @default("mensuel")
-  statut          String   @default("LIBRE")
+  tarif           Decimal   @default(0) @db.Decimal(14, 2)
+  periode         String    @default("mensuel")
+  statut          String    @default("LIBRE")
   year            Int
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   occupant Contribuable?   @relation(fields: [occupantId], references: [id], onDelete: SetNull)
   payments MarketPayment[]
 
+  @@unique([numeroPlace, year])
   @@index([year])
   @@index([statut])
   @@index([occupantId])
-  @@unique([numeroPlace, year])
 }
 
 model MarketPayment {
-  id          String   @id @default(uuid())
-  placeId     String
-  montant     Float
-  reference   String?
-  periode     String
-  statut      String   @default("PAYE")
+  id           String    @id @default(uuid())
+  placeId      String
+  montant      Decimal   @db.Decimal(14, 2)
+  reference    String?
+  periode      String
+  statut       String    @default("PAYE")
   datePaiement DateTime?
-  year        Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  year         Int
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   place MarketPlace @relation(fields: [placeId], references: [id], onDelete: Cascade)
 
@@ -234,26 +234,26 @@ model MarketPayment {
 }
 
 model MotoRegistration {
-  id             String   @id @default(uuid())
-  matricule      String   @unique
-  marque         String
-  modele         String
-  annee          Int
-  couleur        String?
-  proprietaireId String
-  conducteurId   String?
-  permis         String?  @unique
-  statut         String   @default("ACTIVE")
-  photo          String?
-  enRetard       Boolean  @default(false)
-  montantPenalite Float   @default(250)
+  id               String    @id @default(uuid())
+  matricule        String    @unique
+  marque           String
+  modele           String
+  annee            Int
+  couleur          String?
+  proprietaireId   String
+  conducteurId     String?
+  permis           String?   @unique
+  statut           String    @default("ACTIVE")
+  photo            String?
+  enRetard         Boolean   @default(false)
+  montantPenalite  Decimal   @default(250) @db.Decimal(14, 2)
   prochainPaiement DateTime?
   dernierPaiement  DateTime?
-  year           Int
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  year             Int
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  proprietaire Contribuable @relation("MotoOwner", fields: [proprietaireId], references: [id], onDelete: Cascade)
+  proprietaire Contribuable  @relation("MotoOwner", fields: [proprietaireId], references: [id], onDelete: Cascade)
   conducteur   Contribuable? @relation("MotoDriver", fields: [conducteurId], references: [id], onDelete: SetNull)
   payments     MotoPayment[]
 
@@ -264,18 +264,18 @@ model MotoRegistration {
 }
 
 model MotoPayment {
-  id          String   @id @default(uuid())
+  id           String    @id @default(uuid())
   motoId       String
-  montant      Float
+  montant      Decimal   @db.Decimal(14, 2)
   reference    String?
-  statut       String   @default("PAYE")
+  statut       String    @default("PAYE")
   datePaiement DateTime?
   mois         String?
   numeroRecu   String?
   agent        String?
   year         Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   moto MotoRegistration @relation(fields: [motoId], references: [id], onDelete: Cascade)
 
@@ -285,18 +285,18 @@ model MotoPayment {
 }
 
 model TrainingProgram {
-  id               String   @id @default(uuid())
-  nom              String
-  domaine          String
-  duree            String
-  responsable      String
-  budget           Float    @default(0)
-  dateDebut        DateTime
-  dateFin          DateTime
-  statut           String   @default("PLANIFIEE")
-  year             Int
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id          String   @id @default(uuid())
+  nom         String
+  domaine     String
+  duree       String
+  responsable String
+  budget      Decimal  @default(0) @db.Decimal(14, 2)
+  dateDebut   DateTime
+  dateFin     DateTime
+  statut      String   @default("PLANIFIEE")
+  year        Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   enrollments YouthEnrollment[]
 
@@ -305,19 +305,19 @@ model TrainingProgram {
 }
 
 model YouthProfile {
-  id           String   @id @default(uuid())
-  nom          String
-  prenom       String
-  cni          String   @unique
-  telephone    String   @unique
-  adresse      String
-  niveauEtude  String
-  sexe         String
-  dateNaiss    DateTime
-  photo        String?
-  year         Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid())
+  nom         String
+  prenom      String
+  cni         String   @unique
+  telephone   String   @unique
+  adresse     String
+  niveauEtude String
+  sexe        String
+  dateNaiss   DateTime
+  photo       String?
+  year        Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   enrollments YouthEnrollment[]
 
@@ -336,8 +336,8 @@ model YouthEnrollment {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  jeune     YouthProfile     @relation(fields: [jeuneId], references: [id], onDelete: Cascade)
-  formation TrainingProgram  @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  jeune     YouthProfile    @relation(fields: [jeuneId], references: [id], onDelete: Cascade)
+  formation TrainingProgram @relation(fields: [formationId], references: [id], onDelete: Cascade)
 
   @@unique([jeuneId, formationId])
 }
@@ -354,7 +354,7 @@ model Fisherman {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  boats       FishingBoat[] @relation("FishingBoatOwner")
+  boats       FishingBoat[]    @relation("FishingBoatOwner")
   commissions FishCommission[]
 
   @@index([year])
@@ -427,7 +427,7 @@ model ShippingExpedition {
   date         DateTime @default(now())
   poids        Float
   destination  String?
-  montant      Float?
+  montant      Decimal? @db.Decimal(14, 2)
   statut       String   @default("PLANIFIEE")
   observations String?
   camionId     String
@@ -446,7 +446,7 @@ model AppSettingTariff {
   id          String   @id @default(uuid())
   categorie   String
   nom         String
-  montant     Float    @default(0)
+  montant     Decimal  @default(0) @db.Decimal(14, 2)
   unite       String
   description String?
   actif       Boolean  @default(true)
@@ -461,7 +461,7 @@ model AppSettingPenalty {
   id          String   @id @default(uuid())
   type        String
   description String?
-  montant     Float    @default(0)
+  montant     Decimal  @default(0) @db.Decimal(14, 2)
   delai       String
   actif       Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -483,31 +483,31 @@ model AppSettingPermission {
 }
 
 model BackupRecord {
-  id         String   @id @default(uuid())
-  filename   String   @unique
-  size       Int      @default(0)
+  id         String    @id @default(uuid())
+  filename   String    @unique
+  size       Int       @default(0)
   snapshot   String
   restoredAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([createdAt])
 }
 
 model AppNotification {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   userId       String?
   type         String
   titre        String
   message      String
-  montant      Float?
+  montant      Decimal?  @db.Decimal(14, 2)
   contribuable String?
   agent        String?
-  lu           Boolean  @default(false)
+  lu           Boolean   @default(false)
   readAt       DateTime?
   year         Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([year])
   @@index([lu])
@@ -515,17 +515,17 @@ model AppNotification {
 }
 
 model MunicipalTariffCategory {
-  id            String   @id
+  id            String    @id
   nom           String
   icon          String?
   color         String?
   description   String?
   legalSource   String?
   effectiveDate DateTime?
-  sortOrder     Int      @default(0)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  sortOrder     Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   items MunicipalTariffItem[]
 
@@ -534,18 +534,18 @@ model MunicipalTariffCategory {
 }
 
 model MunicipalTariffItem {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   categoryId    String
   nom           String
-  tarif         Float    @default(0)
+  tarif         Decimal   @default(0) @db.Decimal(14, 2)
   unite         String
   calcul        String?
   legalSource   String?
   effectiveDate DateTime?
-  sortOrder     Int      @default(0)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  sortOrder     Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   category MunicipalTariffCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 

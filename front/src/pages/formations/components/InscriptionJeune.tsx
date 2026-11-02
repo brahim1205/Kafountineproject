@@ -56,10 +56,7 @@ export default function InscriptionJeune({
       niveauEtude: formData.niveauEtude,
       sexe: formData.sexe,
       dateNaissance: formData.dateNaissance,
-      // Default avatar using UI Avatars (reliable service)
-      photo:
-        formData.photo ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent((formData.prenom || 'J') + ' ' + (formData.nom || 'N'))}&background=0D8ABC&color=fff&size=128`,
+      photo: formData.photo || '',
       dateInscription: new Date().toISOString().split('T')[0],
       tauxAssiduite: 100,
       statutFinal: 'En cours',

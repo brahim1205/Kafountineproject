@@ -2,7 +2,8 @@ import type { Request, Response } from 'express';
 import type { AuthRequest } from '../../../shared/types/AuthRequest';
 import { ForbiddenError } from '../../../shared/errors/AppError';
 import { clearPortalCookie, setPortalCookie } from '../../../shared/http/cookies';
-import { PortalLoginContribuableUseCase } from '../application/PortalLoginContribuableUseCase';
+import { RequestPortalOtpUseCase } from '../application/RequestPortalOtpUseCase';
+import { VerifyPortalOtpUseCase } from '../application/VerifyPortalOtpUseCase';
 import { GetPortalTaxesUseCase } from '../application/GetPortalTaxesUseCase';
 import { InitiatePortalPaymentUseCase } from '../application/InitiatePortalPaymentUseCase';
 import { ConfirmPortalPaymentUseCase } from '../application/ConfirmPortalPaymentUseCase';
@@ -13,7 +14,8 @@ import { GetPortalProfileUseCase } from '../application/GetPortalProfileUseCase'
 
 export class PortalController {
   constructor(
-    private readonly loginContribuableUseCase: PortalLoginContribuableUseCase,
+    private readonly requestPortalOtpUseCase: RequestPortalOtpUseCase,
+    private readonly verifyPortalOtpUseCase: VerifyPortalOtpUseCase,
     private readonly registerContribuableUseCase: RegisterPortalContribuableUseCase,
     private readonly getPortalProfileUseCase: GetPortalProfileUseCase,
     private readonly getPortalTaxesUseCase: GetPortalTaxesUseCase,
@@ -23,14 +25,26 @@ export class PortalController {
     private readonly getPortalReceiptUseCase: GetPortalReceiptUseCase
   ) {}
 
-  async loginContribuable(req: Request, res: Response) {
-    const result = await this.loginContribuableUseCase.execute({
+  async requestOtp(req: Request, res: Response) {
+    const result = await this.requestPortalOtpUseCase.execute({
       nin: req.body?.nin ? String(req.body.nin) : undefined,
       telephone: req.body?.telephone ? String(req.body.telephone) : undefined,
     });
 
+    return res.json({
+      success: true,
+      data: result,
+    });
+  }
+
+  async verifyOtp(req: Request, res: Response) {
+    const result = await this.verifyPortalOtpUseCase.execute({
+      requestId: String(req.body?.requestId || ''),
+      code: String(req.body?.code || ''),
+    });
+
     setPortalCookie(res, result.token);
-    return res.json(result);
+    return res.json({ success: true, data: { contribuable: result.contribuable } });
   }
 
   async registerContribuable(req: Request, res: Response) {
@@ -44,8 +58,7 @@ export class PortalController {
       dateNaiss: req.body?.dateNaiss ? String(req.body.dateNaiss) : undefined,
     });
 
-    setPortalCookie(res, result.token);
-    return res.status(201).json(result);
+    return res.status(201).json({ success: true, data: { contribuable: result.contribuable } });
   }
 
   async me(req: AuthRequest, res: Response) {

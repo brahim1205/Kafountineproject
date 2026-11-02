@@ -5,6 +5,19 @@ import { ConflictError, NotFoundError, ValidationError } from '../../../shared/e
 import { validateStrongPassword } from '../../../shared/security/passwordPolicy';
 import { PlaceholderSupportService } from './PlaceholderSupportService';
 
+const ASSIGNABLE_ROLES = new Set(['ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES', 'QUAI_PECHE']);
+
+export function normalizeAssignableUserRole(input: unknown, actorRole?: string) {
+  const role = String(input || 'AGENT').trim().toUpperCase();
+  if (!ASSIGNABLE_ROLES.has(role)) {
+    throw new ValidationError('Rôle utilisateur invalide.');
+  }
+  if (role === 'SUPER_ADMIN' && actorRole !== 'SUPER_ADMIN') {
+    throw new ValidationError('Seul un SUPER_ADMIN peut attribuer le rôle SUPER_ADMIN.');
+  }
+  return role;
+}
+
 function mapUser(user: {
   id: string;
   email: string;
@@ -55,7 +68,7 @@ export class PlaceholderUsersService {
     const email = String(payload.email || '').trim().toLowerCase();
     const nom = String(payload.nom || '').trim();
     const prenom = String(payload.prenom || '').trim();
-    const role = String(payload.role || 'AGENT').trim().toUpperCase();
+    const role = normalizeAssignableUserRole(payload.role || 'AGENT', req.user?.role);
     const telephone = payload.telephone ? String(payload.telephone).trim() : null;
     const password = String(payload.password || '').trim();
 
@@ -112,7 +125,7 @@ export class PlaceholderUsersService {
       email: nextEmail,
       nom: payload.nom ? String(payload.nom).trim() : existing.nom,
       prenom: payload.prenom ? String(payload.prenom).trim() : existing.prenom,
-      role: payload.role ? String(payload.role).trim().toUpperCase() : existing.role,
+      role: payload.role ? normalizeAssignableUserRole(payload.role, req.user?.role) : existing.role,
       telephone: payload.telephone === undefined ? existing.telephone : String(payload.telephone || '').trim() || null,
       isActive: payload.isActive === undefined ? existing.isActive : Boolean(payload.isActive),
     };

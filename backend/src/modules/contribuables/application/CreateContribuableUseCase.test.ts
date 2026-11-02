@@ -1,5 +1,6 @@
 import { ConflictError } from '../../../shared/errors/AppError';
 import { CreateContribuableUseCase } from './CreateContribuableUseCase';
+import type { Contribuable } from '../domain/Contribuable';
 import type { ContribuableRepository } from '../domain/ContribuableRepository';
 
 describe('CreateContribuableUseCase', () => {
@@ -30,6 +31,20 @@ describe('CreateContribuableUseCase', () => {
     telephone: '771234567',
   };
 
+  const existingContribuable: Contribuable = {
+    id: 'uuid-existing',
+    ...validPayload,
+    dateNaiss: new Date('1990-01-01'),
+    email: null,
+    profession: null,
+    typeContribuable: 'PARTICULIER',
+    zone: null,
+    montantImpot: 0,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   it('should create a contribuable successfully when data is valid', async () => {
     mockRepository.findByNin.mockResolvedValue(null);
     mockRepository.findByTelephone.mockResolvedValue(null);
@@ -45,7 +60,7 @@ describe('CreateContribuableUseCase', () => {
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as any);
+    });
 
     const result = await useCase.execute(validPayload);
 
@@ -57,7 +72,7 @@ describe('CreateContribuableUseCase', () => {
   });
 
   it('should throw ConflictError if NIN already exists', async () => {
-    mockRepository.findByNin.mockResolvedValue({ id: 'uuid-existing' } as any);
+    mockRepository.findByNin.mockResolvedValue(existingContribuable);
 
     await expect(useCase.execute(validPayload)).rejects.toThrow(ConflictError);
     await expect(useCase.execute(validPayload)).rejects.toThrow('Ce numéro de carte d\'identité (NIN) est déjà utilisé');
@@ -67,7 +82,7 @@ describe('CreateContribuableUseCase', () => {
 
   it('should throw ConflictError if telephone already exists', async () => {
     mockRepository.findByNin.mockResolvedValue(null);
-    mockRepository.findByTelephone.mockResolvedValue({ id: 'uuid-existing' } as any);
+    mockRepository.findByTelephone.mockResolvedValue(existingContribuable);
 
     await expect(useCase.execute(validPayload)).rejects.toThrow(ConflictError);
     await expect(useCase.execute(validPayload)).rejects.toThrow('Ce numéro de téléphone est déjà utilisé');

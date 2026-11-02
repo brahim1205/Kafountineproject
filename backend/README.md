@@ -80,7 +80,7 @@ make front-local
 
 Identifiants seed:
 - `admin@kafountine.gouv.sn`
-- `password123`
+- mot de passe défini par `SEED_DEFAULT_PASSWORD` dans l'environnement local
 
 Contribuable seed portail:
 - `NIN-TEST-0001`

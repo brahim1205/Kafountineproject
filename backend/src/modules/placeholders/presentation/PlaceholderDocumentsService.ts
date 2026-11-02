@@ -1,10 +1,26 @@
 import { promises as fs } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { buildSimplePdf } from '../../../shared/pdf/simplePdf';
 import type { AuthRequest } from '../../../shared/types/AuthRequest';
 import { NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import { PlaceholderSupportService } from './PlaceholderSupportService';
 import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+
+type PdfSection = {
+  title?: string;
+  lines: string[];
+};
+
+type ReportLedgerItem = {
+  id?: string;
+  date: Date;
+  person: string;
+  type: string;
+  amount: number;
+  description: string;
+  module?: string;
+};
 
 export class PlaceholderDocumentsService {
   constructor(private readonly supportService: PlaceholderSupportService) {}
@@ -16,9 +32,12 @@ export class PlaceholderDocumentsService {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
       throw new ValidationError('Type de fichier non autorisé.');
     }
+    if (!this.hasValidImageSignature(file.buffer, file.mimetype)) {
+      throw new ValidationError('Le contenu du fichier ne correspond pas à une image autorisée.');
+    }
 
-    const extension = file.originalname.split('.').pop() || 'jpg';
-    const publicId = `upload-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
+    const extension = this.extensionForMimeType(file.mimetype);
+    const publicId = `upload-${randomUUID()}`;
     const uploadsDir = path.resolve(process.cwd(), 'uploads');
     const filename = `${publicId}.${extension}`;
     const filepath = path.join(uploadsDir, filename);
@@ -49,6 +68,35 @@ export class PlaceholderDocumentsService {
     }
 
     await fs.unlink(path.join(uploadsDir, match));
+  }
+
+  private extensionForMimeType(mimetype: string) {
+    if (mimetype === 'image/png') return 'png';
+    if (mimetype === 'image/webp') return 'webp';
+    return 'jpg';
+  }
+
+  private hasValidImageSignature(buffer: Buffer, mimetype: string) {
+    if (mimetype === 'image/jpeg') {
+      return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    }
+    if (mimetype === 'image/png') {
+      return buffer.length >= 8 &&
+        buffer[0] === 0x89 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x4e &&
+        buffer[3] === 0x47 &&
+        buffer[4] === 0x0d &&
+        buffer[5] === 0x0a &&
+        buffer[6] === 0x1a &&
+        buffer[7] === 0x0a;
+    }
+    if (mimetype === 'image/webp') {
+      return buffer.length >= 12 &&
+        buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+        buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+    }
+    return false;
   }
 
   async exportReceiptPdf(req: AuthRequest) {
@@ -177,7 +225,7 @@ export class PlaceholderDocumentsService {
         date: t.date || t.createdAt,
         person: `${t.contribuable?.prenom || ''} ${t.contribuable?.nom || ''}`.trim(),
         type: `Recette (${t.categorie})`,
-        amount: t.montant,
+        amount: Number(t.montant),
         description: t.service || 'Paiement taxe',
       });
     }
@@ -187,7 +235,7 @@ export class PlaceholderDocumentsService {
         date: e.createdAt,
         person: `${e.contribuable?.prenom || ''} ${e.contribuable?.nom || ''}`.trim(),
         type: `Etat Civil`,
-        amount: e.montant,
+        amount: Number(e.montant),
         description: e.typeDocument || 'Document civil',
       });
     }
@@ -197,7 +245,7 @@ export class PlaceholderDocumentsService {
         date: u.createdAt,
         person: `${u.contribuable?.prenom || ''} ${u.contribuable?.nom || ''}`.trim(),
         type: `Urbanisme`,
-        amount: u.montant,
+        amount: Number(u.montant),
         description: u.type || 'Permis',
       });
     }
@@ -208,7 +256,7 @@ export class PlaceholderDocumentsService {
         date: m.datePaiement || m.createdAt,
         person: occupant ? `${occupant.prenom} ${occupant.nom}`.trim() : 'Inconnu',
         type: `Marché`,
-        amount: m.montant,
+        amount: Number(m.montant),
         description: `Place ${m.place?.numeroPlace || '-'}`,
       });
     }
@@ -219,7 +267,7 @@ export class PlaceholderDocumentsService {
         date: m.datePaiement || m.createdAt,
         person: prop ? `${prop.prenom} ${prop.nom}`.trim() : 'Inconnu',
         type: `Motos`,
-        amount: m.montant,
+        amount: Number(m.montant),
         description: `Imm. ${m.moto?.matricule || '-'}`,
       });
     }
@@ -229,7 +277,7 @@ export class PlaceholderDocumentsService {
         date: b.createdAt,
         person: b.service || 'Mairie',
         type: `Dépense`,
-        amount: -(b.montant),
+        amount: -Number(b.montant),
         description: b.motif || b.description || 'Dépense budget',
       });
     }
@@ -272,7 +320,7 @@ export class PlaceholderDocumentsService {
       groupedByMonth.get(monthKey)!.push(item);
     }
 
-    const pdfSections: any[] = [
+    const pdfSections: PdfSection[] = [
       {
         title: 'Synthese',
         lines: [
@@ -319,10 +367,10 @@ export class PlaceholderDocumentsService {
         for (const item of items) {
           const dateStr = timeFormatter.format(item.date).split(' ')[0];
           
-          let cleanType = (item.type || '').normalize('NFD').replace(/[^\x20-\x7E]/g, '');
+          const cleanType = (item.type || '').normalize('NFD').replace(/[^\x20-\x7E]/g, '');
           const typeStr = cleanType.substring(0, 20).padEnd(20, ' ');
           
-          let cleanPerson = (item.person || '').normalize('NFD').replace(/[^\x20-\x7E]/g, '');
+          const cleanPerson = (item.person || '').normalize('NFD').replace(/[^\x20-\x7E]/g, '');
           const personStr = cleanPerson.substring(0, 15).padEnd(15, ' ');
           
           let amountStr = '';
@@ -330,7 +378,7 @@ export class PlaceholderDocumentsService {
           else amountStr = `${item.amount > 0 ? '+' : ''}${item.amount.toLocaleString('fr-FR')}`;
           amountStr = amountStr.substring(0, 13).padEnd(13, ' ');
           
-          let cleanDesc = (item.description || '').normalize('NFD').replace(/[^\x20-\x7E]/g, '');
+          const cleanDesc = (item.description || '').normalize('NFD').replace(/[^\x20-\x7E]/g, '');
           const descStr = cleanDesc.substring(0, 20).padEnd(20, ' ');
           
           linesForMonth.push(`${dateStr} | ${typeStr} | ${personStr} | ${amountStr} | ${descStr}`);
@@ -404,7 +452,7 @@ export class PlaceholderDocumentsService {
       }),
     ]);
 
-    const ledger: any[] = [];
+    const ledger: ReportLedgerItem[] = [];
 
     for (const t of transactions) {
       ledger.push({
@@ -412,7 +460,7 @@ export class PlaceholderDocumentsService {
         date: t.date || t.createdAt,
         person: `${t.contribuable?.prenom || ''} ${t.contribuable?.nom || ''}`.trim() || 'Inconnu',
         type: `Recette (${t.categorie})`,
-        amount: t.montant,
+        amount: Number(t.montant),
         description: t.service || 'Paiement taxe',
         module: 'recettes'
       });
@@ -424,7 +472,7 @@ export class PlaceholderDocumentsService {
         date: e.createdAt,
         person: `${e.contribuable?.prenom || ''} ${e.contribuable?.nom || ''}`.trim() || 'Inconnu',
         type: `Etat Civil`,
-        amount: e.montant,
+        amount: Number(e.montant),
         description: e.typeDocument || 'Document civil',
         module: 'etat-civil'
       });
@@ -436,7 +484,7 @@ export class PlaceholderDocumentsService {
         date: u.createdAt,
         person: `${u.contribuable?.prenom || ''} ${u.contribuable?.nom || ''}`.trim() || 'Inconnu',
         type: `Urbanisme`,
-        amount: u.montant,
+        amount: Number(u.montant),
         description: u.type || 'Permis',
         module: 'urbanisme'
       });
@@ -449,7 +497,7 @@ export class PlaceholderDocumentsService {
         date: m.datePaiement || m.createdAt,
         person: occupant ? `${occupant.prenom} ${occupant.nom}`.trim() : 'Occupant inconnu',
         type: `Marché`,
-        amount: m.montant,
+        amount: Number(m.montant),
         description: `Place ${m.place?.numeroPlace || '-'}`,
         module: 'marche'
       });
@@ -462,7 +510,7 @@ export class PlaceholderDocumentsService {
         date: m.datePaiement || m.createdAt,
         person: prop ? `${prop.prenom} ${prop.nom}`.trim() : 'Propriétaire inconnu',
         type: `Motos`,
-        amount: m.montant,
+        amount: Number(m.montant),
         description: `Imm. ${m.moto?.matricule || '-'}`,
         module: 'motos'
       });
@@ -474,7 +522,7 @@ export class PlaceholderDocumentsService {
         date: b.createdAt,
         person: b.service || 'Mairie',
         type: `Dépense`,
-        amount: -(b.montant),
+        amount: -Number(b.montant),
         description: b.motif || b.description || 'Dépense budget',
         module: 'budget'
       });
@@ -486,7 +534,7 @@ export class PlaceholderDocumentsService {
         date: f.createdAt,
         person: f.responsable || 'Mairie',
         type: `Formation`,
-        amount: -(f.budget),
+        amount: -Number(f.budget),
         description: f.domaine || 'Prog. Formation',
         module: 'formations'
       });

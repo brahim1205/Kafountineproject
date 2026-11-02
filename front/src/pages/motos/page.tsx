@@ -91,7 +91,7 @@ export default function MotosPage() {
       ]);
       const motosMapped: UiMoto[] = (motosData || []).map((m) => ({
         ...m,
-        photo: m.photo || 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600&h=400&fit=crop',
+        photo: m.photo || '',
         proprietaire: {
           id: m.proprietaire?.id,
           prenom: m.proprietaire?.prenom,
@@ -550,11 +550,17 @@ export default function MotosPage() {
                   {filteredMotos.map((moto) => (
                     <div key={moto.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex gap-4">
-                        <img
-                          src={moto.photo}
-                          alt={`${moto.marque} ${moto.modele}`}
-                          className="w-32 h-24 object-cover rounded-lg"
-                        />
+                        {moto.photo ? (
+                          <img
+                            src={moto.photo}
+                            alt={`${moto.marque} ${moto.modele}`}
+                            className="w-32 h-24 object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="w-32 h-24 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
+                            <i className="ri-motorbike-line text-3xl"></i>
+                          </div>
+                        )}
                         <div className="flex-1">
                           <div className="flex items-start justify-between mb-2">
                             <div>

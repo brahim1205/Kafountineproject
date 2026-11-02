@@ -44,7 +44,8 @@ export const changeMotoDriverSchema = z.object({
 
 export const createMotoPaymentSchema = z.object({
   motoId: uuidSchema,
-  montant: positiveNumberSchema,
+  // Sans montant, le serveur facture le tarif mensuel (+ pénalité si la moto est en retard).
+  montant: positiveNumberSchema.optional(),
   reference: optionalTrimmedString(120),
   mois: optionalTrimmedString(80),
   year: yearSchema.optional(),

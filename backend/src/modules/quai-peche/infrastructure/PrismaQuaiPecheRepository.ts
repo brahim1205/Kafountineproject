@@ -213,7 +213,8 @@ export class PrismaQuaiPecheRepository implements QuaiPecheRepository {
   }
 
   async delete(collection: QuaiCollection, id: string) {
-    await prisma.$executeRawUnsafe(`DELETE FROM "${TABLES[collection]}" WHERE "id" = $1`, id);
+    const count = await prisma.$executeRawUnsafe(`DELETE FROM "${TABLES[collection]}" WHERE "id" = $1`, id);
+    return count > 0;
   }
 
   listCommissionWeights(year: number) {

@@ -21,6 +21,8 @@ export type MarketPaymentInput = {
   montant?: number;
   reference?: string;
   periode?: string;
+  statut?: string;
+  datePaiement?: string;
   year?: number;
 };
 
@@ -173,7 +175,18 @@ export class MarcheService {
     }
 
     const year = input.year ? Number(input.year) : new Date().getFullYear();
-    const created = await this.repository.createPayment({ placeId, montant, reference, periode, year }, place);
+    const created = await this.repository.createPayment(
+      {
+        placeId,
+        montant,
+        reference,
+        periode,
+        statut: input.statut || 'PAYE',
+        datePaiement: input.datePaiement ? new Date(input.datePaiement) : new Date(),
+        year,
+      },
+      place
+    );
 
     await this.auditTrail.record(actor, {
       action: 'Paiement marché',

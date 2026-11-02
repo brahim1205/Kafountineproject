@@ -21,6 +21,7 @@ export type MotoInput = {
   montantPenalite?: number;
   prochainPaiement?: string;
   dernierPaiement?: string;
+  year?: number;
 };
 
 export type MotoPaymentInput = {
@@ -116,7 +117,7 @@ export class MotoService {
         montantPenalite: MOTO_PENALITE_RETARD,
         prochainPaiement: nextMonthDueDate(),
         dernierPaiement: null,
-        year: annee,
+        year: input.year ? Number(input.year) : new Date().getFullYear(),
       },
       peopleDisplay(proprietaire, conducteur)
     );
@@ -186,7 +187,7 @@ export class MotoService {
             : input.dernierPaiement
               ? new Date(String(input.dernierPaiement))
               : null,
-        year: input.annee === undefined ? existing.year : Number(input.annee),
+        year: input.year === undefined ? existing.year : Number(input.year),
       },
       peopleDisplay(proprietaire, conducteur)
     );
@@ -255,7 +256,7 @@ export class MotoService {
     const paiementDate = new Date();
     const nextDueDate = nextMonthDueDate();
     const reference = input.reference ? String(input.reference).trim() : null;
-    const created = await this.repository.createPayment(
+    const created = await this.repository.recordPayment(
       {
         motoId,
         montant,
@@ -269,8 +270,6 @@ export class MotoService {
       },
       moto
     );
-
-    await this.repository.markPaid(motoId, paiementDate, nextDueDate);
 
     await this.auditTrail.record(actor, {
       action: 'Paiement moto',

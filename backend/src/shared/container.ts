@@ -42,7 +42,50 @@ import { GetPortalTransactionsUseCase } from '../modules/portal/application/GetP
 import { GetPortalReceiptUseCase } from '../modules/portal/application/GetPortalReceiptUseCase';
 import { GetPortalProfileUseCase } from '../modules/portal/application/GetPortalProfileUseCase';
 import { RedisPortalPaymentStore } from '../modules/portal/infrastructure/RedisPortalPaymentStore';
-import { PlaceholderController } from '../modules/placeholders/presentation/PlaceholderController';
+import { randomUUID } from 'node:crypto';
+import { PrismaAuditTrail } from './infrastructure/audit/PrismaAuditTrail';
+import { PrismaActorDirectory } from './infrastructure/audit/PrismaActorDirectory';
+import { PrismaContribuableLookup } from './infrastructure/contribuables/PrismaContribuableLookup';
+import { AuditController } from '../modules/audit/presentation/AuditController';
+import { AuditService } from '../modules/audit/application/AuditService';
+import { PrismaAuditLogRepository } from '../modules/audit/infrastructure/PrismaAuditLogRepository';
+import { BudgetController } from '../modules/budget/presentation/BudgetController';
+import { BudgetService } from '../modules/budget/application/BudgetService';
+import { PrismaBudgetRepository } from '../modules/budget/infrastructure/PrismaBudgetRepository';
+import { EtatCivilController } from '../modules/etat-civil/presentation/EtatCivilController';
+import { EtatCivilService } from '../modules/etat-civil/application/EtatCivilService';
+import { PrismaEtatCivilRepository } from '../modules/etat-civil/infrastructure/PrismaEtatCivilRepository';
+import { FormationsController } from '../modules/formations/presentation/FormationsController';
+import { FormationService } from '../modules/formations/application/FormationService';
+import { PrismaFormationRepository } from '../modules/formations/infrastructure/PrismaFormationRepository';
+import { MarcheController } from '../modules/marche/presentation/MarcheController';
+import { MarcheService } from '../modules/marche/application/MarcheService';
+import { PrismaMarcheRepository } from '../modules/marche/infrastructure/PrismaMarcheRepository';
+import { MediasController } from '../modules/medias/presentation/MediasController';
+import { ImageService } from '../modules/medias/application/ImageService';
+import { LocalImageStorage } from '../modules/medias/infrastructure/LocalImageStorage';
+import { MotosController } from '../modules/motos/presentation/MotosController';
+import { MotoService } from '../modules/motos/application/MotoService';
+import { PrismaMotoRepository } from '../modules/motos/infrastructure/PrismaMotoRepository';
+import { NotificationsController } from '../modules/notifications/presentation/NotificationsController';
+import { NotificationService } from '../modules/notifications/application/NotificationService';
+import { PrismaNotificationRepository } from '../modules/notifications/infrastructure/PrismaNotificationRepository';
+import { ParametresController } from '../modules/parametres/presentation/ParametresController';
+import { ParametresService } from '../modules/parametres/application/ParametresService';
+import { PrismaParametresRepository } from '../modules/parametres/infrastructure/PrismaParametresRepository';
+import { PrismaBackupStore } from '../modules/parametres/infrastructure/PrismaBackupStore';
+import { QuaiPecheController } from '../modules/quai-peche/presentation/QuaiPecheController';
+import { QuaiPecheService } from '../modules/quai-peche/application/QuaiPecheService';
+import { PrismaQuaiPecheRepository } from '../modules/quai-peche/infrastructure/PrismaQuaiPecheRepository';
+import { RapportsController } from '../modules/rapports/presentation/RapportsController';
+import { RapportService } from '../modules/rapports/application/RapportService';
+import { PrismaLedgerSource } from '../modules/rapports/infrastructure/PrismaLedgerSource';
+import { UrbanismeController } from '../modules/urbanisme/presentation/UrbanismeController';
+import { UrbanismeService } from '../modules/urbanisme/application/UrbanismeService';
+import { PrismaUrbanismeRepository } from '../modules/urbanisme/infrastructure/PrismaUrbanismeRepository';
+import { UtilisateursController } from '../modules/utilisateurs/presentation/UtilisateursController';
+import { UtilisateurService } from '../modules/utilisateurs/application/UtilisateurService';
+import { BcryptPasswordHasher, PrismaUtilisateurRepository } from '../modules/utilisateurs/infrastructure/PrismaUtilisateurRepository';
 
 export function buildContainer() {
   const tokenService = new JwtTokenService();
@@ -101,7 +144,7 @@ export function buildContainer() {
     new GetPortalReceiptUseCase(transactionRepository)
   );
 
-  const placeholderController = new PlaceholderController();
+  const municipal = buildMunicipalControllers();
 
   return {
     tokenService,
@@ -111,6 +154,34 @@ export function buildContainer() {
     transactionsController,
     dashboardController,
     portalController,
-    placeholderController,
+    municipal,
   };
 }
+
+function buildMunicipalControllers() {
+  const auditTrail = new PrismaAuditTrail();
+  const actors = new PrismaActorDirectory();
+  const contribuables = new PrismaContribuableLookup();
+
+  return {
+    formations: new FormationsController(new FormationService(new PrismaFormationRepository(), auditTrail)),
+    etatCivil: new EtatCivilController(new EtatCivilService(new PrismaEtatCivilRepository(), contribuables, auditTrail), actors),
+    urbanisme: new UrbanismeController(new UrbanismeService(new PrismaUrbanismeRepository(), contribuables, auditTrail), actors),
+    marche: new MarcheController(new MarcheService(new PrismaMarcheRepository(), contribuables, auditTrail)),
+    motos: new MotosController(new MotoService(new PrismaMotoRepository(), contribuables, actors, auditTrail)),
+    audit: new AuditController(new AuditService(new PrismaAuditLogRepository(), auditTrail)),
+    notifications: new NotificationsController(new NotificationService(new PrismaNotificationRepository(), auditTrail)),
+    utilisateurs: new UtilisateursController(
+      new UtilisateurService(new PrismaUtilisateurRepository(), new BcryptPasswordHasher(), auditTrail)
+    ),
+    quaiPeche: new QuaiPecheController(new QuaiPecheService(new PrismaQuaiPecheRepository(), auditTrail)),
+    parametres: new ParametresController(
+      new ParametresService(new PrismaParametresRepository(), new PrismaBackupStore(), auditTrail)
+    ),
+    medias: new MediasController(new ImageService(new LocalImageStorage(), randomUUID)),
+    rapports: new RapportsController(new RapportService(new PrismaLedgerSource(), auditTrail)),
+    budget: new BudgetController(new BudgetService(new PrismaBudgetRepository(), auditTrail)),
+  };
+}
+
+export type MunicipalControllers = ReturnType<typeof buildMunicipalControllers>;

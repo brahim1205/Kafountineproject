@@ -78,7 +78,7 @@ function loadAppWithHealthChecks(checks, envOverrides = {}) {
       transactionsController: {},
       dashboardController: {},
       portalController: {},
-      placeholderController: {},
+      municipal: {},
     }),
   }));
 
@@ -88,7 +88,7 @@ function loadAppWithHealthChecks(checks, envOverrides = {}) {
   jest.doMock('../dist/src/modules/transactions/presentation/transactions.routes', () => ({ buildTransactionsRoutes: emptyRouterFactory }));
   jest.doMock('../dist/src/modules/dashboard/presentation/dashboard.routes', () => ({ buildDashboardRoutes: emptyRouterFactory }));
   jest.doMock('../dist/src/modules/portal/presentation/portal.routes', () => ({ buildPortalRoutes: emptyRouterFactory }));
-  jest.doMock('../dist/src/modules/placeholders/presentation/placeholders.routes', () => ({ buildPlaceholderRoutes: emptyRouterFactory }));
+  jest.doMock('../dist/src/modules/municipal.routes', () => ({ buildMunicipalRoutes: emptyRouterFactory }));
 
   const { createApp } = require('../dist/src/app');
   return createApp();

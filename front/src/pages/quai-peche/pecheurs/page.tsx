@@ -6,6 +6,7 @@ import {
   clearFieldValidationError,
   validateFormElement,
 } from '../../../utils/formValidation';
+import { downloadCsv, today } from '../../../utils/csv';
 
 export default function PecheursPage() {
   const [pecheurs, setPecheurs] = useState<Pecheur[]>([]);
@@ -34,13 +35,13 @@ export default function PecheursPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedYear]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setErrorMsg('');
-      const data = await listPecheurs({ limit: 100 });
+      const data = await listPecheurs({ year: selectedYear, limit: 100 });
       setPecheurs(data);
     } catch {
       setPecheurs([]);
@@ -127,12 +128,7 @@ export default function PecheursPage() {
         p.nom, p.prenom, p.telephone || '-', p.nin || '-', p.adresse || '-', p.statut
       ])
     ];
-    const csvContent = data.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `pecheurs_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    downloadCsv(`pecheurs_${today()}.csv`, data);
   };
 
   return (

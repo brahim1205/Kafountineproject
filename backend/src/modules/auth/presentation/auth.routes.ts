@@ -6,6 +6,7 @@ import { validate } from '../../../shared/presentation/middleware/validation';
 import { JwtTokenService } from '../../../shared/security/JwtTokenService';
 import type { AuthController } from './AuthController';
 import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas';
+import { env } from '../../../shared/config/env';
 
 /**
  * @swagger
@@ -13,7 +14,7 @@ import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas
  *   post:
  *     tags: [Auth]
  *     summary: Connexion utilisateur
- *     description: Authentifie un utilisateur et retourne un token JWT
+ *     description: Authentifie un utilisateur et pose des cookies HTTP-only
  *     requestBody:
  *       required: true
  *       content:
@@ -47,10 +48,6 @@ import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas
  *                   properties:
  *                     user:
  *                       $ref: '#/components/schemas/User'
- *                     accessToken:
- *                       type: string
- *                     refreshToken:
- *                       type: string
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -65,6 +62,7 @@ import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas
  *     summary: Déconnexion
  *     description: Déconnecte l'utilisateur et invalide le token
  *     security:
+ *       - cookieAuth: []
  *       - bearerAuth: []
  *     responses:
  *       200:
@@ -81,6 +79,7 @@ import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas
  *     summary: Profil utilisateur actuel
  *     description: Retourne les informations de l'utilisateur connecté
  *     security:
+ *       - cookieAuth: []
  *       - bearerAuth: []
  *     responses:
  *       200:
@@ -104,16 +103,13 @@ import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas
  *   post:
  *     tags: [Auth]
  *     summary: Rafraîchir le token
- *     description: Utilise le refresh token pour obtenir un nouveau access token
+ *     description: Utilise le cookie refresh_token pour renouveler les cookies de session
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               refreshToken:
- *                 type: string
- *                 description: Refresh token JWT
  *     responses:
  *       200:
  *         description: Token rafraîchi avec succès
@@ -152,7 +148,7 @@ import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas
 export function buildAuthRoutes(controller: AuthController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
-  const loginRateLimit = rateLimit({ keyPrefix: 'auth-login', windowMs: 15 * 60 * 1000, max: 5 });
+  const loginRateLimit = rateLimit({ keyPrefix: 'auth-login', windowMs: env.loginRateLimitWindowMs, max: env.loginRateLimitMax });
   const refreshRateLimit = rateLimit({ keyPrefix: 'auth-refresh', windowMs: 5 * 60 * 1000, max: 20 });
   const forgotPasswordRateLimit = rateLimit({ keyPrefix: 'auth-forgot-password', windowMs: 15 * 60 * 1000, max: 5 });
 

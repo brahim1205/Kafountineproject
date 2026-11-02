@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafontine-config
+  namespace: kafontine
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  POSTGRES_DB: "vhm-finances"
+  POSTGRES_USER: "postgres"
+  JWT_EXPIRES_IN: "15m"
+  JWT_REFRESH_EXPIRES_IN: "7d"
+  TRUST_PROXY: "loopback,linklocal,uniquelocal"
+  COOKIE_SAME_SITE: "lax"
+  CORS_ORIGIN: "https://kafontine.gouv.sn"
+  PORTAL_URL: "https://kafontine.gouv.sn"
+  PORTAL_OTP_TTL_SECONDS: "600"
+  PORTAL_OTP_DELIVERY_MODE: "webhook"
+  ENABLE_API_DOCS: "false"
+  ENABLE_METRICS: "false"
+  API_RATE_LIMIT_WINDOW_MS: "60000"
+  API_RATE_LIMIT_MAX: "120"
+  CACHE_ENABLED: "true"
+  CACHE_TTL_SECONDS: "300"
+  COMPRESSION_ENABLED: "true"
+  OTEL_ENABLED: "true"
+  OTEL_SERVICE_NAME: "kafountine-backend"
+  VITE_API_URL: "/api/v1"
+  NGINX_BACKEND_URL: "http://backend:3000"

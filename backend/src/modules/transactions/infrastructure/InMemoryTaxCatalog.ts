@@ -95,11 +95,7 @@ export class PrismaTaxCatalog implements TaxCatalog {
       }
 
       return await prisma.$queryRawUnsafe<TariffRow[]>(sql);
-    } catch (error) {
-      console.warn('[transactions] Falling back to embedded tax catalog', {
-        categoryId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    } catch {
       return [];
     }
   }

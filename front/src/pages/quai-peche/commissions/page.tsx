@@ -7,6 +7,7 @@ import {
   clearFieldValidationError,
   validateFormElement,
 } from '../../../utils/formValidation';
+import { downloadCsv, today } from '../../../utils/csv';
 
 export default function CommissionsPage() {
   const { selectedYear } = useYear();
@@ -35,15 +36,15 @@ export default function CommissionsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedYear]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setErrorMsg('');
       const [commissionsData, pecheursData] = await Promise.all([
-        listCommissions({ limit: 100 }),
-        listPecheurs({ limit: 100 })
+        listCommissions({ year: selectedYear, limit: 100 }),
+        listPecheurs({ year: selectedYear, limit: 100 })
       ]);
       setCommissions(commissionsData);
       setPecheurs(pecheursData);
@@ -119,12 +120,7 @@ export default function CommissionsPage() {
         c.statut
       ])
     ];
-    const csvContent = data.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `commissions_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    downloadCsv(`commissions_${today()}.csv`, data);
   };
 
   return (

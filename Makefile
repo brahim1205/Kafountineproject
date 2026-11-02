@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help check backend-check validate-prod-env validate-prod-template prod-preflight prod-smoke k8s-apply helm-install helm-upgrade helm-uninstall up-dev down-dev logs-dev reset-dev bootstrap-dev-db dev-local backend-local backend-local-no-db front-local
+.PHONY: help check backend-check security-scan validate-prod-env validate-prod-template prod-preflight prod-smoke k8s-apply helm-install helm-upgrade helm-uninstall up-dev down-dev logs-dev reset-dev bootstrap-dev-db dev-local backend-local backend-local-no-db front-local
 
 help:
 	@echo "Modes disponibles:"
@@ -9,6 +9,7 @@ help:
 	@echo "  make front-local       -> lance le frontend Vite en local"
 	@echo "  make up-dev            -> démarre PostgreSQL et Redis de développement"
 	@echo "  make validate-prod-env -> vérifie que .env.prod ne contient pas de placeholders"
+	@echo "  make security-scan     -> vérifie secrets/fichiers runtime suivis par Git"
 	@echo "  make validate-prod-template -> vérifie seulement la structure du template .env.prod"
 	@echo "  make prod-preflight    -> lance les vérifications repo + build + tests avant prod"
 	@echo "  make prod-smoke URL=https://domaine -> lance le smoke test HTTP post-déploiement"
@@ -23,6 +24,9 @@ check:
 
 backend-check:
 	cd backend && npm run build
+
+security-scan:
+	bash ./scripts/security-repo-scan.sh
 
 validate-prod-env:
 	bash ./scripts/validate-prod-env.sh .env.prod

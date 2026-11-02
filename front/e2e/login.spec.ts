@@ -66,7 +66,7 @@ test.describe('Error Handling', () => {
     
     await page.getByRole('button', { name: /se connecter/i }).click();
     
-    await expect(page.getByText(/failed to fetch|impossible de contacter le serveur de connexion|une erreur est survenue/i)).toBeVisible();
+    await expect(page.getByText(/impossible de contacter le serveur de connexion/i)).toBeVisible();
     await expect(page).toHaveURL(/login/);
   });
 });

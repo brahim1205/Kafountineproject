@@ -1,12 +1,8 @@
 import { ConflictError } from '../../../shared/errors/AppError';
-import { JwtTokenService } from '../../../shared/security/JwtTokenService';
 import type { ContribuableRepository } from '../../contribuables/domain/ContribuableRepository';
 
 export class RegisterPortalContribuableUseCase {
-  constructor(
-    private readonly contribuableRepository: ContribuableRepository,
-    private readonly tokenService: JwtTokenService
-  ) {}
+  constructor(private readonly contribuableRepository: ContribuableRepository) {}
 
   async execute(input: {
     nin: string;
@@ -49,10 +45,6 @@ export class RegisterPortalContribuableUseCase {
     });
 
     return {
-      token: this.tokenService.signPortalToken({
-        id: contribuable.id,
-        role: 'CONTRIBUABLE',
-      }),
       contribuable: {
         id: contribuable.id,
         nom: contribuable.nom,

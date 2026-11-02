@@ -23,7 +23,7 @@ postgresql:
   enabled: true
   auth:
     username: postgres
-    password: changeme
+    password: "__SET_POSTGRES_PASSWORD__"
     database: kafountine
   primary:
     persistence:
@@ -43,7 +43,7 @@ redis:
   architecture: standalone
   auth:
     enabled: true
-    password: changeme
+    password: "__SET_REDIS_PASSWORD__"
   master:
     persistence:
       enabled: true
@@ -81,7 +81,7 @@ backend:
   replicaCount: 3
   image:
     repository: kafontine-backend
-    tag: latest
+    tag: "2.0.0"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -131,6 +131,10 @@ backend:
     PORT: "3000"
     JWT_EXPIRES_IN: 15m
     JWT_REFRESH_EXPIRES_IN: 7d
+    TRUST_PROXY: loopback,linklocal,uniquelocal
+    COOKIE_SAME_SITE: lax
+    ENABLE_API_DOCS: "false"
+    ENABLE_METRICS: "false"
     API_RATE_LIMIT_WINDOW_MS: "60000"
     API_RATE_LIMIT_MAX: "300"
     LOGIN_RATE_LIMIT_WINDOW_MS: "900000"
@@ -142,11 +146,16 @@ backend:
     OTEL_SERVICE_NAME: kafontine-backend
   secrets:
     DATABASE_URL: ""
-    JWT_SECRET: "change-me-min-32-caracteres"
-    JWT_REFRESH_SECRET: "change-me-min-32-caracteres"
+    JWT_SECRET: "__SET_JWT_SECRET_MIN_32_CHARS__"
+    JWT_REFRESH_SECRET: "__SET_JWT_REFRESH_SECRET_MIN_32_CHARS__"
     REDIS_URL: ""
     CORS_ORIGIN: "https://kafontine.gouv.sn"
     PORTAL_URL: "https://kafontine.gouv.sn"
+    PORTAL_OTP_TTL_SECONDS: "600"
+    PORTAL_OTP_DELIVERY_MODE: "webhook"
+    PORTAL_OTP_WEBHOOK_URL: "https://sms-provider.kafontine.gouv.sn/send-otp"
+    PORTAL_OTP_WEBHOOK_TOKEN: "__SET_PORTAL_OTP_WEBHOOK_TOKEN__"
+    METRICS_BEARER_TOKEN: "__SET_METRICS_BEARER_TOKEN_MIN_32_CHARS__"
 
 # Configuration Frontend
 frontend:
@@ -154,11 +163,12 @@ frontend:
   replicaCount: 2
   image:
     repository: kafontine-frontend
-    tag: latest
+    tag: "2.0.0"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 80
+  containerPort: 8080
   resources:
     requests:
       memory: "64Mi"
@@ -203,10 +213,6 @@ ingress:
           pathType: Exact
           service: backend
           port: 3000
-        - path: /metrics
-          pathType: Exact
-          service: backend
-          port: 3000
         - path: /
           pathType: Prefix
           service: frontend
@@ -247,7 +253,7 @@ monitoring:
         memory: "256Mi"
         cpu: "100m"
     adminUser: admin
-    adminPassword: change-me
+    adminPassword: "__SET_GRAFANA_ADMIN_PASSWORD__"
 
 # Configuration des Service Accounts
 serviceAccount:

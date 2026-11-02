@@ -320,7 +320,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-contain p-0.5" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-gray-900">Kafountine</h1>
+              <p className="text-sm font-bold text-gray-900">Kafountine</p>
               <p className="text-xs text-gray-600">Gestion Municipale</p>
             </div>
           </div>

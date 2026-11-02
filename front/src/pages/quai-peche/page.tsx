@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import DashboardLayout from '../../components/feature/DashboardLayout';
+import { downloadCsv, today } from '../../utils/csv';
 
 // Types
 type Commission = {
@@ -71,12 +72,7 @@ export default function QuaiPechePage() {
       ['Numéro', 'Pêcheur', 'Poids (kg)', 'Type', 'Date', 'Heure', 'Température', 'Statut'],
       ...commissions.map(c => [c.numero, c.pecheur, String(c.poids), c.typePoisson, c.date, c.heure, String(c.temperatura), c.statut])
     ];
-    const csvContent = data.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `commissions_frigorifiques_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    downloadCsv(`commissions_frigorifiques_${today()}.csv`, data);
   };
 
   return (

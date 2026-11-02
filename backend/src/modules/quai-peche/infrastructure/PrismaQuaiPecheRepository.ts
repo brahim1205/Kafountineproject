@@ -56,12 +56,12 @@ const SELECT_EXPEDITION = `SELECT
       FROM "ShippingExpedition" e
       INNER JOIN "RefrigeratedTruck" t ON t."id" = e."camionId"`;
 
-const TABLES: Record<QuaiCollection, string> = {
-  pecheurs: 'Fisherman',
-  embarcations: 'FishingBoat',
-  commissions: 'FishCommission',
-  camions: 'RefrigeratedTruck',
-  expeditions: 'ShippingExpedition',
+const SQL_DELETE: Record<QuaiCollection, string> = {
+  pecheurs: 'DELETE FROM "Fisherman" WHERE "id" = $1',
+  embarcations: 'DELETE FROM "FishingBoat" WHERE "id" = $1',
+  commissions: 'DELETE FROM "FishCommission" WHERE "id" = $1',
+  camions: 'DELETE FROM "RefrigeratedTruck" WHERE "id" = $1',
+  expeditions: 'DELETE FROM "ShippingExpedition" WHERE "id" = $1',
 };
 
 async function first<T>(rows: Promise<T[]>) {
@@ -69,13 +69,24 @@ async function first<T>(rows: Promise<T[]>) {
   return row || null;
 }
 
+const SQL_LIST_FISHERMEN = `${SELECT_FISHERMAN} WHERE f."year" = $1 ORDER BY f."createdAt" DESC`;
+const SQL_FIND_FISHERMAN = `${SELECT_FISHERMAN} WHERE f."id" = $1 LIMIT 1`;
+const SQL_LIST_BOATS = `${SELECT_BOAT} WHERE b."year" = $1 ORDER BY b."createdAt" DESC`;
+const SQL_FIND_BOAT = `${SELECT_BOAT} WHERE b."id" = $1 LIMIT 1`;
+const SQL_LIST_COMMISSIONS = `${SELECT_COMMISSION} WHERE c."year" = $1 ORDER BY c."date" DESC`;
+const SQL_FIND_COMMISSION = `${SELECT_COMMISSION} WHERE c."id" = $1 LIMIT 1`;
+const SQL_LIST_TRUCKS = `${SELECT_TRUCK} WHERE t."year" = $1 ORDER BY t."createdAt" DESC`;
+const SQL_FIND_TRUCK = `${SELECT_TRUCK} WHERE t."id" = $1 LIMIT 1`;
+const SQL_LIST_EXPEDITIONS = `${SELECT_EXPEDITION} WHERE e."year" = $1 ORDER BY e."date" DESC`;
+const SQL_FIND_EXPEDITION = `${SELECT_EXPEDITION} WHERE e."id" = $1 LIMIT 1`;
+
 export class PrismaQuaiPecheRepository implements QuaiPecheRepository {
   listFishermen(year: number) {
-    return prisma.$queryRawUnsafe<Fisherman[]>(`${SELECT_FISHERMAN} WHERE f."year" = $1 ORDER BY f."createdAt" DESC`, year);
+    return prisma.$queryRawUnsafe<Fisherman[]>(SQL_LIST_FISHERMEN, year);
   }
 
   findFisherman(id: string) {
-    return first(prisma.$queryRawUnsafe<Fisherman[]>(`${SELECT_FISHERMAN} WHERE f."id" = $1 LIMIT 1`, id));
+    return first(prisma.$queryRawUnsafe<Fisherman[]>(SQL_FIND_FISHERMAN, id));
   }
 
   async createFisherman(values: FishermanValues & { year: number }) {
@@ -97,11 +108,11 @@ export class PrismaQuaiPecheRepository implements QuaiPecheRepository {
   }
 
   listBoats(year: number) {
-    return prisma.$queryRawUnsafe<FishingBoat[]>(`${SELECT_BOAT} WHERE b."year" = $1 ORDER BY b."createdAt" DESC`, year);
+    return prisma.$queryRawUnsafe<FishingBoat[]>(SQL_LIST_BOATS, year);
   }
 
   findBoat(id: string) {
-    return first(prisma.$queryRawUnsafe<FishingBoat[]>(`${SELECT_BOAT} WHERE b."id" = $1 LIMIT 1`, id));
+    return first(prisma.$queryRawUnsafe<FishingBoat[]>(SQL_FIND_BOAT, id));
   }
 
   async createBoat(values: FishingBoatValues & { year: number }, owner: Fisherman | null) {
@@ -126,11 +137,11 @@ export class PrismaQuaiPecheRepository implements QuaiPecheRepository {
   }
 
   listCommissions(year: number) {
-    return prisma.$queryRawUnsafe<FishCommission[]>(`${SELECT_COMMISSION} WHERE c."year" = $1 ORDER BY c."date" DESC`, year);
+    return prisma.$queryRawUnsafe<FishCommission[]>(SQL_LIST_COMMISSIONS, year);
   }
 
   findCommission(id: string) {
-    return first(prisma.$queryRawUnsafe<FishCommission[]>(`${SELECT_COMMISSION} WHERE c."id" = $1 LIMIT 1`, id));
+    return first(prisma.$queryRawUnsafe<FishCommission[]>(SQL_FIND_COMMISSION, id));
   }
 
   async createCommission(
@@ -158,11 +169,11 @@ export class PrismaQuaiPecheRepository implements QuaiPecheRepository {
   }
 
   listTrucks(year: number) {
-    return prisma.$queryRawUnsafe<RefrigeratedTruck[]>(`${SELECT_TRUCK} WHERE t."year" = $1 ORDER BY t."createdAt" DESC`, year);
+    return prisma.$queryRawUnsafe<RefrigeratedTruck[]>(SQL_LIST_TRUCKS, year);
   }
 
   findTruck(id: string) {
-    return first(prisma.$queryRawUnsafe<RefrigeratedTruck[]>(`${SELECT_TRUCK} WHERE t."id" = $1 LIMIT 1`, id));
+    return first(prisma.$queryRawUnsafe<RefrigeratedTruck[]>(SQL_FIND_TRUCK, id));
   }
 
   async createTruck(values: TruckValues & { year: number }) {
@@ -184,11 +195,11 @@ export class PrismaQuaiPecheRepository implements QuaiPecheRepository {
   }
 
   listExpeditions(year: number) {
-    return prisma.$queryRawUnsafe<ShippingExpedition[]>(`${SELECT_EXPEDITION} WHERE e."year" = $1 ORDER BY e."date" DESC`, year);
+    return prisma.$queryRawUnsafe<ShippingExpedition[]>(SQL_LIST_EXPEDITIONS, year);
   }
 
   findExpedition(id: string) {
-    return first(prisma.$queryRawUnsafe<ShippingExpedition[]>(`${SELECT_EXPEDITION} WHERE e."id" = $1 LIMIT 1`, id));
+    return first(prisma.$queryRawUnsafe<ShippingExpedition[]>(SQL_FIND_EXPEDITION, id));
   }
 
   async createExpedition(values: ExpeditionValues & { numero: string; year: number }, truck: RefrigeratedTruck) {
@@ -213,7 +224,7 @@ export class PrismaQuaiPecheRepository implements QuaiPecheRepository {
   }
 
   async delete(collection: QuaiCollection, id: string) {
-    const count = await prisma.$executeRawUnsafe(`DELETE FROM "${TABLES[collection]}" WHERE "id" = $1`, id);
+    const count = await prisma.$executeRawUnsafe(SQL_DELETE[collection], id);
     return count > 0;
   }
 

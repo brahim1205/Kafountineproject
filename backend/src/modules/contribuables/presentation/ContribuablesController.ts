@@ -23,6 +23,7 @@ export class ContribuablesController {
   async list(req: Request, res: Response) {
     const result = await this.listContribuablesUseCase.execute({
       search: String(req.query.search || '').trim() || undefined,
+      isActive: req.query.statut === 'actif' ? true : req.query.statut === 'inactif' ? false : undefined,
       page: Math.max(1, Number(req.query.page || 1)),
       limit: Math.min(100, Math.max(1, Number(req.query.limit || 20))),
     });

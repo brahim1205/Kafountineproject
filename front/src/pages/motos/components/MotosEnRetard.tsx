@@ -1,3 +1,4 @@
+import MotoPhoto from './MotoPhoto';
 import { formatDate, type MotoConfig, type UiMoto } from '../types';
 import { downloadCsv, today } from '../../../utils/csv';
 
@@ -42,7 +43,7 @@ export default function MotosEnRetard({ motos, motoConfig, canManage, onPaiement
         <div key={moto.id} className="bg-red-50 rounded-lg p-4 border border-red-200">
           <div className="flex items-start justify-between mb-3">
             <div className="flex gap-4">
-              <img src={moto.photo} alt={`${moto.marque} ${moto.modele}`} className="w-24 h-20 object-cover rounded-lg" />
+              <MotoPhoto src={moto.photo} alt={`${moto.marque} ${moto.modele}`} sizeClass="w-24 h-20" />
               <div>
                 <h3 className="font-semibold text-gray-900 mb-1">{moto.matricule}</h3>
                 <p className="text-sm text-gray-600 mb-2">{moto.marque} {moto.modele}</p>

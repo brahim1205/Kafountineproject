@@ -114,6 +114,19 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(res.status).toBe(201);
       expect(res.body.data).toMatchObject({ categorie: 'Marché', service: 'Ticket journalier' });
       expect(Number(res.body.data.montant)).toBe(1500);
+
+      // Chaque encaissement laisse une trace dans le journal d'audit.
+      const numero = res.body.data.numero;
+      const journal = (await admin.get(`/audit?year=${year}&search=${encodeURIComponent(numero)}`)).body.data;
+      expect(journal.logs.map((log) => log.action)).toContain('Encaissement');
+
+      const updated = await admin.put(`/transactions/${res.body.data.id}`, { montant: 2000 });
+      expect(updated.status).toBe(200);
+      const deleted = await admin.delete(`/transactions/${res.body.data.id}`);
+      expect(deleted.status).toBe(200);
+      const actions = (await admin.get(`/audit?year=${year}&search=${encodeURIComponent(numero)}`)).body.data.logs.map((log) => log.action);
+      expect(actions).toEqual(expect.arrayContaining(['Encaissement', 'Modification transaction', 'Suppression transaction']));
+      expect((await admin.delete(`/transactions/${res.body.data.id}`)).status).toBe(404);
     });
   });
 
@@ -142,6 +155,30 @@ describeIntegration('services municipaux (intégration)', () => {
       const unknown = await admin.put(`/etat-civil/${id}`, { contribuableId: '00000000-0000-4000-8000-000000000000' });
       expect(unknown.status).toBe(404);
       await admin.delete(`/etat-civil/${id}`);
+    });
+  });
+
+  describe('mot de passe', () => {
+    it('change son mot de passe, refuse l’ancien puis le remet', async () => {
+      const email = 'quaipeche@kafountine.gouv.sn';
+      const nouveau = `Kafountine-${suffix}-9x!`;
+      const user = await login(email);
+
+      const wrong = await user.post('/auth/change-password', { currentPassword: 'Faux-mot-de-passe-1!', newPassword: nouveau });
+      expect(wrong.status).toBe(401);
+      const weak = await user.post('/auth/change-password', { currentPassword: password, newPassword: 'trop-faible-123' });
+      expect(weak.status).toBe(400);
+
+      const changed = await user.post('/auth/change-password', { currentPassword: password, newPassword: nouveau });
+      expect(changed.status).toBe(200);
+
+      const oldLogin = await request(app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password });
+      expect(oldLogin.status).toBe(401);
+      const relogged = await request.agent(app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password: nouveau });
+      expect(relogged.status).toBe(200);
+
+      const restored = await user.post('/auth/change-password', { currentPassword: nouveau, newPassword: password });
+      expect(restored.status).toBe(200);
     });
   });
 

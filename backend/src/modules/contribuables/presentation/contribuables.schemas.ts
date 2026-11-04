@@ -36,6 +36,7 @@ export const updateContribuableSchema = z.object({
 
 export const listContribuablesQuerySchema = z.object({
   search: optionalTrimmedString(100),
+  statut: z.enum(['actif', 'inactif']).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(100).optional().default(20),
   year: z.coerce.number().int().min(2000).max(2100).optional(),

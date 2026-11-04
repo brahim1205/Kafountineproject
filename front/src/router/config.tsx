@@ -245,7 +245,7 @@ const routes: RouteObject[] = [
   },
   {
     path: '/parametres',
-    element: protectRoles(['admin', 'super_admin', 'service_finances'], <ParametresPage />)
+    element: protectRoles(['admin', 'super_admin'], <ParametresPage />)
   },
   {
     path: '/profil',

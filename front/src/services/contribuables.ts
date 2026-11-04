@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { apiRequest, apiRequestWithMeta } from './api';
 
 const MAX_CONTRIBUABLES_LIMIT = 100;
 
@@ -53,6 +53,21 @@ export async function listContribuables(params: { page?: number; limit?: number;
   const suffix = query.toString() ? `?${query.toString()}` : '';
   const result = await apiRequest<ContribuablesApiResult>(`/contribuables${suffix}`);
   return normalizeContribuablesResult(result);
+}
+
+/** Une page de contribuables filtrée côté serveur, avec le nombre total de résultats. */
+export async function searchContribuablesPage(params: {
+  page: number;
+  limit: number;
+  search?: string;
+  statut?: 'actif' | 'inactif';
+}): Promise<{ items: Contribuable[]; total: number }> {
+  const query = new URLSearchParams({ page: String(params.page), limit: String(clampContribuablesLimit(params.limit) || 20) });
+  if (params.search) query.set('search', params.search);
+  if (params.statut) query.set('statut', params.statut);
+  const { data, meta } = await apiRequestWithMeta<ContribuablesApiResult>(`/contribuables?${query.toString()}`);
+  const items = normalizeContribuablesResult(data);
+  return { items, total: meta?.total ?? items.length };
 }
 
 export async function findContribuableByNin(nin: string): Promise<Contribuable | null> {

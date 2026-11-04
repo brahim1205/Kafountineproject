@@ -10,6 +10,7 @@ import { env } from './shared/config/env';
 import { errorHandler } from './shared/presentation/middleware/errorHandler';
 import { csrfProtection } from './shared/presentation/middleware/csrfProtection';
 import { rateLimit } from './shared/presentation/middleware/rateLimit';
+import { userOrIpKey } from './shared/presentation/middleware/rateLimitKeys';
 import { requestLogger } from './shared/presentation/middleware/requestLogger';
 import { buildAuthRoutes } from './modules/auth/presentation/auth.routes';
 import { buildContribuablesRoutes } from './modules/contribuables/presentation/contribuables.routes';
@@ -94,6 +95,7 @@ export function createApp() {
     keyPrefix: 'api-global',
     windowMs: env.apiRateLimitWindowMs,
     max: env.apiRateLimitMax,
+    key: userOrIpKey,
   }));
 
   app.get('/health', (_req, res) => {

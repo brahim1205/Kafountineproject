@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db, inTransaction } from '../../../shared/infrastructure/prisma/transactionContext';
 import type {
   CreateTransactionPayload,
   TransactionFilters,
@@ -8,7 +8,7 @@ import type {
 
 export class PrismaTransactionRepository implements TransactionRepository {
   async search(filters: TransactionFilters) {
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await db().transaction.findMany({
       where: this.buildWhere(filters),
       include: { contribuable: true, agent: true },
       skip: (filters.page - 1) * filters.limit,
@@ -19,17 +19,17 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async count(filters: TransactionFilters) {
-    return prisma.transaction.count({
+    return db().transaction.count({
       where: this.buildWhere(filters),
     });
   }
 
   async countByYear(year: number) {
-    return prisma.transaction.count({ where: { year } });
+    return db().transaction.count({ where: { year } });
   }
 
   async create(payload: CreateTransactionPayload) {
-    return prisma.transaction.create({
+    return db().transaction.create({
       data: {
         ...payload,
         tarifUnitaire: payload.montant,
@@ -38,7 +38,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async createWithAtomicNumero(payload: Omit<CreateTransactionPayload, 'numero'>) {
-    return prisma.$transaction(async (tx) => {
+    return inTransaction(async (tx) => {
       // Serialize numero generation per year to avoid unique constraint collisions.
       const lockKey = Number(`${payload.year}`.slice(-4));
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
@@ -72,9 +72,9 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async findByYear(year: number) {
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await db().transaction.findMany({
       where: { year },
-      select: { montant: true, statut: true },
+      select: { montant: true, statut: true, categorie: true, date: true },
     });
     return transactions.map((transaction) => ({
       ...transaction,
@@ -83,7 +83,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async findRecentByYear(year: number, limit: number) {
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await db().transaction.findMany({
       where: { year },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -93,7 +93,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async findByContribuableId(contribuableId: string) {
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await db().transaction.findMany({
       where: { contribuableId },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -114,7 +114,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async findPortalPayables(contribuableId: string, transactionIds: string[]) {
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await db().transaction.findMany({
       where: {
         contribuableId,
         id: { in: transactionIds },
@@ -133,7 +133,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async markPortalPaymentAsPaid(contribuableId: string, transactionIds: string[], modePaiement: string) {
-    await prisma.transaction.updateMany({
+    await db().transaction.updateMany({
       where: {
         contribuableId,
         id: { in: transactionIds },
@@ -146,7 +146,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
       },
     });
 
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await db().transaction.findMany({
       where: {
         contribuableId,
         id: { in: transactionIds },
@@ -168,7 +168,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async findDetailsById(transactionId: string) {
-    const transaction = await prisma.transaction.findUnique({
+    const transaction = await db().transaction.findUnique({
       where: { id: transactionId },
       select: {
         id: true,
@@ -197,14 +197,19 @@ export class PrismaTransactionRepository implements TransactionRepository {
   }
 
   async update(id: string, payload: Partial<CreateTransactionPayload>) {
-    return prisma.transaction.update({
+    return db().transaction.update({
       where: { id },
       data: payload,
     });
   }
 
+  async findSummaryById(id: string) {
+    const row = await db().transaction.findUnique({ where: { id }, select: { numero: true, montant: true, service: true } });
+    return row ? { ...row, montant: Number(row.montant) } : null;
+  }
+
   async delete(id: string) {
-    await prisma.transaction.delete({
+    await db().transaction.delete({
       where: { id },
     });
   }

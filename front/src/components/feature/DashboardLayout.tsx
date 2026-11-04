@@ -95,8 +95,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [searchContribuables, setSearchContribuables] = useState<Contribuable[]>([]);
-  const [searchTransactions, setSearchTransactions] = useState<TransactionItem[]>([]);
   const [notificationsNonLues, setNotificationsNonLues] = useState(0);
   const prevNotifsRef = useRef<number>(0);
   const isInitialLoadRef = useRef<boolean>(true);
@@ -152,27 +150,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // Skip if no auth token (user logged out)
     if (!authToken) return;
     
-    let mounted = true;
-    Promise.all([listContribuables({ limit: 100 }), getTransactions({ page: 1, limit: 300 })])
-      .then(([contribuables, transactions]) => {
-        if (!mounted) return;
-        setSearchContribuables(contribuables || []);
-        setSearchTransactions(transactions.data || []);
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setSearchContribuables([]);
-        setSearchTransactions([]);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [authToken]);
-
-  useEffect(() => {
-    // Skip if no auth token (user logged out)
-    if (!authToken) return;
-    
     listNotifications({ year: selectedYear })
       .then((data) => {
         const unreadCount = (data || []).filter((n) => !n.lu).length;
@@ -207,60 +184,55 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     window.location.href = '/login';
   };
 
-  // Recherche globale
+  // Recherche globale, faite par l'API (et non sur une liste préchargée, limitée aux premiers résultats).
   useEffect(() => {
-    if (searchQuery.trim().length < 2) {
+    const query = searchQuery.trim();
+    if (!authToken || query.length < 2) {
       setSearchResults([]);
       setShowSearchDropdown(false);
       return;
     }
 
-    const query = searchQuery.toLowerCase();
-    const results: SearchResult[] = [];
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      const [contribuables, transactions] = await Promise.all([
+        listContribuables({ search: query, limit: 5 }).catch(() => [] as Contribuable[]),
+        getTransactions({ page: 1, limit: 5, search: query }).then((r) => r.data || []).catch(() => [] as TransactionItem[]),
+      ]);
+      if (!active) return;
+      const results: SearchResult[] = [
+        ...contribuables.map((contrib): SearchResult => {
+          const fullName = `${contrib.prenom || ''} ${contrib.nom || ''}`.trim();
+          return {
+            id: contrib.id,
+            type: 'contribuable',
+            title: fullName || contrib.id,
+            subtitle: `${contrib.nin || contrib.id} • ${contrib.zone || '-'}`,
+            icon: 'ri-user-line',
+            link: '/contribuables',
+          };
+        }),
+        ...transactions.map((taxe): SearchResult => {
+          const contribuable = `${taxe.contribuable?.prenom || ''} ${taxe.contribuable?.nom || ''}`.trim();
+          return {
+            id: String(taxe.id || taxe.numero),
+            type: 'recette',
+            title: String(taxe.numero || '-'),
+            subtitle: `${contribuable || '-'} • ${taxe.service} • ${Number(taxe.montant || 0).toLocaleString('fr-FR')} FCFA`,
+            icon: 'ri-file-list-3-line',
+            link: '/recettes',
+          };
+        }),
+      ].slice(0, 8);
+      setSearchResults(results);
+      setShowSearchDropdown(results.length > 0);
+    }, 300);
 
-    // Recherche dans les contribuables
-    searchContribuables.forEach(contrib => {
-      const fullName = `${contrib.prenom || ''} ${contrib.nom || ''}`.trim();
-      if (
-        fullName.toLowerCase().includes(query) ||
-        contrib.id.toLowerCase().includes(query) ||
-        String(contrib.telephone || '').includes(query) ||
-        String(contrib.zone || '').toLowerCase().includes(query)
-      ) {
-        results.push({
-          id: contrib.id,
-          type: 'contribuable',
-          title: fullName || contrib.id,
-          subtitle: `${contrib.nin || contrib.id} • ${contrib.zone || '-'}`,
-          icon: 'ri-user-line',
-          link: '/contribuables'
-        });
-      }
-    });
-
-    // Recherche dans les transactions taxes
-    searchTransactions.forEach(taxe => {
-      const contribuable = `${taxe.contribuable?.prenom || ''} ${taxe.contribuable?.nom || ''}`.trim();
-      if (
-        String(taxe.numero || '').toLowerCase().includes(query) ||
-        contribuable.toLowerCase().includes(query) ||
-        String(taxe.service || '').toLowerCase().includes(query) ||
-        String(taxe.categorie || '').toLowerCase().includes(query)
-      ) {
-        results.push({
-          id: String(taxe.id || taxe.numero),
-          type: 'recette',
-          title: String(taxe.numero || '-'),
-          subtitle: `${contribuable || '-'} • ${taxe.service} • ${Number(taxe.montant || 0).toLocaleString()} FCFA`,
-          icon: 'ri-file-list-3-line',
-          link: '/recettes'
-        });
-      }
-    });
-
-    setSearchResults(results.slice(0, 8)); // Limiter à 8 résultats
-    setShowSearchDropdown(results.length > 0);
-  }, [searchQuery, searchContribuables, searchTransactions]);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [searchQuery, authToken]);
 
   // Fermer le dropdown au clic extérieur
   useEffect(() => {

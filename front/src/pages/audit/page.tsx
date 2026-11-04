@@ -17,6 +17,8 @@ interface AuditLog {
   status: 'success' | 'warning' | 'error';
 }
 
+const PAGE_SIZE = 25;
+
 export default function Audit() {
   const { selectedYear } = useYear();
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,22 +32,36 @@ export default function Audit() {
   const [stats, setStats] = useState({ total: 0, success: 0, warning: 0, error: 0 });
   const [errorMsg, setErrorMsg] = useState('');
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Recherche, filtres et pagination sont faits par l'API : le journal n'est jamais chargé en entier.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedYear, filterModule, filterStatus, debouncedSearch]);
+
   useEffect(() => {
     const loadAuditLogs = async () => {
       try {
         setLoading(true);
         setErrorMsg('');
-        const data = await getAuditLogs({ 
+        const data = await getAuditLogs({
           year: selectedYear,
-          search: searchTerm || undefined,
+          search: debouncedSearch || undefined,
           module: filterModule,
-          statut: filterStatus
+          statut: filterStatus,
+          page,
+          limit: PAGE_SIZE,
         });
-        
-        if (data?.logs) {
-          setAuditLogs(data.logs);
-          setStats(data.stats);
-        }
+        setAuditLogs(data?.logs || []);
+        setStats(data?.stats || { total: 0, success: 0, warning: 0, error: 0 });
+        setTotalPages(data?.pagination?.totalPages || 1);
       } catch {
         setAuditLogs([]);
         setStats({ total: 0, success: 0, warning: 0, error: 0 });
@@ -54,18 +70,11 @@ export default function Audit() {
         setLoading(false);
       }
     };
-    
-    loadAuditLogs();
-  }, [selectedYear, filterModule, filterStatus]);
 
-  const filteredLogs = auditLogs.filter(log => {
-    const matchesSearch = log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesModule = filterModule === 'all' || log.module === filterModule;
-    const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
-    return matchesSearch && matchesModule && matchesStatus;
-  });
+    loadAuditLogs();
+  }, [selectedYear, filterModule, filterStatus, debouncedSearch, page]);
+
+  const filteredLogs = auditLogs;
 
   const handleExport = async () => {
     try {
@@ -293,8 +302,26 @@ export default function Audit() {
           {!loading && (
             <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Affichage de {filteredLogs.length} sur {auditLogs.length} entrées
+                {stats.total.toLocaleString('fr-FR')} entrée{stats.total > 1 ? 's' : ''} — page {page} sur {totalPages}
               </p>
+              {totalPages > 1 && (
+                <div className="flex gap-2 text-sm">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Précédent
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Suivant
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

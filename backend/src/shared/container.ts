@@ -6,6 +6,7 @@ import { GetCurrentUserUseCase } from '../modules/auth/application/GetCurrentUse
 import { RequestPasswordResetUseCase } from '../modules/auth/application/RequestPasswordResetUseCase';
 import { RefreshTokenUseCase } from '../modules/auth/application/RefreshTokenUseCase';
 import { LogoutUseCase } from '../modules/auth/application/LogoutUseCase';
+import { ChangePasswordUseCase } from '../modules/auth/application/ChangePasswordUseCase';
 import { AuthController } from '../modules/auth/presentation/AuthController';
 import { RedisAuthSessionStore } from '../modules/auth/infrastructure/RedisAuthSessionStore';
 import { PrismaContribuableRepository } from '../modules/contribuables/infrastructure/PrismaContribuableRepository';
@@ -97,6 +98,9 @@ export function buildContainer() {
   const authSessionStore = new RedisAuthSessionStore();
   const contribuableRepository = new PrismaContribuableRepository();
   const transactionRepository = new PrismaTransactionRepository();
+  // Chaque encaissement, modification ou suppression est validé avec son entrée d'audit.
+  const transactionAudit = new PrismaAuditTrail();
+  const transactionUow = new PrismaUnitOfWork();
   const taxCatalog = new PrismaTaxCatalog();
   const dashboardRepository = new PrismaDashboardRepository();
   const portalPaymentStore = new RedisPortalPaymentStore();
@@ -107,7 +111,8 @@ export function buildContainer() {
     new GetCurrentUserUseCase(userRepository),
     new RequestPasswordResetUseCase(userRepository),
     new RefreshTokenUseCase(userRepository, tokenService, authSessionStore),
-    new LogoutUseCase(authSessionStore)
+    new LogoutUseCase(authSessionStore),
+    new ChangePasswordUseCase(userRepository, new PrismaAuditTrail())
   );
 
   const contribuablesController = new ContribuablesController(
@@ -122,11 +127,11 @@ export function buildContainer() {
     new ListTransactionCategoriesUseCase(taxCatalog),
     new ListTransactionCategoryServicesUseCase(taxCatalog),
     new ListTransactionsUseCase(transactionRepository),
-    new CreateTransactionUseCase(transactionRepository),
+    transactional(new CreateTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute']),
     new GetTransactionStatisticsUseCase(transactionRepository),
     new ExportTransactionsUseCase(),
-    new UpdateTransactionUseCase(transactionRepository),
-    new DeleteTransactionUseCase(transactionRepository)
+    transactional(new UpdateTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute']),
+    transactional(new DeleteTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute'])
   );
 
   const dashboardController = new DashboardController(

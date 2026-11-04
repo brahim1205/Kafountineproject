@@ -31,7 +31,7 @@ export async function createUser(payload: {
   });
 }
 
-export async function updateUser(id: string, payload: Partial<UserItem>) {
+export async function updateUser(id: string, payload: Partial<UserItem> & { password?: string }) {
   return apiRequest<UserItem>(`/users/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),

@@ -213,14 +213,12 @@ export function buildReceiptPayload(recuData: RecuData) {
   };
 }
 
+/** Contenu du QR code : le résumé du reçu, lisible par n'importe quel lecteur (aucune page de vérification en ligne n'existe). */
 export function buildReceiptQrData(recuData: RecuData): string {
-  // On génère une URL de vérification officielle
-  // Ce format est plus standard et facile à scanner que du JSON brut
-  const baseUrl = 'https://kafountine.sn/verifier';
-  const params = new URLSearchParams({
-    id: recuData.ticketNumber,
-    val: window.btoa(`${recuData.ticketNumber}|${recuData.amount}|${recuData.date}`),
-  });
-  
-  return `${baseUrl}?${params.toString()}`;
+  return [
+    'Commune de Kafountine - Reçu officiel',
+    `N° ${recuData.ticketNumber}`,
+    `Montant : ${Number(recuData.amount || 0).toLocaleString('fr-FR')} FCFA`,
+    `Date : ${recuData.date}${recuData.time ? ` ${recuData.time}` : ''}`,
+  ].join('\n');
 }

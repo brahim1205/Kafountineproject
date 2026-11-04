@@ -1,3 +1,4 @@
+import MotoPhoto from './MotoPhoto';
 import { useState } from 'react';
 import { formatDate, type UiMoto } from '../types';
 
@@ -55,13 +56,7 @@ export default function MotoList({ motos, canManage, onPaiement, onChangement }:
         {filteredMotos.map((moto) => (
           <div key={moto.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex gap-4">
-              {moto.photo ? (
-                <img src={moto.photo} alt={`${moto.marque} ${moto.modele}`} className="w-32 h-24 object-cover rounded-lg" />
-              ) : (
-                <div className="w-32 h-24 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
-                  <i className="ri-motorbike-line text-3xl"></i>
-                </div>
-              )}
+              <MotoPhoto src={moto.photo} alt={`${moto.marque} ${moto.modele}`} sizeClass="w-32 h-24" />
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-2">
                   <div>

@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { asyncHandler } from '../../../shared/http/asyncHandler';
 import { buildAuthenticate } from '../../../shared/presentation/middleware/authenticate';
 import { rateLimit } from '../../../shared/presentation/middleware/rateLimit';
+import { loginAttemptKey, userOrIpKey } from '../../../shared/presentation/middleware/rateLimitKeys';
 import { validate } from '../../../shared/presentation/middleware/validation';
 import { JwtTokenService } from '../../../shared/security/JwtTokenService';
 import type { AuthController } from './AuthController';
-import { loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas';
+import { changePasswordSchema, loginSchema, forgotPasswordSchema, refreshSchema } from './auth.schemas';
 import { env } from '../../../shared/config/env';
 
 /**
@@ -145,14 +146,54 @@ import { env } from '../../../shared/config/env';
  *         $ref: '#/components/responses/BadRequest'
  */
 
+/**
+ * @swagger
+ * /auth/change-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Changer son mot de passe
+ *     description: Vérifie le mot de passe actuel et applique la politique de mot de passe fort (12 caractères, majuscule, minuscule, chiffre, caractère spécial).
+ *     security:
+ *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Mot de passe modifié
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+
 export function buildAuthRoutes(controller: AuthController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
-  const loginRateLimit = rateLimit({ keyPrefix: 'auth-login', windowMs: env.loginRateLimitWindowMs, max: env.loginRateLimitMax });
+  // Par compte et par IP (forçage d'un mot de passe), plus un plafond large par IP (essais sur de nombreux comptes).
+  const loginRateLimit = rateLimit({ keyPrefix: 'auth-login', windowMs: env.loginRateLimitWindowMs, max: env.loginRateLimitMax, key: loginAttemptKey });
+  const loginIpRateLimit = rateLimit({ keyPrefix: 'auth-login-ip', windowMs: env.loginRateLimitWindowMs, max: env.loginRateLimitMax * 10 });
   const refreshRateLimit = rateLimit({ keyPrefix: 'auth-refresh', windowMs: 5 * 60 * 1000, max: 20 });
   const forgotPasswordRateLimit = rateLimit({ keyPrefix: 'auth-forgot-password', windowMs: 15 * 60 * 1000, max: 5 });
 
-  router.post('/login', loginRateLimit, validate(loginSchema), asyncHandler((req, res) => controller.login(req, res)));
+  router.post('/login', loginIpRateLimit, loginRateLimit, validate(loginSchema), asyncHandler((req, res) => controller.login(req, res)));
+  router.post(
+    '/change-password',
+    authenticate,
+    rateLimit({ keyPrefix: 'auth-change-password', windowMs: 15 * 60 * 1000, max: 5, key: userOrIpKey }),
+    validate(changePasswordSchema),
+    asyncHandler((req, res) => controller.changePassword(req as never, res))
+  );
   router.post('/logout', authenticate, asyncHandler((req, res) => controller.logout(req, res)));
   router.get('/me', authenticate, asyncHandler((req, res) => controller.me(req as never, res)));
   router.post('/refresh', refreshRateLimit, validate(refreshSchema), asyncHandler((req, res) => controller.refresh(req, res)));

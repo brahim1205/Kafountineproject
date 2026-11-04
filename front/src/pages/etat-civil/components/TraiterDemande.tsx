@@ -3,6 +3,7 @@ import RecuPDF from '../../../components/feature/RecuPDF';
 import { createEtatCivilDemande } from '../../../services/etatCivil';
 import { ensureContribuableByIdentity } from '../../../services/contribuables';
 import { getTaxServices, type TaxService } from '../../../services/taxes';
+import { getStoredUserName } from '../../../services/auth';
 import { useToast } from '../../../components/feature/Toast';
 import { useYear } from '../../../contexts/YearContext';
 import {
@@ -82,15 +83,16 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
         adresse: formData.adresse,
       });
 
-      const numeroTransaction = `EC-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`;
-      await createEtatCivilDemande({
+      const created = await createEtatCivilDemande({
         contribuableId: contribuable.id,
-        typeDocument: typeDocument,
+        // Le nom du document (et non l'identifiant du catalogue), comme dans l'historique et le formulaire de modification.
+        typeDocument: selectedDoc.nom,
         exemplaires: exemplaire,
         montant: montantTotal,
         observations: formData.observations.trim() || undefined,
         year: selectedYear,
       });
+      const numeroTransaction = created.numero;
 
       const now = new Date();
       
@@ -101,7 +103,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
         contribuable: formData.nomComplet,
         type: `${selectedDoc.nom}${exemplaire > 1 ? ` (${exemplaire} exemplaires)` : ''}`,
         montant: montantTotal,
-        agent: 'Agent État Civil'
+        agent: getStoredUserName() || 'Agent État Civil',
       };
 
       setTransactionData(newTransaction);

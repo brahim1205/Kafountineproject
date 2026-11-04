@@ -10,4 +10,8 @@ export class PrismaUserRepository implements UserRepository {
   async findById(id: string): Promise<AuthUser | null> {
     return prisma.user.findUnique({ where: { id } });
   }
+
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    await prisma.user.update({ where: { id }, data: { password: passwordHash } });
+  }
 }

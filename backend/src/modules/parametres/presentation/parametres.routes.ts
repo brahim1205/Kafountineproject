@@ -161,12 +161,14 @@ export function buildParametresRoutes(controller: ParametresController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
   const adminOnly = authorize('ADMIN', 'SUPER_ADMIN');
+  // Les agents et comptables consultent les pénalités actives pour les appliquer (page Pénalités) ; la gestion reste aux admins.
+  const penaltyReaders = authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE');
 
   router.get('/settings/tarifs', authenticate, adminOnly, asyncHandler((req, res) => controller.listTariffs(req, res)));
   router.post('/settings/tarifs', authenticate, adminOnly, validate(createTarifSchema), asyncHandler((req, res) => controller.createTariff(req, res)));
   router.put('/settings/tarifs/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), validate(updateTarifSchema), asyncHandler((req, res) => controller.updateTariff(req, res)));
   router.delete('/settings/tarifs/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteTariff(req, res)));
-  router.get('/settings/penalites', authenticate, adminOnly, asyncHandler((req, res) => controller.listPenalties(req, res)));
+  router.get('/settings/penalites', authenticate, penaltyReaders, asyncHandler((req, res) => controller.listPenalties(req, res)));
   router.post('/settings/penalites', authenticate, adminOnly, validate(createPenaltySchema), asyncHandler((req, res) => controller.createPenalty(req, res)));
   router.put('/settings/penalites/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), validate(updatePenaltySchema), asyncHandler((req, res) => controller.updatePenalty(req, res)));
   router.delete('/settings/penalites/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deletePenalty(req, res)));

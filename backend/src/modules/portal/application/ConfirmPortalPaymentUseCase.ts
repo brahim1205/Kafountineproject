@@ -1,3 +1,4 @@
+import { assertPortalPaymentsEnabled } from './portalPayments';
 import { ForbiddenError, NotFoundError } from '../../../shared/errors/AppError';
 import type { PortalPaymentStore } from '../domain/PortalPaymentStore';
 import type { TransactionRepository } from '../../transactions/domain/TransactionRepository';
@@ -9,6 +10,7 @@ export class ConfirmPortalPaymentUseCase {
   ) {}
 
   async execute(input: { transactionId?: string; reference?: string }, contribuableId: string) {
+    assertPortalPaymentsEnabled();
     const paymentId = String(input.transactionId || '').trim();
     const pendingPayment = await this.paymentStore.find(paymentId);
 

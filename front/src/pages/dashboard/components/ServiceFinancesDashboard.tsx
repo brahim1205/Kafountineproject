@@ -46,7 +46,8 @@ export default function ServiceFinancesDashboard() {
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole() || 'service_finances';
   const userName = getStoredUserName() || 'Service des Finances';
-  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+  // Même règle que l'API (PUT /budget/demandes/:id) : le service des finances et les admins tranchent les demandes.
+  const canDecide = userRole === 'admin' || userRole === 'super_admin' || userRole === 'service_finances';
   const [showModalBudget, setShowModalBudget] = useState(false);
   const [showModalDepense, setShowModalDepense] = useState(false);
   const [activeTab, setActiveTab] = useState<'budget' | 'depenses'>('budget');
@@ -98,7 +99,7 @@ export default function ServiceFinancesDashboard() {
       setDemandesDepenses(demandesDepenses.map(d => 
         d.id === id ? { ...d, statut: 'APPROUVE' as const } : d
       ));
-      showToast('Demande approuvée! Le service a été notifié.', 'success');
+      showToast('Demande approuvée.', 'success');
     } catch {
       showToast('Erreur lors de l\'approbation de la demande', 'error');
     }
@@ -113,7 +114,7 @@ export default function ServiceFinancesDashboard() {
       setDemandesDepenses(demandesDepenses.map(d => 
         d.id === id ? { ...d, statut: 'REJETE' as const } : d
       ));
-      showToast('Demande rejetée! Le service a été notifié.', 'warning');
+      showToast('Demande rejetée.', 'warning');
     } catch {
       showToast('Erreur lors du rejet de la demande', 'error');
     }
@@ -351,7 +352,7 @@ export default function ServiceFinancesDashboard() {
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Montant</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Date</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Statut</th>
-                  {isAdmin && (
+                  {canDecide && (
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Actions</th>
                   )}
                 </tr>
@@ -359,20 +360,20 @@ export default function ServiceFinancesDashboard() {
               <tbody className="divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={isAdmin ? 7 : 6} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={canDecide ? 7 : 6} className="px-4 py-8 text-center text-gray-500">
                       Chargement des données...
                     </td>
                   </tr>
                 ) : demandesDepenses.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 7 : 6} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={canDecide ? 7 : 6} className="px-4 py-8 text-center text-gray-500">
                       Aucune demande de dépense pour l'année {selectedYear}
                     </td>
                   </tr>
                 ) : (
                   demandesDepenses.map((demande) => (
                     <tr key={demande.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-mono text-gray-900">{demande.id}</td>
+                      <td className="px-4 py-3 text-sm font-mono text-gray-900">{`DEP-${demande.id.slice(0, 8).toUpperCase()}`}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{demande.service}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{demande.description}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">{demande.montant.toLocaleString()} FCFA</td>
@@ -389,7 +390,7 @@ export default function ServiceFinancesDashboard() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {isAdmin && demande.statut === 'EN_ATTENTE' && (
+                        {canDecide && demande.statut === 'EN_ATTENTE' && (
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => handleApprouver(demande.id)}

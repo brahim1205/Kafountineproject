@@ -2,6 +2,8 @@ import type { Contribuable } from './Contribuable';
 
 export type ContribuableFilters = {
   search?: string;
+  /** Absent : actifs et inactifs. */
+  isActive?: boolean;
   page: number;
   limit: number;
 };

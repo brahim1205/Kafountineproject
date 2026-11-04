@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import {
   createContribuable,
   deleteContribuable,
-  listContribuables,
+  searchContribuablesPage,
   updateContribuable,
   validateContribuableDuplicates,
   type Contribuable,
@@ -16,6 +16,8 @@ import {
   getErrorMessage,
   validateFormElement,
 } from '../../utils/formValidation';
+
+const PAGE_SIZE = 20;
 
 type UiContribuable = {
   id: string;
@@ -33,8 +35,8 @@ export default function Contribuables() {
   const { showToast } = useToast();
   const currentYear = new Date().getFullYear();
   const isCurrentYear = selectedYear === currentYear;
-  const userRole = getStoredUserRole() || 'admin';
-  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && isCurrentYear;
+  const userRole = getStoredUserRole();
+  const canManage = (userRole === 'admin' || userRole === 'agent') && isCurrentYear;
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Actif' | 'Inactif'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -43,10 +45,31 @@ export default function Contribuables() {
   const [selectedContribuable, setSelectedContribuable] = useState<UiContribuable | null>(null);
   const [rows, setRows] = useState<UiContribuable[]>([]);
 
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Recherche, filtre et pagination côté serveur : la liste n'est pas limitée aux premiers contribuables.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
+
   const loadData = async () => {
     try {
-      const data = await listContribuables({ limit: 500, year: selectedYear });
-      const mapped = (data || []).map((item: Contribuable) => ({
+      setLoading(true);
+      const { items, total: count } = await searchContribuablesPage({
+        page,
+        limit: PAGE_SIZE,
+        search: debouncedSearch || undefined,
+        statut: statusFilter === 'all' ? undefined : statusFilter === 'Actif' ? 'actif' : 'inactif',
+      });
+      setRows(items.map((item: Contribuable) => ({
         id: item.id,
         name: `${item.prenom || ''} ${item.nom || ''}`.trim(),
         activityType: item.profession || item.typeContribuable || '-',
@@ -55,31 +78,23 @@ export default function Contribuables() {
         status: item.isActive === false ? 'Inactif' : 'Actif',
         nin: item.nin,
         email: item.email,
-      }));
-      setRows(mapped);
+      })));
+      setTotal(count);
     } catch {
       setRows([]);
+      setTotal(0);
       showToast('Impossible de charger les contribuables.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
-  }, [selectedYear]);
+  }, [page, debouncedSearch, statusFilter]);
 
-  const filteredData = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    let data = rows;
-    
-    // Filtre par statut
-    if (statusFilter !== 'all') {
-      data = data.filter(item => item.status === statusFilter);
-    }
-    
-    // Filtre par recherche
-    if (!q) return data;
-    return data.filter((item) => item.name.toLowerCase().includes(q) || item.phone.includes(q) || item.nin.includes(q));
-  }, [rows, searchTerm, statusFilter]);
+  const filteredData = rows;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -236,10 +251,11 @@ export default function Contribuables() {
             </div>
           </div>
           <div className="mt-3 text-sm leading-6 text-gray-600">
-            Total: <span className="font-semibold text-gray-900">{rows.length}</span> | 
-            Actifs: <span className="font-semibold text-green-600">{rows.filter(r => r.status === 'Actif').length}</span> | 
-            Inactifs: <span className="font-semibold text-gray-500">{rows.filter(r => r.status === 'Inactif').length}</span> | 
-            Résultats: <span className="font-semibold text-teal-600">{filteredData.length}</span>
+            {loading ? 'Recherche...' : (
+              <>
+                Résultats : <span className="font-semibold text-teal-600">{total.toLocaleString('fr-FR')}</span> contribuable{total > 1 ? 's' : ''}
+              </>
+            )}
           </div>
         </div>
 
@@ -301,6 +317,30 @@ export default function Contribuables() {
               </tbody>
             </table>
           </div>
+          {!loading && rows.length === 0 && <p className="px-6 py-8 text-center text-sm text-gray-500">Aucun contribuable ne correspond à la recherche.</p>}
+          {pageCount > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3 text-sm text-gray-600">
+              <span>
+                Page {page} sur {pageCount}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40"
+                >
+                  Précédent
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                  disabled={page >= pageCount}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

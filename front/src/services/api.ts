@@ -1,10 +1,13 @@
 import { clearSession, getAuthToken, hasStoredSession, refreshAccessToken } from './auth';
 import { resolveApiBaseUrl } from './apiBaseUrl';
 
+export type PageMeta = { page: number; limit: number; total: number };
+
 type ApiEnvelope<T> = {
   success: boolean;
   data: T;
   message?: string;
+  meta?: PageMeta;
 };
 
 const DEFAULT_TIMEOUT = 30000;
@@ -51,6 +54,16 @@ async function fetchWithRetry(url: string, options: RequestInit, retries: number
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  return (await requestEnvelope<T>(path, options)).data;
+}
+
+/** Comme apiRequest, en gardant la pagination renvoyée par l'API (meta.total). */
+export async function apiRequestWithMeta<T>(path: string, options: ApiRequestOptions = {}): Promise<{ data: T; meta?: PageMeta }> {
+  const envelope = await requestEnvelope<T>(path, options);
+  return { data: envelope.data, meta: envelope.meta };
+}
+
+async function requestEnvelope<T>(path: string, options: ApiRequestOptions): Promise<ApiEnvelope<T>> {
   const { auth = true, timeout = DEFAULT_TIMEOUT, retries = MAX_RETRIES, headers, ...rest } = options;
   const authToken = getAuthToken();
 
@@ -127,7 +140,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
       );
     }
 
-    return (json as ApiEnvelope<T>).data;
+    return json as ApiEnvelope<T>;
   } catch (error) {
     clearTimeout(timeoutId);
     

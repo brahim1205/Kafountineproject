@@ -25,7 +25,7 @@ export class PrismaContribuableRepository implements ContribuableRepository {
 
   async search(filters: ContribuableFilters) {
     const contribuables = await prisma.contribuable.findMany({
-      where: this.buildWhere(filters.search),
+      where: this.buildWhere(filters),
       skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
       orderBy: { createdAt: 'desc' },
@@ -34,7 +34,7 @@ export class PrismaContribuableRepository implements ContribuableRepository {
   }
 
   async count(filters: ContribuableFilters) {
-    return prisma.contribuable.count({ where: this.buildWhere(filters.search) });
+    return prisma.contribuable.count({ where: this.buildWhere(filters) });
   }
 
   async create(payload: CreateContribuablePayload) {
@@ -54,18 +54,19 @@ export class PrismaContribuableRepository implements ContribuableRepository {
     await prisma.contribuable.delete({ where: { id } });
   }
 
-  private buildWhere(search?: string): Prisma.ContribuableWhereInput {
-    if (!search?.trim()) {
-      return {};
-    }
-
+  /** Chaque mot saisi doit apparaître dans le NIN, le nom, le prénom ou le téléphone (« Awa Diatta » trouve Awa Diatta). */
+  private buildWhere({ search, isActive }: Pick<ContribuableFilters, 'search' | 'isActive'>): Prisma.ContribuableWhereInput {
+    const words = (search || '').trim().split(/\s+/).filter(Boolean);
     return {
-      OR: [
-        { nin: { contains: search, mode: 'insensitive' } },
-        { nom: { contains: search, mode: 'insensitive' } },
-        { prenom: { contains: search, mode: 'insensitive' } },
-        { telephone: { contains: search, mode: 'insensitive' } },
-      ],
+      ...(isActive === undefined ? {} : { isActive }),
+      AND: words.map((word) => ({
+        OR: [
+          { nin: { contains: word, mode: 'insensitive' } },
+          { nom: { contains: word, mode: 'insensitive' } },
+          { prenom: { contains: word, mode: 'insensitive' } },
+          { telephone: { contains: word, mode: 'insensitive' } },
+        ],
+      })),
     };
   }
 

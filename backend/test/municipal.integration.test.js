@@ -152,17 +152,30 @@ describeIntegration('services municipaux (intégration)', () => {
   describe('numérotation', () => {
     const ticket = () => ({ contribuableId, categorie: 'Marché', type: 'Marché', service: 'Ticket journalier', quantite: 1, montant: 100, modePaiement: 'ESPECE' });
 
-    it('passe de TX-…-999 à TX-…-1000 puis 1001 (comparaison numérique, pas alphabétique)', async () => {
+    it('démarre le compteur après le plus grand numéro existant, comparé comme un nombre (999 → 1000)', async () => {
       const { prisma } = require('../dist/src/shared/infrastructure/prisma/prismaClient');
       const seed = await agent.post('/transactions', ticket());
       expect(seed.status).toBe(201);
       await prisma.transaction.update({ where: { numero: seed.body.data.numero }, data: { numero: `TX-${year}-999` } });
+      // Compteur absent (base existante, nouvelle année…) : il est recréé à partir des tickets.
+      await prisma.numeroCounter.deleteMany({ where: { serie: 'transaction', annee: year } });
 
       const next = await agent.post('/transactions', ticket());
       const after = await agent.post('/transactions', ticket());
       expect([next.status, after.status]).toEqual([201, 201]);
       expect(next.body.data.numero).toBe(`TX-${year}-1000`);
       expect(after.body.data.numero).toBe(`TX-${year}-1001`);
+    });
+
+    it('saute un numéro déjà pris (sauvegarde restaurée, saisie manuelle) au lieu d’échouer', async () => {
+      const { prisma } = require('../dist/src/shared/infrastructure/prisma/prismaClient');
+      await prisma.transaction.update({ where: { numero: `TX-${year}-999` }, data: { numero: `TX-${year}-1003` } });
+
+      const free = await agent.post('/transactions', ticket());
+      const taken = await agent.post('/transactions', ticket());
+      expect([free.status, taken.status]).toEqual([201, 201]);
+      expect(free.body.data.numero).toBe(`TX-${year}-1002`);
+      expect(taken.body.data.numero).toBe(`TX-${year}-1004`);
     });
 
     it('attribue des numéros distincts et consécutifs à des demandes simultanées', async () => {
@@ -186,6 +199,107 @@ describeIntegration('services municipaux (intégration)', () => {
       expect([first.status, second.status]).toEqual([201, 201]);
       expect(first.body.data.numeroRecu).toMatch(new RegExp(`^MOTO-${year}-\\d{5}$`));
       expect(Number(second.body.data.numeroRecu.split('-').pop()) - Number(first.body.data.numeroRecu.split('-').pop())).toBe(1);
+    });
+  });
+
+  describe('tickets à fort volume', () => {
+    const categorie = `IT-${suffix}`;
+
+    beforeAll(async () => {
+      for (const statut of ['PAYE', 'PAYE', 'EN_ATTENTE']) {
+        const res = await agent.post('/transactions', {
+          contribuableId, categorie, type: categorie, service: 'Ticket test', quantite: 1, montant: 100, modePaiement: 'ESPECE', statut,
+        });
+        expect(res.status).toBe(201);
+      }
+    });
+
+    it('pagine côté serveur et renvoie le total et le montant encaissé de toute la sélection', async () => {
+      const res = await agent.get(`/transactions?categorie=${categorie}&year=${year}&limit=1&page=2`);
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.meta).toMatchObject({ page: 2, limit: 1, total: 3, totalPages: 3, montantPaye: 200 });
+    });
+
+    it('filtre par agent et par jour de paiement', async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const me = (await agent.get('/auth/me')).body.data;
+      const mine = await agent.get(`/transactions?categorie=${categorie}&agentId=${me.id}&startDate=${today}&endDate=${today}`);
+      expect(mine.body.meta.total).toBe(3);
+      const other = await agent.get(`/transactions?categorie=${categorie}&agentId=00000000-0000-4000-8000-000000000000`);
+      expect(other.body.meta.total).toBe(0);
+      const yesterday = await agent.get(`/transactions?categorie=${categorie}&endDate=2000-01-01`);
+      expect(yesterday.body.meta.total).toBe(0);
+      const invalid = await agent.get('/transactions?startDate=04/11/2026');
+      expect(invalid.status).toBe(400);
+    });
+
+    it('étend le filtre de catégorie à toutes ses formes stockées', async () => {
+      const ticket = (categorie) => ({ contribuableId, categorie, type: categorie, service: 'Acte', quantite: 1, montant: 300 });
+      const before = (await agent.get(`/transactions?categorie=etat-civil&year=${year}&limit=1`)).body.meta;
+      expect((await agent.post('/transactions', ticket('ETAT_CIVIL'))).status).toBe(201);
+      expect((await agent.post('/transactions', ticket('État civil'))).status).toBe(201);
+      const after = (await agent.get(`/transactions?categorie=etat-civil&year=${year}&limit=1`)).body.meta;
+      expect(after.total - before.total).toBe(2);
+      expect(after.montantPaye - before.montantPaye).toBe(600);
+      expect(after.nombrePaye - before.nombrePaye).toBe(2);
+      const used = (await agent.get(`/transactions/categories-utilisees?year=${year}`)).body.data;
+      expect(used.filter((item) => item.libelle === 'État civil')).toHaveLength(1);
+    });
+
+    it('liste les catégories utilisées de l’année pour les filtres', async () => {
+      const res = await agent.get(`/transactions/categories-utilisees?year=${year}`);
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual(expect.arrayContaining([expect.objectContaining({ valeur: categorie, nombre: 3 })]));
+    });
+
+    it('exporte en CSV toute la sélection (et non un fichier vide)', async () => {
+      const res = await admin.get(`/transactions/export?categorie=${categorie}&year=${year}`).buffer(true).parse((response, callback) => {
+        let text = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => { text += chunk; });
+        response.on('end', () => callback(null, text));
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('text/csv');
+      const lines = res.body.replace(/^\uFEFF/, '').trim().split('\r\n');
+      expect(lines[0]).toContain('Numéro');
+      expect(lines).toHaveLength(4);
+      expect(lines.filter((l) => l.includes(',PAYE,'))).toHaveLength(2);
+      const forbidden = await agent.get('/transactions/export');
+      expect(forbidden.status).toBe(403);
+    });
+
+    it('calcule les statistiques de l’année en base', async () => {
+      const res = await admin.get(`/transactions/statistiques?year=${year}`);
+      expect(res.status).toBe(200);
+      const line = res.body.data.annee.categories.find((item) => item.nom === categorie);
+      expect(line).toMatchObject({ montant: 200 });
+      expect(res.body.data.totalTransactions).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('suppression de contribuable', () => {
+    const fiche = (n) => ({
+      nin: `9${suffix}${n}`.slice(0, 20), nom: 'Test', prenom: `Suppression${n}`, dateNaiss: '1990-01-01',
+      lieuNaiss: 'Kafountine', adresse: 'Kafountine', telephone: `77${Date.now().toString().slice(-6)}${n}`,
+    });
+
+    it('refuse de supprimer une fiche qui a des tickets, et supprime une fiche vierge', async () => {
+      const withTicket = await admin.post('/contribuables', fiche(1));
+      expect(withTicket.status).toBe(201);
+      const ticketRes = await agent.post('/transactions', {
+        contribuableId: withTicket.body.data.id, categorie: 'Marché', type: 'Marché', service: 'Ticket', quantite: 1, montant: 100,
+      });
+      expect(ticketRes.status).toBe(201);
+      const refused = await admin.delete(`/contribuables/${withTicket.body.data.id}`);
+      expect(refused.status).toBe(409);
+      expect(refused.body.message).toContain('1 ticket');
+
+      const blank = await admin.post('/contribuables', fiche(2));
+      expect(blank.status).toBe(201);
+      const deleted = await admin.delete(`/contribuables/${blank.body.data.id}`);
+      expect(deleted.status).toBe(200);
     });
   });
 

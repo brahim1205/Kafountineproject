@@ -29,16 +29,25 @@ export const transactionIdParamSchema = z.object({
   id: z.string().uuid('ID invalide'),
 }).strict();
 
+const day = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ').optional();
+
+const transactionCriteria = {
+  search: optionalTrimmedString(100),
+  startDate: day,
+  endDate: day,
+  categorie: optionalTrimmedString(100),
+  statut: optionalTrimmedString(20),
+  agentId: z.string().uuid('ID agent invalide').optional(),
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+};
+
 export const listTransactionsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(300).optional().default(20),
-  search: optionalTrimmedString(100),
-  startDate: optionalTrimmedString(50),
-  endDate: optionalTrimmedString(50),
-  categorie: optionalTrimmedString(100),
-  statut: optionalTrimmedString(20),
-  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  ...transactionCriteria,
 }).strict();
+
+export const exportTransactionsQuerySchema = z.object(transactionCriteria).strict();
 
 export const transactionStatisticsQuerySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100).optional(),

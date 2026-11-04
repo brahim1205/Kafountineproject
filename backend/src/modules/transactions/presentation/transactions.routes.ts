@@ -8,6 +8,7 @@ import type { TransactionsController } from './TransactionsController';
 import {
   createTransactionSchema,
   listTransactionsQuerySchema,
+  exportTransactionsQuerySchema,
   transactionStatisticsQuerySchema,
   categoryServicesParamsSchema,
   updateTransactionSchema,
@@ -200,10 +201,11 @@ export function buildTransactionsRoutes(controller: TransactionsController) {
 
   router.get('/categories', authenticate, asyncHandler((req, res) => controller.categories(req, res)));
   router.get('/categories/:id/services', authenticate, validate(categoryServicesParamsSchema, 'params'), asyncHandler((req, res) => controller.categoryServices(req, res)));
+  router.get('/categories-utilisees', authenticate, validate(transactionStatisticsQuerySchema, 'query'), asyncHandler((req, res) => controller.usedCategories(req, res)));
   router.get('/', authenticate, validate(listTransactionsQuerySchema, 'query'), asyncHandler((req, res) => controller.list(req, res)));
   router.post('/', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES'), validate(createTransactionSchema), asyncHandler((req, res) => controller.create(req as never, res)));
   router.get('/statistiques', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), validate(transactionStatisticsQuerySchema, 'query'), asyncHandler((req, res) => controller.statistiques(req, res)));
-  router.get('/export', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), asyncHandler((req, res) => controller.export(req, res)));
+  router.get('/export', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), validate(exportTransactionsQuerySchema, 'query'), asyncHandler((req, res) => controller.export(req, res)));
   
   router.put('/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(transactionIdParamSchema, 'params'), validate(updateTransactionSchema), asyncHandler((req, res) => controller.update(req, res)));
   router.delete('/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(transactionIdParamSchema, 'params'), asyncHandler((req, res) => controller.delete(req, res)));

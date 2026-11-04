@@ -1,21 +1,21 @@
-import type { TransactionRepository } from '../domain/TransactionRepository';
 import { GetTransactionStatisticsUseCase } from './GetTransactionStatisticsUseCase';
+import { fakeTotalsRepository, type FakeTicket } from './fakeTransactionTotals.testutil';
 
 const now = new Date('2026-11-04T10:00:00');
 const tx = (montant: number, statut: string, categorie: string, date: string) => ({ montant, statut, categorie, date: new Date(date) });
 
 describe('GetTransactionStatisticsUseCase', () => {
-  const findByYear = jest.fn();
-  const useCase = new GetTransactionStatisticsUseCase({ findByYear } as unknown as TransactionRepository);
+  let tickets: FakeTicket[] = [];
+  const useCase = new GetTransactionStatisticsUseCase(fakeTotalsRepository(() => tickets));
 
   beforeEach(() => {
-    findByYear.mockResolvedValue([
+    tickets = [
       tx(1000, 'PAYE', 'Marché', '2026-11-04T08:00:00'),
       tx(3000, 'PAYE', 'Urbanisme', '2026-11-02T09:00:00'),
       tx(500, 'EN_ATTENTE', 'Marché', '2026-11-04T09:00:00'),
       tx(6000, 'PAYE', 'Marché', '2026-03-10T09:00:00'),
       tx(700, 'ANNULE', 'Marché', '2026-03-11T09:00:00'),
-    ]);
+    ];
   });
 
   it('découpe les recettes encaissées par jour, mois et année', async () => {

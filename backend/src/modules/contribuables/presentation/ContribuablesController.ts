@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { actorFrom } from '../../../shared/presentation/requestContext';
 import { message, ok, okWithMeta } from '../../../shared/http/response';
 import { CheckTelephoneUseCase } from '../application/CheckTelephoneUseCase';
 import { ListContribuablesUseCase } from '../application/ListContribuablesUseCase';
@@ -57,7 +58,7 @@ export class ContribuablesController {
   }
 
   async delete(req: Request, res: Response) {
-    await this.deleteContribuableUseCase.execute(String(req.params.id));
+    await this.deleteContribuableUseCase.execute(actorFrom(req), String(req.params.id));
     return message(res, 'Contribuable supprimé avec succès');
   }
 }

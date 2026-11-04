@@ -14,13 +14,40 @@ export type TransactionService = {
   calcul?: string;
 };
 
-export type TransactionFilters = {
-  page: number;
-  limit: number;
+/** Critères de recherche des tickets ; les dates (AAAA-MM-JJ) bornent la date de paiement, fin incluse. */
+export type TransactionCriteria = {
   search?: string;
   categorie?: string;
+  /** Toutes les valeurs stockées d'une même catégorie (« etat-civil », « ETAT_CIVIL »…) ; prioritaire sur `categorie`. */
+  categories?: string[];
   statut?: string;
   year?: number;
+  agentId?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+export type TransactionFilters = TransactionCriteria & {
+  page: number;
+  limit: number;
+};
+
+export type DateRange = { from: Date; to: Date };
+
+export type PaidByCategory = { categorie: string; montant: number; nombre: number };
+
+/** Ligne d'export CSV d'un ticket. */
+export type TransactionExportRow = {
+  numero: string;
+  date: Date;
+  categorie: string;
+  service: string;
+  montant: number;
+  statut: string;
+  modePaiement: string;
+  contribuable: string;
+  nin: string;
+  agent: string;
 };
 
 export type CreateTransactionPayload = {
@@ -43,7 +70,16 @@ export interface TransactionRepository {
   countByYear(year: number): Promise<number>;
   create(payload: CreateTransactionPayload): Promise<unknown>;
   createWithAtomicNumero(payload: Omit<CreateTransactionPayload, 'numero'>): Promise<{ numero: string; service: string; montant: unknown }>;
-  findByYear(year: number): Promise<Array<{ montant: number; statut: string; categorie: string; date: Date }>>;
+  /** Montant encaissé (statut PAYE) correspondant aux critères, calculé en base. */
+  sumPaid(criteria: TransactionCriteria): Promise<{ montant: number; nombre: number }>;
+  /** Recettes encaissées de l'année par catégorie, sur une période si elle est donnée (agrégées en base). */
+  paidByCategory(year: number, range?: DateRange): Promise<PaidByCategory[]>;
+  /** Valeurs de catégorie présentes dans les tickets de l'année, avec leur nombre de tickets. */
+  usedCategories(year?: number): Promise<Array<{ categorie: string; nombre: number }>>;
+  /** Nombre et montant de tous les tickets de l'année, quel que soit leur statut. */
+  yearTotals(year: number): Promise<{ nombre: number; montant: number }>;
+  /** Parcourt les tickets correspondant aux critères par lots, du plus récent au plus ancien. */
+  iterateForExport(criteria: TransactionCriteria, batchSize?: number): AsyncGenerator<TransactionExportRow[]>;
   findRecentByYear(year: number, limit: number): Promise<unknown[]>;
   findByContribuableId(contribuableId: string): Promise<Array<{ id: string; numero: string; categorie: string; service: string; year: number; montant: number; statut: string; date: Date }>>;
   findPortalPayables(contribuableId: string, transactionIds: string[]): Promise<Array<{ id: string; numero: string; montant: number; statut: string }>>;

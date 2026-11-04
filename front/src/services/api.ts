@@ -1,7 +1,18 @@
 import { clearSession, getAuthToken, hasStoredSession, refreshAccessToken } from './auth';
 import { resolveApiBaseUrl } from './apiBaseUrl';
 
-export type PageMeta = { page: number; limit: number; total: number };
+/** Erreur renvoyée par l'API : son message, rédigé par le serveur, est montré tel quel à l'utilisateur. */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+export type PageMeta = { page: number; limit: number; total: number; totalPages?: number; montantPaye?: number; nombrePaye?: number };
 
 type ApiEnvelope<T> = {
   success: boolean;
@@ -61,6 +72,38 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 export async function apiRequestWithMeta<T>(path: string, options: ApiRequestOptions = {}): Promise<{ data: T; meta?: PageMeta }> {
   const envelope = await requestEnvelope<T>(path, options);
   return { data: envelope.data, meta: envelope.meta };
+}
+
+/**
+ * Télécharge un fichier produit par l'API (export CSV…), avec la même authentification que les
+ * autres requêtes, y compris le renouvellement de session. Délai long : un export d'une année
+ * complète peut compter plusieurs dizaines de milliers de lignes.
+ */
+export async function apiDownload(path: string, filename: string, timeout = 5 * 60_000): Promise<void> {
+  const send = (token: string | null) => {
+    const headers = new Headers();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    return fetch(`${API_BASE_URL}${path}`, { credentials: 'include', headers, signal: controller.signal }).finally(() => clearTimeout(timer));
+  };
+
+  let response = await send(getAuthToken());
+  if (response.status === 401 && hasStoredSession()) {
+    const newToken = await refreshAccessToken();
+    if (newToken !== null) response = await send(newToken || null);
+  }
+  if (!response.ok) {
+    const json = await response.json().catch(() => null);
+    throw new Error(json?.message || 'Le téléchargement a échoué.');
+  }
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 async function requestEnvelope<T>(path: string, options: ApiRequestOptions): Promise<ApiEnvelope<T>> {
@@ -128,15 +171,16 @@ async function requestEnvelope<T>(path: string, options: ApiRequestOptions): Pro
       }
       // Gestion speciale pour 409 (conflict - donnees deja existantes)
       if (response.status === 409) {
-        throw new Error(json?.message || 'Ces données existent déjà. Veuillez vérifier le NIN ou le téléphone.');
+        throw new ApiError(json?.message || 'Ces données existent déjà. Veuillez vérifier le NIN ou le téléphone.', 409);
       }
       // Gestion spéciale pour 403 (forbidden)
       if (response.status === 403) {
-        throw new Error(json?.message || 'Permissions insuffisantes pour cette action.');
+        throw new ApiError(json?.message || 'Permissions insuffisantes pour cette action.', 403);
       }
-      throw new Error(
+      throw new ApiError(
         json?.message ||
           `L'action a échoué côté serveur (code ${response.status}). Veuillez vérifier les informations saisies.`,
+        response.status,
       );
     }
 
@@ -144,6 +188,11 @@ async function requestEnvelope<T>(path: string, options: ApiRequestOptions): Pro
   } catch (error) {
     clearTimeout(timeoutId);
     
+    // Réponse de l'API : son message explique le refus (« période déjà payée »…), on le garde.
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
     // If it's already an Error with a message we set, rethrow it
     if (error instanceof Error) {
       // These are our custom handled errors - keep their messages

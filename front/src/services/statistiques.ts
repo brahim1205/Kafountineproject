@@ -1,9 +1,7 @@
 import { apiRequest } from './api';
 import { listContribuables, type Contribuable } from './contribuables';
 import { getTransactions, type TransactionItem } from './taxes';
-import { resolveApiBaseUrl } from './apiBaseUrl';
 
-const API_BASE_URL = resolveApiBaseUrl();
 
 export interface Agent {
   nom: string;
@@ -123,48 +121,19 @@ export async function searchTransactions(query: string, filters?: {
   agentId?: string;
   limit?: number;
 }): Promise<{ data: TransactionItem[]; total: number }> {
+  // Tous les filtres sont appliqués par le serveur, sur l'ensemble des tickets.
   const result = await getTransactions({
     search: query || undefined,
     categorie: filters?.categorie,
     statut: filters?.statut,
     year: filters?.year,
+    agentId: filters?.agentId,
+    startDate: filters?.startDate,
+    endDate: filters?.endDate,
     limit: filters?.limit,
   });
 
-  const filteredByAgent = filters?.agentId
-    ? result.data.filter((item) => item.agent?.id === filters.agentId)
-    : result.data;
-
-  const filteredByDate = filteredByAgent.filter((item) => {
-    if (!filters?.startDate && !filters?.endDate) {
-      return true;
-    }
-
-    if (!item.date) {
-      return false;
-    }
-
-    const dateValue = new Date(item.date);
-    if (Number.isNaN(dateValue.getTime())) {
-      return false;
-    }
-
-    const dateKey = dateValue.toISOString().slice(0, 10);
-    if (filters?.startDate && dateKey < filters.startDate) {
-      return false;
-    }
-
-    if (filters?.endDate && dateKey > filters.endDate) {
-      return false;
-    }
-
-    return true;
-  });
-
-  return {
-    data: filteredByDate,
-    total: filteredByDate.length,
-  };
+  return { data: result.data, total: result.total };
 }
 
 export async function getTransactionsByDateRange(startDate: string, endDate: string): Promise<TransactionItem[]> {
@@ -172,25 +141,3 @@ export async function getTransactionsByDateRange(startDate: string, endDate: str
   return result.data;
 }
 
-export async function exportTransactions(format: 'pdf' | 'excel', filters?: {
-  startDate?: string;
-  endDate?: string;
-  categorie?: string;
-}): Promise<Blob> {
-  const params = new URLSearchParams();
-  params.set('format', format);
-  if (filters?.startDate) params.set('startDate', filters.startDate);
-  if (filters?.endDate) params.set('endDate', filters.endDate);
-  if (filters?.categorie) params.set('categorie', filters.categorie);
-  
-  const response = await fetch(`${API_BASE_URL}/transactions/export?${params.toString()}`, {
-    credentials: 'include',
-  });
-  
-  if (!response.ok) {
-    const json = await response.json().catch(() => null);
-    throw new Error(json?.message || 'Erreur lors de l\'export');
-  }
-  
-  return response.blob();
-}

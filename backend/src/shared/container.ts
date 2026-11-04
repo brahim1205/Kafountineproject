@@ -24,6 +24,7 @@ import { ListTransactionsUseCase } from '../modules/transactions/application/Lis
 import { CreateTransactionUseCase } from '../modules/transactions/application/CreateTransactionUseCase';
 import { GetTransactionStatisticsUseCase } from '../modules/transactions/application/GetTransactionStatisticsUseCase';
 import { ExportTransactionsUseCase } from '../modules/transactions/application/ExportTransactionsUseCase';
+import { ListUsedCategoriesUseCase } from '../modules/transactions/application/ListUsedCategoriesUseCase';
 import { UpdateTransactionUseCase } from '../modules/transactions/application/UpdateTransactionUseCase';
 import { DeleteTransactionUseCase } from '../modules/transactions/application/DeleteTransactionUseCase';
 import { TransactionsController } from '../modules/transactions/presentation/TransactionsController';
@@ -121,16 +122,17 @@ export function buildContainer() {
     new ListContribuablesUseCase(contribuableRepository),
     new CreateContribuableUseCase(contribuableRepository),
     new UpdateContribuableUseCase(contribuableRepository),
-    new DeleteContribuableUseCase(contribuableRepository)
+    transactional(new DeleteContribuableUseCase(contribuableRepository, new PrismaAuditTrail()), transactionUow, ['execute'])
   );
 
   const transactionsController = new TransactionsController(
     new ListTransactionCategoriesUseCase(taxCatalog),
     new ListTransactionCategoryServicesUseCase(taxCatalog),
-    new ListTransactionsUseCase(transactionRepository),
+    new ListTransactionsUseCase(transactionRepository, taxCatalog),
     transactional(new CreateTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute']),
     new GetTransactionStatisticsUseCase(transactionRepository, taxCatalog),
-    new ExportTransactionsUseCase(),
+    new ExportTransactionsUseCase(transactionRepository, taxCatalog),
+    new ListUsedCategoriesUseCase(transactionRepository, taxCatalog),
     transactional(new UpdateTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute']),
     transactional(new DeleteTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute'])
   );

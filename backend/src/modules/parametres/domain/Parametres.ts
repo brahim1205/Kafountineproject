@@ -41,6 +41,8 @@ export type BackupRecord = {
   updatedAt: Date;
 };
 
+export type BackupSummary = Omit<BackupRecord, 'snapshot'>;
+
 export type PenaltyValues = Pick<Penalty, 'type' | 'description' | 'montant' | 'delai' | 'actif'>;
 
 export interface ParametresRepository {
@@ -65,7 +67,8 @@ export interface ParametresRepository {
 }
 
 export interface BackupStore {
-  list(): Promise<BackupRecord[]>;
+  /** Liste sans le contenu des sauvegardes (plusieurs dizaines de Mo chacune à pleine charge). */
+  list(): Promise<BackupSummary[]>;
   findByFilename(filename: string): Promise<BackupRecord | null>;
   create(filename: string): Promise<BackupRecord>;
   restore(backup: BackupRecord): Promise<void>;

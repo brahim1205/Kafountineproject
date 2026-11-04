@@ -1,19 +1,19 @@
-import type { TransactionRepository } from '../domain/TransactionRepository';
+import type { TaxCatalog } from '../domain/TaxCatalog';
+import type { TransactionFilters, TransactionRepository } from '../domain/TransactionRepository';
+import { withCategoryVariants } from './categoryVariants';
 
 export class ListTransactionsUseCase {
-  constructor(private readonly transactionRepository: TransactionRepository) {}
+  constructor(
+    private readonly transactionRepository: TransactionRepository,
+    private readonly taxCatalog?: TaxCatalog
+  ) {}
 
-  async execute(input: {
-    page: number;
-    limit: number;
-    search?: string;
-    categorie?: string;
-    statut?: string;
-    year?: number;
-  }) {
-    const [data, total] = await Promise.all([
-      this.transactionRepository.search(input),
-      this.transactionRepository.count(input),
+  async execute(input: TransactionFilters) {
+    const filters = { ...input, ...(await withCategoryVariants(input, this.transactionRepository, this.taxCatalog)) };
+    const [data, total, paye] = await Promise.all([
+      this.transactionRepository.search(filters),
+      this.transactionRepository.count(filters),
+      this.transactionRepository.sumPaid(filters),
     ]);
 
     return {
@@ -22,6 +22,10 @@ export class ListTransactionsUseCase {
         page: input.page,
         limit: input.limit,
         total,
+        totalPages: Math.max(1, Math.ceil(total / input.limit)),
+        // Encaissé sur toute la sélection (pas seulement la page), calculé en base.
+        montantPaye: paye.montant,
+        nombrePaye: paye.nombre,
       },
     };
   }

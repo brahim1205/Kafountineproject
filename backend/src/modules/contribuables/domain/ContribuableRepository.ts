@@ -35,4 +35,6 @@ export interface ContribuableRepository {
   create(payload: CreateContribuablePayload): Promise<Contribuable>;
   update(id: string, payload: UpdateContribuablePayload): Promise<Contribuable>;
   delete(id: string): Promise<void>;
+  /** Pièces rattachées au contribuable, que sa suppression effacerait en cascade. */
+  countLinkedRecords(id: string): Promise<{ tickets: number; etatCivil: number; urbanisme: number; motos: number }>;
 }

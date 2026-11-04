@@ -183,7 +183,7 @@ export async function changeMotoDriver(id: string, payload: {
   });
 }
 
-export async function createMotoPayment(payload: { motoId: string; reference: string; mois?: string }) {
+export async function createMotoPayment(payload: { motoId: string; reference?: string; mois?: string }) {
   return apiRequest<MotoPayment>('/motos/paiements', {
     method: 'POST',
     headers: {

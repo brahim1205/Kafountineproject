@@ -1,5 +1,5 @@
 import { NotFoundError, ValidationError } from '../../../shared/errors/AppError';
-import { admin, agent, contribuable, fakeAuditTrail, fakeContribuables } from '../../../shared/testing/ports';
+import { admin, agent, contribuable, fakeAuditTrail, fakeContribuables, fakeNumeroSequence } from '../../../shared/testing/ports';
 import type { UrbanismeCase, UrbanismeRepository } from '../domain/Urbanisme';
 import { UrbanismeService, normalizeUrbanismeStatus, resolveUrbanismeType } from './UrbanismeService';
 
@@ -45,7 +45,7 @@ describe('UrbanismeService', () => {
       listForStats: jest.fn(),
     };
     auditTrail = fakeAuditTrail();
-    service = new UrbanismeService(repository, fakeContribuables(contribuable()), auditTrail);
+    service = new UrbanismeService(repository, fakeContribuables(contribuable()), auditTrail, fakeNumeroSequence());
   });
 
   it('résout les libellés de type vers le catalogue', () => {

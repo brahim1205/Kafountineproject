@@ -1,5 +1,6 @@
 import { NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
+import type { NumeroSequence } from '../../../shared/domain/NumeroSequence';
 import type { ContribuableLookup } from '../../../shared/domain/ContribuableLookup';
 import type { EtatCivilDisplay, EtatCivilRepository, EtatCivilRequest } from '../domain/EtatCivil';
 
@@ -42,7 +43,8 @@ export class EtatCivilService {
   constructor(
     private readonly repository: EtatCivilRepository,
     private readonly contribuables: ContribuableLookup,
-    private readonly auditTrail: AuditTrail
+    private readonly auditTrail: AuditTrail,
+    private readonly numeros: NumeroSequence
   ) {}
 
   async list(year: number) {
@@ -72,13 +74,13 @@ export class EtatCivilService {
 
     const documentType = resolveEtatCivilDocument(typeDocument);
     const year = new Date().getFullYear();
-    const numero = `EC-${year}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
     const montant = input.montant === undefined ? documentType.tarif * exemplaires : Number(input.montant);
 
     if (Number.isNaN(montant) || montant < 0) {
       throw new ValidationError("Le montant de la demande d'état civil est invalide.");
     }
 
+    const numero = await this.numeros.next('etatCivil', year);
     const created = await this.repository.create(
       {
         numero,

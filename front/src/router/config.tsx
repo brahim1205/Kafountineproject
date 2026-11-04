@@ -2,6 +2,7 @@ import { lazy, type ReactNode, useEffect, useState } from 'react';
 import { RouteObject, Navigate } from 'react-router-dom';
 import { getStoredUserRole, restoreSession, type UiRole } from '../services/auth';
 import { restorePortalSession } from '../services/portalAuth';
+import { FEATURES } from '../config/features';
 
 const LoginPage = lazy(() => import('../pages/login/page'));
 const DashboardPage = lazy(() => import('../pages/dashboard/page'));
@@ -193,7 +194,7 @@ const routes: RouteObject[] = [
   },
   {
     path: '/formations',
-    element: protectRoles(['admin', 'super_admin', 'agent'], <FormationsPage />)
+    element: FEATURES.formations ? protectRoles(['admin', 'super_admin', 'agent'], <FormationsPage />) : <Navigate to="/dashboard" replace />
   },
   {
     path: '/penalites',

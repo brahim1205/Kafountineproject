@@ -6,6 +6,7 @@ import { logoutRequest, clearSession, getStoredUserInitials, getStoredUserName, 
 import { listContribuables, type Contribuable } from '../../services/contribuables';
 import { getTransactions, type TransactionItem } from '../../services/taxes';
 import { listNotifications } from '../../services/notifications';
+import { FEATURES } from '../../config/features';
 
 type UserRole = 'admin' | 'super_admin' | 'agent' | 'comptable' | 'service_finances' | 'quai_peche';
 
@@ -21,7 +22,7 @@ const allMenuItems = [
   { path: '/contribuables', icon: 'ri-user-line', label: 'Contribuables', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
   { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'comptable', 'service_finances'] },
   { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
-  { path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent'] },
+  ...(FEATURES.formations ? [{ path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent'] }] : []),
   { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
   { path: '/etat-civil', icon: 'ri-file-text-line', label: 'État Civil', roles: ['admin', 'super_admin', 'agent'] },
   { path: '/urbanisme', icon: 'ri-building-line', label: 'Urbanisme', roles: ['admin', 'super_admin', 'agent'] },

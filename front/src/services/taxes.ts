@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { apiDownload, apiRequest, apiRequestWithMeta, type PageMeta } from './api';
 
 const MAX_TRANSACTIONS_LIMIT = 300;
 
@@ -81,29 +81,51 @@ export async function getTaxServices(categoryId: string): Promise<TaxService[]> 
   return apiRequest<TaxService[]>(`/transactions/categories/${categoryId}/services`);
 }
 
-export async function getTransactions(params: {
-  page?: number;
-  limit?: number;
+export type TransactionQuery = {
   search?: string;
+  /** Date de paiement, AAAA-MM-JJ, bornes incluses. */
   startDate?: string;
   endDate?: string;
   categorie?: string;
   statut?: string;
   year?: number;
-} = {}): Promise<{ data: TransactionItem[]; total?: number }> {
+  agentId?: string;
+};
+
+function transactionQuery(params: TransactionQuery & { page?: number; limit?: number }) {
   const query = new URLSearchParams();
   const limit = clampTransactionsLimit(params.limit);
   if (params.page) query.set('page', String(params.page));
   if (limit) query.set('limit', String(limit));
-  if (params.search) query.set('search', params.search);
-  if (params.startDate) query.set('startDate', params.startDate);
-  if (params.endDate) query.set('endDate', params.endDate);
-  if (params.categorie) query.set('categorie', params.categorie);
-  if (params.statut) query.set('statut', params.statut);
+  for (const key of ['search', 'startDate', 'endDate', 'categorie', 'statut', 'agentId'] as const) {
+    if (params[key]) query.set(key, String(params[key]));
+  }
   if (params.year) query.set('year', String(params.year));
-  const suffix = query.toString() ? `?${query.toString()}` : '';
-  const data = await apiRequest<TransactionItem[]>(`/transactions${suffix}`);
-  return { data: Array.isArray(data) ? data : [] };
+  return query.toString() ? `?${query.toString()}` : '';
+}
+
+/**
+ * Une page de tickets filtrée côté serveur. `meta.total` et `meta.montantPaye` portent sur toute la
+ * sélection, pas seulement sur la page : ce sont eux qu'il faut afficher comme totaux.
+ */
+export async function getTransactions(
+  params: TransactionQuery & { page?: number; limit?: number } = {}
+): Promise<{ data: TransactionItem[]; total: number; montantPaye: number; nombrePaye: number; meta?: PageMeta }> {
+  const { data, meta } = await apiRequestWithMeta<TransactionItem[]>(`/transactions${transactionQuery(params)}`);
+  const rows = Array.isArray(data) ? data : [];
+  return { data: rows, total: meta?.total ?? rows.length, montantPaye: meta?.montantPaye ?? 0, nombrePaye: meta?.nombrePaye ?? 0, meta };
+}
+
+export type UsedCategory = { valeur: string; libelle: string; nombre: number };
+
+/** Catégories présentes dans les tickets de l'année, une par libellé (le serveur étend le filtre à toutes ses formes). */
+export async function getUsedCategories(year: number): Promise<UsedCategory[]> {
+  return apiRequest<UsedCategory[]>(`/transactions/categories-utilisees?year=${year}`);
+}
+
+/** Export CSV complet de la sélection, produit par le serveur (encadrement et finances). */
+export async function downloadTransactionsCsv(params: TransactionQuery & { year: number }) {
+  await apiDownload(`/transactions/export${transactionQuery(params)}`, `tickets_${params.year}.csv`);
 }
 
 export async function getTransactionStats(year?: number): Promise<TransactionStats> {

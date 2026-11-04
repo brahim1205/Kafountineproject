@@ -17,6 +17,7 @@ describe('CreateContribuableUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      countLinkedRecords: jest.fn(),
     };
     useCase = new CreateContribuableUseCase(mockRepository);
   });

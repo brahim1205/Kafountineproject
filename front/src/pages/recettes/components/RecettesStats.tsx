@@ -5,8 +5,8 @@ type RecettesStatsProps = {
 
 export default function RecettesStats({ total, count }: RecettesStatsProps) {
   const cards = [
-    { label: 'Total', value: total.toLocaleString('fr-FR'), unit: 'FCFA' },
-    { label: 'Transactions', value: count.toLocaleString('fr-FR'), unit: 'tickets émis' },
+    { label: 'Total encaissé', value: total.toLocaleString('fr-FR'), unit: 'FCFA' },
+    { label: 'Tickets encaissés', value: count.toLocaleString('fr-FR'), unit: 'tickets payés' },
     { label: 'Montant moyen', value: count ? Math.round(total / count).toLocaleString('fr-FR') : '0', unit: 'FCFA' },
   ];
 

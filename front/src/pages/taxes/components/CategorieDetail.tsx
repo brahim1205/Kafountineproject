@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useYear } from '../../../contexts/YearContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
+import Pagination from '../../../components/feature/Pagination';
 import { getTaxCategories, getTransactions, getTaxServices, type TaxCategory, type TransactionItem, type TaxService } from '../../../services/taxes';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { getStoredUserRole } from '../../../services/auth';
+
+/** Tickets par page : recherche, période et totaux sont calculés par le serveur sur toute la catégorie. */
+const PAGE_SIZE = 50;
 
 export default function CategorieDetail() {
   const { categorieId } = useParams();
@@ -14,42 +18,35 @@ export default function CategorieDetail() {
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole() || 'admin';
   const [searchTerm, setSearchTerm] = useState('');
+  const [search, setSearch] = useState('');
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
+  const [page, setPage] = useState(1);
   const [showRecuPDF, setShowRecuPDF] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionItem | null>(null);
   const [categories, setCategories] = useState<TaxCategory[]>([]);
   const [services, setServices] = useState<TaxService[]>([]);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalRecettes, setTotalRecettes] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const requestId = useRef(0);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setErrorMsg('');
-        const [catsData, txData] = await Promise.all([
-          getTaxCategories(),
-          getTransactions({ categorie: categorieId })
-        ]);
-        setCategories(catsData || []);
-        setTransactions(txData?.data || []);
-        
-        // Charger les services de la catégorie
+        setCategories((await getTaxCategories()) || []);
         if (categorieId) {
-          try {
-            const servicesData = await getTaxServices(categorieId);
-            setServices(servicesData || []);
-          } catch {
-            // Services non disponibles pour cette catégorie
-            setServices([]);
-          }
+          // Services non disponibles pour cette catégorie : la page reste utilisable.
+          setServices(await getTaxServices(categorieId).catch(() => []));
         }
       } catch {
         setCategories([]);
-        setTransactions([]);
         setServices([]);
         setErrorMsg("Impossible de charger les données de cette catégorie.");
       } finally {
@@ -58,6 +55,47 @@ export default function CategorieDetail() {
     };
     loadData();
   }, [categorieId]);
+
+  // Recherche appliquée après une courte pause de frappe.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchTerm.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [categorieId, selectedYear, search, dateDebut, dateFin]);
+
+  useEffect(() => {
+    if (!categorieId) return;
+    const current = ++requestId.current;
+    setListLoading(true);
+    getTransactions({
+      categorie: categorieId,
+      year: selectedYear,
+      search: search || undefined,
+      startDate: dateDebut || undefined,
+      endDate: dateFin || undefined,
+      page,
+      limit: PAGE_SIZE,
+    })
+      .then((result) => {
+        if (current !== requestId.current) return;
+        setTransactions(result.data);
+        setTotal(result.total);
+        setTotalRecettes(result.montantPaye);
+      })
+      .catch(() => {
+        if (current !== requestId.current) return;
+        setTransactions([]);
+        setTotal(0);
+        setTotalRecettes(0);
+        setErrorMsg('Impossible de charger les transactions de cette catégorie.');
+      })
+      .finally(() => {
+        if (current === requestId.current) setListLoading(false);
+      });
+  }, [categorieId, selectedYear, search, dateDebut, dateFin, page]);
 
   const categorie = categories.find(c => c.id === categorieId);
   
@@ -81,23 +119,7 @@ export default function CategorieDetail() {
     );
   }
 
-  const filteredTransactions = transactions.filter((t) => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch =
-      searchTerm === '' ||
-      t.contribuable?.nom?.toLowerCase().includes(searchLower) ||
-      t.contribuable?.prenom?.toLowerCase().includes(searchLower) ||
-      t.numero?.toLowerCase().includes(searchLower);
-
-    const transactionDate = t.date ? new Date(t.date) : null;
-    const dateKey = transactionDate && !Number.isNaN(transactionDate.getTime()) ? transactionDate.toISOString().slice(0, 10) : '';
-    const matchesStartDate = !dateDebut || (dateKey && dateKey >= dateDebut);
-    const matchesEndDate = !dateFin || (dateKey && dateKey <= dateFin);
-
-    return matchesSearch && matchesStartDate && matchesEndDate;
-  });
-
-  const totalRecettes = filteredTransactions.reduce((sum, t) => sum + (t.montant || 0), 0);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const handleVoirRecu = (transaction: TransactionItem) => {
     setSelectedTransaction(transaction);
@@ -143,7 +165,7 @@ export default function CategorieDetail() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total recettes</p>
+                <p className="text-sm text-gray-600 mb-1">Total encaissé ({selectedYear})</p>
                 <p className="text-2xl font-bold text-emerald-700">{totalRecettes.toLocaleString()} FCFA</p>
               </div>
               <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -156,7 +178,7 @@ export default function CategorieDetail() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Transactions</p>
-                <p className="text-2xl font-bold text-gray-900">{filteredTransactions.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{total.toLocaleString('fr-FR')}</p>
               </div>
               <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
                 <i className="ri-file-list-3-line text-xl text-teal-600"></i>
@@ -215,7 +237,7 @@ export default function CategorieDetail() {
                 <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input
                   type="text"
-                  placeholder="Rechercher..."
+                  placeholder="N° de ticket, contribuable, NIN..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
@@ -254,14 +276,14 @@ export default function CategorieDetail() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredTransactions.length === 0 ? (
+                {listLoading || transactions.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-8 text-center text-sm text-gray-500">
-                      Aucune transaction trouvée
+                      {listLoading ? 'Chargement des transactions...' : 'Aucune transaction trouvée'}
                     </td>
                   </tr>
                 ) : (
-                  filteredTransactions.map((transaction) => (
+                  transactions.map((transaction) => (
                     <tr key={transaction.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-medium text-emerald-700">{transaction.numero}</span>
@@ -305,6 +327,7 @@ export default function CategorieDetail() {
               </tbody>
             </table>
           </div>
+          {!listLoading && total > 0 && <Pagination page={page} totalPages={totalPages} total={total} unit="transaction" onChange={setPage} />}
         </div>
 
         {/* Modal Reçu PDF */}

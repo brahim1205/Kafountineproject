@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
 import { ValidationError } from '../../../shared/errors/AppError';
-import type { BackupRecord, BackupStore } from '../domain/Parametres';
+import type { BackupRecord, BackupStore, BackupSummary } from '../domain/Parametres';
 
 const BACKUP_TABLES = [
   'User',
@@ -27,9 +27,11 @@ const BACKUP_TABLES = [
   'AppSettingTariff',
   'AppSettingPenalty',
   'AppSettingPermission',
+  'NumeroCounter',
 ] as const;
 
 const DELETE_ORDER = [
+  'NumeroCounter',
   'Transaction',
   'BudgetRequest',
   'AuditLog',
@@ -56,6 +58,7 @@ const DELETE_ORDER = [
 ];
 
 const INSERT_ORDER = [
+  'NumeroCounter',
   'User',
   'Contribuable',
   'BudgetLine',
@@ -91,9 +94,16 @@ function quoteIdentifier(identifier: string) {
   return `"${identifier}"`;
 }
 
+/** PostgreSQL accepte au plus 65 535 paramètres par requête. */
+const MAX_PARAMETERS = 30000;
+/** Une restauration complète dépasse largement les 5 secondes par défaut des transactions Prisma. */
+const RESTORE_TRANSACTION = { maxWait: 10_000, timeout: 15 * 60_000 };
+
 export class PrismaBackupStore implements BackupStore {
   list() {
-    return prisma.$queryRawUnsafe<BackupRecord[]>('SELECT * FROM "BackupRecord" ORDER BY "createdAt" DESC');
+    return prisma.$queryRawUnsafe<BackupSummary[]>(
+      'SELECT "id", "filename", "size", "restoredAt", "createdAt", "updatedAt" FROM "BackupRecord" ORDER BY "createdAt" DESC'
+    );
   }
 
   async findByFilename(filename: string) {
@@ -186,34 +196,44 @@ export class PrismaBackupStore implements BackupStore {
         if (!columnTypes) {
           throw new ValidationError(`Aucune colonne autorisée trouvée pour la table ${table}`);
         }
+        // Lignes regroupées par jeu de colonnes et insérées par lots : une sauvegarde d'une année
+        // (des centaines de milliers de lignes) se restaure en quelques secondes, pas ligne à ligne.
+        const groups = new Map<string, { keys: string[]; rows: Record<string, unknown>[] }>();
         for (const row of rows) {
           if (!row || typeof row !== 'object' || Array.isArray(row)) {
             throw new ValidationError(`Ligne invalide dans la table ${table}`);
           }
-
-          const entries = Object.entries(row);
-          if (entries.length === 0) continue;
-
-          for (const [key] of entries) {
+          const keys = Object.keys(row);
+          if (keys.length === 0) continue;
+          for (const key of keys) {
             if (!columnTypes.has(key)) {
               throw new ValidationError(`Colonne non autorisée dans ${table}: ${key}`);
             }
           }
+          const signature = keys.join('\u0000');
+          const group = groups.get(signature) || { keys, rows: [] };
+          group.rows.push(row);
+          groups.set(signature, group);
+        }
 
-          // Le JSON ne conserve pas les types SQL (les Decimal deviennent des chaînes) :
-          // chaque valeur est convertie explicitement vers le type de sa colonne.
-          const columns = entries.map(([key]) => quoteIdentifier(key)).join(', ');
-          const placeholders = entries
-            .map(([key], index) => `$${index + 1}::${quoteIdentifier(columnTypes.get(key) as string)}`)
-            .join(', ');
-          const values = entries.map(([, value]) => value ?? null);
-
-          await tx.$executeRawUnsafe(
-            `INSERT INTO ${quoteIdentifier(table)} (${columns}) VALUES (${placeholders})`,
-            ...values
-          );
+        for (const { keys, rows: groupRows } of groups.values()) {
+          const columns = keys.map((key) => quoteIdentifier(key)).join(', ');
+          const batchSize = Math.max(1, Math.floor(MAX_PARAMETERS / keys.length));
+          for (let start = 0; start < groupRows.length; start += batchSize) {
+            const batch = groupRows.slice(start, start + batchSize);
+            // Le JSON ne conserve pas les types SQL (les Decimal deviennent des chaînes) :
+            // chaque valeur est convertie explicitement vers le type de sa colonne.
+            const tuples = batch.map(
+              (_, rowIndex) =>
+                `(${keys
+                  .map((key, keyIndex) => `$${rowIndex * keys.length + keyIndex + 1}::${quoteIdentifier(columnTypes.get(key) as string)}`)
+                  .join(', ')})`
+            );
+            const values = batch.flatMap((row) => keys.map((key) => row[key] ?? null));
+            await tx.$executeRawUnsafe(`INSERT INTO ${quoteIdentifier(table)} (${columns}) VALUES ${tuples.join(', ')}`, ...values);
+          }
         }
       }
-    });
+    }, RESTORE_TRANSACTION);
   }
 }

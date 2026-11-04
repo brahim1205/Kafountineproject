@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type {
   ContribuableFilters,
   ContribuableRepository,
@@ -50,8 +51,17 @@ export class PrismaContribuableRepository implements ContribuableRepository {
     return this.mapContribuable(contribuable);
   }
 
+  async countLinkedRecords(id: string) {
+    const counts = await db().contribuable.findUnique({
+      where: { id },
+      select: { _count: { select: { transactions: true, etatCivilRequests: true, urbanismeCases: true, ownedMotos: true } } },
+    });
+    const c = counts?._count;
+    return { tickets: c?.transactions || 0, etatCivil: c?.etatCivilRequests || 0, urbanisme: c?.urbanismeCases || 0, motos: c?.ownedMotos || 0 };
+  }
+
   async delete(id: string) {
-    await prisma.contribuable.delete({ where: { id } });
+    await db().contribuable.delete({ where: { id } });
   }
 
   /** Chaque mot saisi doit apparaître dans le NIN, le nom, le prénom ou le téléphone (« Awa Diatta » trouve Awa Diatta). */

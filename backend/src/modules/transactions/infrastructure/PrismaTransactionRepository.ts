@@ -4,9 +4,20 @@ import { PrismaNumeroSequence } from '../../../shared/infrastructure/prisma/Pris
 import { db, inTransaction } from '../../../shared/infrastructure/prisma/transactionContext';
 import type {
   CreateTransactionPayload,
+  DateRange,
+  TransactionCriteria,
   TransactionFilters,
   TransactionRepository,
 } from '../domain/TransactionRepository';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** « 2026-11-04 » → minuit UTC (heure du Sénégal) ; null si la date est invalide. */
+function parseDay(value?: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
 export class PrismaTransactionRepository implements TransactionRepository {
   constructor(private readonly numeros: NumeroSequence = new PrismaNumeroSequence()) {}
@@ -54,15 +65,72 @@ export class PrismaTransactionRepository implements TransactionRepository {
     });
   }
 
-  async findByYear(year: number) {
-    const transactions = await db().transaction.findMany({
-      where: { year },
-      select: { montant: true, statut: true, categorie: true, date: true },
+  async sumPaid(criteria: TransactionCriteria) {
+    const result = await db().transaction.aggregate({
+      where: { AND: [this.buildWhere(criteria), { statut: 'PAYE' }] },
+      _sum: { montant: true },
+      _count: { _all: true },
     });
-    return transactions.map((transaction) => ({
-      ...transaction,
-      montant: Number(transaction.montant),
-    }));
+    return { montant: Number(result._sum.montant || 0), nombre: result._count._all };
+  }
+
+  async paidByCategory(year: number, range?: DateRange) {
+    const rows = await db().transaction.groupBy({
+      by: ['categorie'],
+      where: { year, statut: 'PAYE', ...(range ? { date: { gte: range.from, lt: range.to } } : {}) },
+      _sum: { montant: true },
+      _count: { _all: true },
+    });
+    return rows.map((row) => ({ categorie: row.categorie, montant: Number(row._sum.montant || 0), nombre: row._count._all }));
+  }
+
+  async usedCategories(year?: number) {
+    const rows = await db().transaction.groupBy({ by: ['categorie'], where: year ? { year } : {}, _count: { _all: true } });
+    return rows.map((row) => ({ categorie: row.categorie, nombre: row._count._all }));
+  }
+
+  async yearTotals(year: number) {
+    const result = await db().transaction.aggregate({ where: { year }, _sum: { montant: true }, _count: { _all: true } });
+    return { nombre: result._count._all, montant: Number(result._sum.montant || 0) };
+  }
+
+  async *iterateForExport(criteria: TransactionCriteria, batchSize = 2000) {
+    let cursor: string | undefined;
+    for (;;) {
+      const batch = await db().transaction.findMany({
+        where: this.buildWhere(criteria),
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: batchSize,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: {
+          id: true,
+          numero: true,
+          date: true,
+          categorie: true,
+          service: true,
+          montant: true,
+          statut: true,
+          modePaiement: true,
+          contribuable: { select: { nom: true, prenom: true, nin: true } },
+          agent: { select: { nom: true, prenom: true } },
+        },
+      });
+      if (batch.length === 0) return;
+      yield batch.map((row) => ({
+        numero: row.numero,
+        date: row.date,
+        categorie: row.categorie,
+        service: row.service,
+        montant: Number(row.montant),
+        statut: row.statut,
+        modePaiement: row.modePaiement,
+        contribuable: `${row.contribuable?.prenom || ''} ${row.contribuable?.nom || ''}`.trim(),
+        nin: row.contribuable?.nin || '',
+        agent: `${row.agent?.prenom || ''} ${row.agent?.nom || ''}`.trim(),
+      }));
+      if (batch.length < batchSize) return;
+      cursor = batch[batch.length - 1].id;
+    }
   }
 
   async findRecentByYear(year: number, limit: number) {
@@ -197,20 +265,37 @@ export class PrismaTransactionRepository implements TransactionRepository {
     });
   }
 
-  private buildWhere(filters: TransactionFilters): Prisma.TransactionWhereInput {
+  private buildWhere(filters: TransactionCriteria): Prisma.TransactionWhereInput {
+    const from = parseDay(filters.startDate);
+    const until = parseDay(filters.endDate);
+    const words = (filters.search || '').trim().split(/\s+/).filter(Boolean).slice(0, 5);
     return {
-      ...(filters.search
+      // Chaque mot doit se retrouver dans le numéro, le service, la catégorie ou le contribuable.
+      ...(words.length
         ? {
-            OR: [
-              { numero: { contains: filters.search, mode: 'insensitive' } },
-              { service: { contains: filters.search, mode: 'insensitive' } },
-              { categorie: { contains: filters.search, mode: 'insensitive' } },
-            ],
+            AND: words.map((word) => ({
+              OR: [
+                { numero: { contains: word, mode: 'insensitive' as const } },
+                { service: { contains: word, mode: 'insensitive' as const } },
+                { categorie: { contains: word, mode: 'insensitive' as const } },
+                { contribuable: { nom: { contains: word, mode: 'insensitive' as const } } },
+                { contribuable: { prenom: { contains: word, mode: 'insensitive' as const } } },
+                { contribuable: { nin: { contains: word } } },
+              ],
+            })),
           }
         : {}),
-      ...(filters.categorie ? { categorie: filters.categorie } : {}),
+      ...(filters.categories?.length
+        ? { categorie: { in: filters.categories } }
+        : filters.categorie
+          ? { categorie: filters.categorie }
+          : {}),
       ...(filters.statut ? { statut: filters.statut } : {}),
       ...(filters.year ? { year: filters.year } : {}),
+      ...(filters.agentId ? { agentId: filters.agentId } : {}),
+      ...(from || until
+        ? { date: { ...(from ? { gte: from } : {}), ...(until ? { lt: new Date(until.getTime() + DAY_MS) } : {}) } }
+        : {}),
     };
   }
 

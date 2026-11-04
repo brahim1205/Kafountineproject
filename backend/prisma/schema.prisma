@@ -79,6 +79,19 @@ model Transaction {
   @@index([year])
   @@index([contribuableId])
   @@index([agentId])
+  // Listes paginées (les plus récentes d'abord) et statistiques de l'année, à 50 000 tickets par an et plus.
+  @@index([year, createdAt])
+  @@index([year, statut, categorie])
+  @@index([year, agentId, date])
+}
+
+/// Dernier numéro attribué par série et par année (tickets, actes, dossiers, reçus).
+model NumeroCounter {
+  serie   String
+  annee   Int
+  dernier Int
+
+  @@id([serie, annee])
 }
 
 model BudgetLine {

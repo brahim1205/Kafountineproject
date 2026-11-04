@@ -1,20 +1,29 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DashboardLayout from '../../components/feature/DashboardLayout';
+import Pagination from '../../components/feature/Pagination';
 import RecuPDF from '../../components/feature/RecuPDF';
 import { useToast } from '../../components/feature/Toast';
 import { useYear } from '../../contexts/YearContext';
 import { getStoredUserRole } from '../../services/auth';
-import { getTransactionStats, getTransactions, type TransactionStats } from '../../services/taxes';
+import {
+  downloadTransactionsCsv,
+  getTransactionStats,
+  getTransactions,
+  getUsedCategories,
+  type TransactionStats,
+  type UsedCategory,
+} from '../../services/taxes';
 import { downloadCsv, today } from '../../utils/csv';
+import { getErrorMessage } from '../../utils/formValidation';
 import ModifierTicketModal from './components/ModifierTicketModal';
 import NouveauTicketModal from './components/NouveauTicketModal';
 import RecettesStats from './components/RecettesStats';
 import RecettesTable from './components/RecettesTable';
 import TicketDetailModal from './components/TicketDetailModal';
-import { toRecetteRow, type ReceiptData, type RecetteRow } from './types';
+import { INPUT_CLASS, toRecetteRow, type ReceiptData, type RecetteRow } from './types';
 
-/** Plafond de l'API par requête : au-delà, la liste n'affiche que les transactions les plus récentes. */
-const PAGE_LIMIT = 300;
+/** Tickets par page : la liste est paginée côté serveur, quel que soit le nombre de tickets de l'année. */
+const PAGE_SIZE = 50;
 
 type ModalState =
   | { type: 'nouveau' }
@@ -30,46 +39,76 @@ export default function Recettes() {
   const canCreate = isCurrentYear && (role === 'agent' || role === 'admin');
   // Même règle que l'API : seuls les admins modifient ou suppriment une transaction.
   const canEdit = role === 'admin' || role === 'super_admin';
-  // Statistiques de l'année : réservées par l'API à l'encadrement et aux finances.
+  // Statistiques de l'année et export complet : réservés par l'API à l'encadrement et aux finances.
   const canSeeYearStats = canEdit || role === 'comptable' || role === 'service_finances';
 
   const [rows, setRows] = useState<RecetteRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [montantPaye, setMontantPaye] = useState(0);
+  const [nombrePaye, setNombrePaye] = useState(0);
   const [stats, setStats] = useState<TransactionStats | null>(null);
+  const [categories, setCategories] = useState<UsedCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState('all');
+  const [exporting, setExporting] = useState(false);
+  const [categorie, setCategorie] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [modal, setModal] = useState<ModalState>(null);
+  const requestId = useRef(0);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [transactions, yearStats] = await Promise.all([
-        getTransactions({ page: 1, limit: PAGE_LIMIT, year: selectedYear }),
-        canSeeYearStats ? getTransactionStats(selectedYear).catch(() => null) : Promise.resolve(null),
-      ]);
-      setRows((transactions.data || []).map(toRecetteRow));
-      setStats(yearStats);
-    } catch {
-      setRows([]);
-      setStats(null);
-      showToast('Impossible de charger les recettes.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Recherche appliquée après une courte pause de frappe, en repartant de la première page.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
-    loadData();
+    setPage(1);
+    setCategorie('');
   }, [selectedYear]);
 
-  const filteredRows = useMemo(() => (filterType === 'all' ? rows : rows.filter((row) => row.type === filterType)), [rows, filterType]);
-  const typeOptions = useMemo(() => Array.from(new Set(rows.map((row) => row.type).filter(Boolean))), [rows]);
-  const truncated = rows.length >= PAGE_LIMIT;
+  useEffect(() => {
+    getUsedCategories(selectedYear).then(setCategories).catch(() => setCategories([]));
+    if (canSeeYearStats) {
+      getTransactionStats(selectedYear).then(setStats).catch(() => setStats(null));
+    } else {
+      setStats(null);
+    }
+  }, [selectedYear, refreshKey]);
 
-  // Sans filtre, les totaux viennent des statistiques de l'année entière, pas des seules lignes chargées.
-  const yearTotals = filterType === 'all' && stats?.annee ? { total: stats.annee.total, count: stats.annee.transactions } : null;
-  // Comme les statistiques de l'API : seuls les tickets payés sont des recettes.
-  const paidRows = filteredRows.filter((row) => row.statut === 'PAYE');
-  const totals = yearTotals ?? { total: paidRows.reduce((sum, row) => sum + row.amount, 0), count: paidRows.length };
+  useEffect(() => {
+    const current = ++requestId.current;
+    setLoading(true);
+    getTransactions({ page, limit: PAGE_SIZE, year: selectedYear, categorie: categorie || undefined, search: search || undefined })
+      .then((result) => {
+        if (current !== requestId.current) return;
+        setRows(result.data.map(toRecetteRow));
+        setTotal(result.total);
+        setMontantPaye(result.montantPaye);
+        setNombrePaye(result.nombrePaye);
+      })
+      .catch(() => {
+        if (current !== requestId.current) return;
+        setRows([]);
+        setTotal(0);
+        setMontantPaye(0);
+        setNombrePaye(0);
+        showToast('Impossible de charger les recettes.', 'error');
+      })
+      .finally(() => {
+        if (current === requestId.current) setLoading(false);
+      });
+  }, [selectedYear, categorie, search, page, refreshKey]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const unfiltered = !categorie && !search;
+  // Tickets encaissés : statistiques de l'année sans filtre, sinon totaux de la sélection calculés par le serveur.
+  const totals = unfiltered && stats?.annee ? { total: stats.annee.total, count: stats.annee.transactions } : { total: montantPaye, count: nombrePaye };
 
   const toReceipt = ({ ticketNumber, type, contributor, amount, date, time, agent }: RecetteRow): ReceiptData => ({
     ticketNumber,
@@ -81,16 +120,29 @@ export default function Recettes() {
     agent,
   });
 
-  const handleExport = () => {
-    downloadCsv(`recettes_${today()}.csv`, [
-      ['N° Ticket', 'Type', 'Contribuable', 'Agent', 'Montant', 'Date', 'Heure'],
-      ...filteredRows.map((row) => [row.ticketNumber, row.type, row.contributor, row.agent, row.amount, row.date, row.time]),
-    ]);
+  const handleExport = async () => {
+    if (!canSeeYearStats) {
+      // Sans droit d'export complet : la page affichée.
+      downloadCsv(`recettes_${today()}.csv`, [
+        ['N° Ticket', 'Type', 'Contribuable', 'Agent', 'Montant', 'Date', 'Heure'],
+        ...rows.map((row) => [row.ticketNumber, row.type, row.contributor, row.agent, row.amount, row.date, row.time]),
+      ]);
+      return;
+    }
+    try {
+      setExporting(true);
+      await downloadTransactionsCsv({ year: selectedYear, categorie: categorie || undefined, search: search || undefined });
+    } catch (error) {
+      showToast(getErrorMessage(error, "Impossible d'exporter les tickets."), 'error');
+    } finally {
+      setExporting(false);
+    }
   };
 
+  const reload = async () => setRefreshKey((key) => key + 1);
   const afterSave = async () => {
     setModal(null);
-    await loadData();
+    await reload();
   };
 
   return (
@@ -115,21 +167,37 @@ export default function Recettes() {
         <RecettesStats total={totals.total} count={totals.count} />
 
         <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="recherche-ticket" className="block text-sm font-medium text-gray-700 mb-2">
+                Rechercher
+              </label>
+              <input
+                id="recherche-ticket"
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="N° de ticket, contribuable, NIN, service"
+                className={INPUT_CLASS}
+              />
+            </div>
             <div>
               <label htmlFor="filtre-type" className="block text-sm font-medium text-gray-700 mb-2">
-                Type de taxe
+                Catégorie
               </label>
               <select
                 id="filtre-type"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
+                value={categorie}
+                onChange={(e) => {
+                  setCategorie(e.target.value);
+                  setPage(1);
+                }}
+                className={`${INPUT_CLASS} cursor-pointer`}
               >
-                <option value="all">Tous les types</option>
-                {typeOptions.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
+                <option value="">Toutes les catégories</option>
+                {categories.map((item) => (
+                  <option key={item.valeur} value={item.valeur}>
+                    {item.libelle} — {item.nombre.toLocaleString('fr-FR')}
                   </option>
                 ))}
               </select>
@@ -137,33 +205,29 @@ export default function Recettes() {
             <div className="flex items-end">
               <button
                 onClick={handleExport}
-                className="w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+                disabled={exporting || total === 0}
+                className="w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer disabled:opacity-50"
               >
-                <i className="ri-download-line"></i>
-                Exporter
+                <i className={exporting ? 'ri-loader-4-line animate-spin' : 'ri-download-line'}></i>
+                {exporting ? 'Export en cours...' : canSeeYearStats ? 'Exporter la sélection' : 'Exporter la page'}
               </button>
             </div>
           </div>
-          {truncated && (
-            <p className="mt-4 text-xs text-amber-700">
-              Seules les {PAGE_LIMIT} transactions les plus récentes de l'année sont listées
-              {filterType === 'all' ? ' ; les totaux ci-dessus portent sur toute l’année.' : ' : les totaux filtrés portent sur ces transactions.'}
-            </p>
-          )}
         </div>
 
         <RecettesTable
-          rows={filteredRows}
+          rows={rows}
           loading={loading}
           canEdit={canEdit}
           onEdit={(row) => setModal({ type: 'modifier', row })}
           onPrint={(row) => setModal({ type: 'recu', receipt: toReceipt(row) })}
           onView={(row) => setModal({ type: 'detail', row })}
+          footer={!loading && total > 0 ? <Pagination page={page} totalPages={totalPages} total={total} unit="ticket" onChange={setPage} /> : null}
         />
       </div>
 
       {modal?.type === 'nouveau' && (
-        <NouveauTicketModal onClose={() => setModal(null)} onSaved={loadData} onPrint={(receipt) => setModal({ type: 'recu', receipt })} />
+        <NouveauTicketModal onClose={() => setModal(null)} onSaved={reload} onPrint={(receipt) => setModal({ type: 'recu', receipt })} />
       )}
       {modal?.type === 'modifier' && <ModifierTicketModal row={modal.row} onClose={() => setModal(null)} onSaved={afterSave} />}
       {modal?.type === 'detail' && (

@@ -37,6 +37,8 @@ export default function Contribuables() {
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole();
   const canManage = (userRole === 'admin' || userRole === 'agent') && isCurrentYear;
+  // Même règle que l'API : seuls les admins suppriment une fiche (et seulement sans pièce rattachée).
+  const canDelete = canManage && userRole === 'admin';
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Actif' | 'Inactif'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -187,8 +189,10 @@ export default function Contribuables() {
       setShowDeleteModal(false);
       setSelectedContribuable(null);
       await loadData();
-    } catch {
-      showToast('Erreur lors de la suppression.', 'error');
+    } catch (error) {
+      // Ex. : fiche liée à des tickets, que le serveur refuse d'effacer.
+      setShowDeleteModal(false);
+      showToast(getErrorMessage(error, 'Erreur lors de la suppression.'), 'error');
     }
   };
 
@@ -297,18 +301,24 @@ export default function Contribuables() {
                               setShowEditModal(true);
                             }}
                             className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                            title="Modifier"
+                            aria-label={`Modifier ${item.name}`}
                           >
                             <i className="ri-edit-line text-lg"></i>
                           </button>
+                          {canDelete && (
                           <button
                             onClick={() => {
                               setSelectedContribuable(item);
                               setShowDeleteModal(true);
                             }}
                             className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Supprimer"
+                            aria-label={`Supprimer ${item.name}`}
                           >
                             <i className="ri-delete-bin-line text-lg"></i>
                           </button>
+                          )}
                         </div>
                       </td>
                     )}
@@ -423,7 +433,7 @@ export default function Contribuables() {
         </Modal>
       )}
 
-      {canManage && showDeleteModal && selectedContribuable && (
+      {canDelete && showDeleteModal && selectedContribuable && (
         <Modal
           title="Confirmer la suppression"
           onClose={() => {

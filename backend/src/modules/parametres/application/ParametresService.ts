@@ -1,6 +1,6 @@
 import { NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
-import type { BackupRecord, BackupStore, MunicipalTariff, ParametresRepository, Penalty, Permission } from '../domain/Parametres';
+import type { BackupStore, BackupSummary, MunicipalTariff, ParametresRepository, Penalty, Permission } from '../domain/Parametres';
 
 export type TariffInput = {
   categorie?: string;
@@ -310,7 +310,7 @@ export class ParametresService {
     return Array.from(grouped.values()).sort((a, b) => a.module.localeCompare(b.module, 'fr'));
   }
 
-  private toBackupView(row: BackupRecord) {
+  private toBackupView(row: BackupSummary) {
     return {
       filename: row.filename,
       size: row.size,

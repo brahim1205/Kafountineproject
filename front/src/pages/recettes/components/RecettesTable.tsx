@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { RecetteRow } from '../types';
 
 type RecettesTableProps = {
@@ -8,12 +9,14 @@ type RecettesTableProps = {
   onEdit: (row: RecetteRow) => void;
   onPrint: (row: RecetteRow) => void;
   onView: (row: RecetteRow) => void;
+  /** Pied de tableau (pagination). */
+  footer?: ReactNode;
 };
 
 const HEADERS = ['N° Ticket', 'Type', 'Contribuable', 'Agent', 'Montant', 'Date & Heure'];
 const ACTION_CLASS = 'w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer';
 
-export default function RecettesTable({ rows, loading, canEdit, onEdit, onPrint, onView }: RecettesTableProps) {
+export default function RecettesTable({ rows, loading, canEdit, onEdit, onPrint, onView, footer }: RecettesTableProps) {
   const message = loading ? 'Chargement des recettes...' : rows.length === 0 ? 'Aucune recette pour cette sélection.' : null;
 
   return (
@@ -71,6 +74,7 @@ export default function RecettesTable({ rows, loading, canEdit, onEdit, onPrint,
           </tbody>
         </table>
       </div>
+      {footer}
     </div>
   );
 }

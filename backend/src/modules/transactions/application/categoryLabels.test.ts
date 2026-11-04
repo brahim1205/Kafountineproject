@@ -1,7 +1,7 @@
 import { buildCategoryLabeler } from './categoryLabels';
 import { GetTransactionStatisticsUseCase } from './GetTransactionStatisticsUseCase';
 import type { TaxCatalog } from '../domain/TaxCatalog';
-import type { TransactionRepository } from '../domain/TransactionRepository';
+import { fakeTotalsRepository } from './fakeTransactionTotals.testutil';
 
 const catalog: TaxCatalog = {
   listCategories: () => [
@@ -43,12 +43,10 @@ describe('buildCategoryLabeler', () => {
 describe('GetTransactionStatisticsUseCase avec le catalogue', () => {
   it('regroupe les formes d’une même catégorie sur une seule ligne', async () => {
     const date = new Date('2026-11-04T10:00:00');
-    const repository = {
-      findByYear: jest.fn().mockResolvedValue([
-        { montant: 1000, statut: 'PAYE', categorie: 'etat-civil', date },
-        { montant: 500, statut: 'PAYE', categorie: 'ETAT_CIVIL', date },
-      ]),
-    } as unknown as TransactionRepository;
+    const repository = fakeTotalsRepository(() => [
+      { montant: 1000, statut: 'PAYE', categorie: 'etat-civil', date },
+      { montant: 500, statut: 'PAYE', categorie: 'ETAT_CIVIL', date },
+    ]);
 
     const stats = await new GetTransactionStatisticsUseCase(repository, catalog).execute(2026, date);
 

@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { useYear } from '../../../contexts/YearContext';
-import { searchTransactions } from '../../../services/statistiques';
 import { getMotosStats } from '../../../services/motos';
 import { getEtatCivilStats } from '../../../services/etatCivil';
 import { getUrbanismeStats } from '../../../services/urbanisme';
 import { getMarcheStats } from '../../../services/marche';
 import { getStoredUserId, getStoredUserName } from '../../../services/auth';
-import type { TransactionItem } from '../../../services/taxes';
+import { getTransactions, type TransactionItem } from '../../../services/taxes';
 
 type AgentCollecte = {
   id: string;
@@ -29,9 +28,20 @@ type ReceiptData = {
   agent: string;
 };
 
-type DatedTransaction = TransactionItem & {
-  __dateKey: string | null;
-  __parsedDate: Date | null;
+/** Tickets affichés pour la journée ; le total et le nombre viennent du serveur, au-delà de cette liste. */
+const DAY_LIST_LIMIT = 300;
+
+const toCollecte = (t: TransactionItem): AgentCollecte => {
+  const parsed = t.date ? new Date(t.date) : null;
+  const valid = parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
+  return {
+    id: t.numero || t.id,
+    type: t.type || t.service || 'Transaction',
+    contribuable: t.contribuable?.prenom ? `${t.contribuable.prenom} ${t.contribuable.nom}` : t.contribuableNom || '-',
+    montant: t.montant || 0,
+    heure: valid ? valid.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-',
+    date: valid ? valid.toISOString().slice(0, 10) : '',
+  };
 };
 
 export default function AgentDashboard() {
@@ -40,6 +50,7 @@ export default function AgentDashboard() {
   const [loading, setLoading] = useState(true);
   const [mesCollectes, setMesCollectes] = useState<AgentCollecte[]>([]);
   const [totalJour, setTotalJour] = useState(0);
+  const [nombreJour, setNombreJour] = useState(0);
   const [resumeLabel, setResumeLabel] = useState("Voici le résumé de votre journée de collecte");
   const [tachesCounts, setTachesCounts] = useState({
     motos: 0,
@@ -58,59 +69,45 @@ export default function AgentDashboard() {
       try {
         setLoading(true);
 
-        const today = new Date();
-        const todayKey = today.toISOString().slice(0, 10);
-        
+        const todayKey = new Date().toISOString().slice(0, 10);
+        // Les tickets de l'agent, filtrés et totalisés par le serveur (et non parmi les derniers tickets de toute la commune).
+        const dayOf = (day: string) =>
+          getTransactions({ agentId: agentId || undefined, year: selectedYear, startDate: day, endDate: day, limit: DAY_LIST_LIMIT });
+
         try {
-          const [result, motosStats, etatCivilStats, urbanismeStats, marcheStats] = await Promise.all([
-            searchTransactions('', { year: selectedYear, agentId: agentId || undefined, limit: 300 }),
+          const [todayResult, motosStats, etatCivilStats, urbanismeStats, marcheStats] = await Promise.all([
+            agentId ? dayOf(todayKey) : Promise.resolve(null),
             getMotosStats(selectedYear).catch(() => null),
             getEtatCivilStats(selectedYear).catch(() => null),
             getUrbanismeStats(selectedYear).catch(() => null),
             getMarcheStats(selectedYear).catch(() => null),
           ]);
-          
-          const txData: TransactionItem[] = Array.isArray(result?.data) ? result.data : [];
 
-          if (txData.length > 0) {
-            const withDates: DatedTransaction[] = txData.map((t) => {
-              const rawDate = t.date || t.createdAt;
-              const parsedDate = rawDate ? new Date(rawDate) : null;
-              const dateKey = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : null;
-              return { ...t, __dateKey: dateKey, __parsedDate: parsedDate };
-            });
+          let dayResult = todayResult;
+          let dayKey = todayKey;
+          if (agentId && todayResult && todayResult.total === 0) {
+            // Pas de collecte aujourd'hui : dernière journée d'activité de l'agent dans l'année.
+            const latest = await getTransactions({ agentId, year: selectedYear, limit: 1 });
+            const latestDate = latest.data[0]?.date ? new Date(latest.data[0].date) : null;
+            if (latestDate && !Number.isNaN(latestDate.getTime())) {
+              dayKey = latestDate.toISOString().slice(0, 10);
+              dayResult = await dayOf(dayKey);
+            }
+          }
 
-            const todaysTransactions = withDates.filter((t) => t.__dateKey === todayKey);
-            const latestDateKey = withDates
-              .map((t) => t.__dateKey)
-              .filter(Boolean)
-              .sort()
-              .pop();
-            const referenceTransactions = todaysTransactions.length > 0
-              ? todaysTransactions
-              : withDates.filter((t) => t.__dateKey === latestDateKey);
-
-            const formatted: AgentCollecte[] = referenceTransactions.map((t) => ({
-              id: t.numero || t.id,
-              type: t.type || t.service || 'Transaction',
-              contribuable: t.contribuable?.prenom ? `${t.contribuable.prenom} ${t.contribuable.nom}` : t.contribuableNom || '-',
-              montant: t.montant || 0,
-              heure: t.__parsedDate ? t.__parsedDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-',
-              date: t.__dateKey || todayKey,
-            }));
-            setMesCollectes(formatted);
-            setTotalJour(formatted.reduce((sum, c) => sum + c.montant, 0));
-            if (todaysTransactions.length > 0) {
+          if (dayResult && dayResult.total > 0) {
+            setMesCollectes(dayResult.data.map(toCollecte));
+            setTotalJour(dayResult.montantPaye);
+            setNombreJour(dayResult.total);
+            if (dayKey === todayKey) {
               setResumeLabel("Voici le résumé de votre journée de collecte");
-            } else if (latestDateKey) {
-              const displayDate = new Date(latestDateKey).toLocaleDateString('fr-FR');
-              setResumeLabel(`Aucune collecte aujourd'hui. Dernière journée avec activité: ${displayDate}`);
             } else {
-              setResumeLabel("Aucune collecte enregistrée pour l'année sélectionnée");
+              setResumeLabel(`Aucune collecte aujourd'hui. Dernière journée avec activité: ${new Date(dayKey).toLocaleDateString('fr-FR')}`);
             }
           } else {
             setMesCollectes([]);
             setTotalJour(0);
+            setNombreJour(0);
             setResumeLabel("Aucune collecte enregistrée pour l'année sélectionnée");
           }
 
@@ -212,7 +209,7 @@ export default function AgentDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Tickets émis</p>
-                <h3 className="text-2xl font-bold text-gray-900">{mesCollectes.length}</h3>
+                <h3 className="text-2xl font-bold text-gray-900">{nombreJour.toLocaleString('fr-FR')}</h3>
                 <p className="text-xs text-gray-500 mt-1">aujourd'hui</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -225,7 +222,7 @@ export default function AgentDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Contribuables servis</p>
-                <h3 className="text-2xl font-bold text-gray-900">{mesCollectes.length}</h3>
+                <h3 className="text-2xl font-bold text-gray-900">{new Set(mesCollectes.map((c) => c.contribuable)).size.toLocaleString('fr-FR')}</h3>
                 <p className="text-xs text-gray-500 mt-1">personnes</p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center">

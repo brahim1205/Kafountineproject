@@ -22,7 +22,8 @@ test.describe('Transactions', () => {
 
   test('should search transactions', async ({ page }) => {
     await page.goto('/taxes/etat-civil');
-    const searchInput = page.getByPlaceholder('Rechercher...', { exact: true });
+    // Recherche faite par le serveur (numéro, contribuable, NIN), après une courte pause de frappe.
+    const searchInput = page.getByPlaceholder('N° de ticket, contribuable, NIN...', { exact: true });
     await searchInput.fill('E2E-NO-SUCH-TRANSACTION');
     await expect(searchInput).toHaveValue('E2E-NO-SUCH-TRANSACTION');
     await expect(page.locator('tbody')).toContainText('Aucune transaction trouvée');

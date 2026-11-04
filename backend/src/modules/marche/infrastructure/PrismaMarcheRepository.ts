@@ -102,6 +102,15 @@ function placeParams(place: MarketPlace) {
   ];
 }
 
+// Requêtes figées au chargement du module, sans aucune donnée utilisateur : les valeurs passent en paramètres.
+const INSERT_PAYMENT_SQL = `INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $21, $22, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       RETURNING ` + paymentReturning(7);
+const SETTLE_PAYMENT_SQL = `UPDATE "MarketPayment"
+       SET "montant" = $2, "reference" = $3, "statut" = 'PAYE', "datePaiement" = $4, "updatedAt" = CURRENT_TIMESTAMP
+       WHERE "id" = $1
+       RETURNING ` + paymentReturning(5);
+
 export class PrismaMarcheRepository implements MarcheRepository {
   listPlaces(year: number) {
     return db().$queryRawUnsafe<MarketPlace[]>(
@@ -205,9 +214,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
     place: MarketPlace
   ) {
     const [row] = await db().$queryRawUnsafe<MarketPayment[]>(
-      `INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $21, $22, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING ${paymentReturning(7)}`,
+      INSERT_PAYMENT_SQL,
       randomUUID(),
       values.placeId,
       values.montant,
@@ -236,10 +243,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
     place: MarketPlace
   ) {
     const [row] = await db().$queryRawUnsafe<MarketPayment[]>(
-      `UPDATE "MarketPayment"
-       SET "montant" = $2, "reference" = $3, "statut" = 'PAYE', "datePaiement" = $4, "updatedAt" = CURRENT_TIMESTAMP
-       WHERE "id" = $1
-       RETURNING ${paymentReturning(5)}`,
+      SETTLE_PAYMENT_SQL,
       id,
       values.montant,
       values.reference,

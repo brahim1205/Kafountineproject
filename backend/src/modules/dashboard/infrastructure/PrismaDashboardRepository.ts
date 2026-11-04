@@ -24,6 +24,15 @@ const LEDGER = `WITH recettes AS (
     FROM "UrbanismeCase" WHERE "year" = $1 AND "statut" = 'VALIDE'
 )`;
 
+// Requêtes figées au chargement du module ; l'année et les dates passent en paramètres.
+const TOTAL_SQL = LEDGER + ` SELECT COALESCE(SUM(montant), 0)::float8 AS montant FROM recettes`;
+const BY_SOURCE_SQL = LEDGER + ` SELECT source, SUM(montant)::float8 AS montant, COUNT(*)::int AS nombre FROM recettes GROUP BY source ORDER BY 2 DESC`;
+const BY_CATEGORY_SQL = LEDGER + ` SELECT categorie, SUM(montant)::float8 AS montant FROM recettes GROUP BY categorie`;
+const BY_MONTH_SQL = LEDGER + ` SELECT EXTRACT(MONTH FROM d)::int AS mois, SUM(montant)::float8 AS montant, COUNT(*)::int AS nombre
+       FROM recettes GROUP BY 1`;
+const BETWEEN_SQL = LEDGER + ` SELECT COALESCE(SUM(montant), 0)::float8 AS montant, COUNT(*)::int AS nombre
+       FROM recettes WHERE d >= $2 AND ($3::timestamp IS NULL OR d < $3::timestamp)`;
+
 export class PrismaDashboardRepository implements DashboardRepository {
   countContribuables() {
     return prisma.contribuable.count();
@@ -63,7 +72,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
 
   async getPaidRevenueByYear(year: number) {
     const [row] = await prisma.$queryRawUnsafe<Array<{ montant: number }>>(
-      `${LEDGER} SELECT COALESCE(SUM(montant), 0)::float8 AS montant FROM recettes`,
+      TOTAL_SQL,
       year
     );
     return Number(row?.montant || 0);
@@ -71,7 +80,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
 
   async getRevenueBySourceByYear(year: number) {
     const rows = await prisma.$queryRawUnsafe<Array<{ source: string; montant: number; nombre: number }>>(
-      `${LEDGER} SELECT source, SUM(montant)::float8 AS montant, COUNT(*)::int AS nombre FROM recettes GROUP BY source ORDER BY 2 DESC`,
+      BY_SOURCE_SQL,
       year
     );
     return rows.map((row) => ({ source: row.source, montant: Number(row.montant || 0), nombre: Number(row.nombre || 0) }));
@@ -79,7 +88,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
 
   async getRevenueByCategoryByYear(year: number) {
     const rows = await prisma.$queryRawUnsafe<Array<{ categorie: string; montant: number }>>(
-      `${LEDGER} SELECT categorie, SUM(montant)::float8 AS montant FROM recettes GROUP BY categorie`,
+      BY_CATEGORY_SQL,
       year
     );
     return rows.map((row) => ({ categorie: row.categorie, montant: Number(row.montant || 0) }));
@@ -124,8 +133,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
   async getMonthlyEvolutionByYear(year: number) {
     const monthNames = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
     const rows = await prisma.$queryRawUnsafe<Array<{ mois: number; montant: number; nombre: number }>>(
-      `${LEDGER} SELECT EXTRACT(MONTH FROM d)::int AS mois, SUM(montant)::float8 AS montant, COUNT(*)::int AS nombre
-       FROM recettes GROUP BY 1`,
+      BY_MONTH_SQL,
       year
     );
     return monthNames.map((mois, index) => {
@@ -140,8 +148,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
 
   private async revenueRowsBetween(year: number, from: Date, to: Date | null) {
     const [row] = await prisma.$queryRawUnsafe<Array<{ montant: number; nombre: number }>>(
-      `${LEDGER} SELECT COALESCE(SUM(montant), 0)::float8 AS montant, COUNT(*)::int AS nombre
-       FROM recettes WHERE d >= $2 AND ($3::timestamp IS NULL OR d < $3::timestamp)`,
+      BETWEEN_SQL,
       year,
       from,
       to

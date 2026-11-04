@@ -314,7 +314,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         ) : null}
       </div>
 
-      <nav className="space-y-1 overflow-y-auto p-4" style={{ height: 'calc(100vh - 64px)' }}>
+      <nav className="space-y-1 overflow-y-auto no-scrollbar p-4" style={{ height: 'calc(100vh - 64px)' }}>
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
 

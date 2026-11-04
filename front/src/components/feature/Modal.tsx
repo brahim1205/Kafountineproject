@@ -4,13 +4,16 @@ type ModalProps = {
   title: string;
   onClose: () => void;
   children: ReactNode;
-  footer: ReactNode;
+  footer?: ReactNode;
+  size?: 'lg' | '2xl';
 };
 
-export default function Modal({ title, onClose, children, footer }: ModalProps) {
+const SIZES = { lg: 'max-w-lg', '2xl': 'max-w-2xl' };
+
+export default function Modal({ title, onClose, children, footer, size = 'lg' }: ModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg">
+      <div className={`bg-white rounded-2xl w-full ${SIZES[size]} max-h-[90vh] overflow-y-auto`}>
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} aria-label="Fermer" className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
@@ -18,7 +21,7 @@ export default function Modal({ title, onClose, children, footer }: ModalProps) 
           </button>
         </div>
         <div className="p-6 space-y-4">{children}</div>
-        <div className="p-6 border-t border-gray-200 flex justify-end gap-3">{footer}</div>
+        {footer && <div className="p-6 border-t border-gray-200 flex justify-end gap-3">{footer}</div>}
       </div>
     </div>
   );

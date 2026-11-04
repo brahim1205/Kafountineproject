@@ -13,3 +13,8 @@ export const forgotPasswordSchema = z.object({
 export const refreshSchema = z.object({
   refreshToken: optionalTrimmedString(2048),
 }).strict();
+
+export const changePasswordSchema = z.object({
+  currentPassword: trimmedString(1, 128, 'Mot de passe actuel requis'),
+  newPassword: trimmedString(12, 128, 'Le nouveau mot de passe doit contenir au moins 12 caractères'),
+}).strict();

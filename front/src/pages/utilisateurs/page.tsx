@@ -114,6 +114,8 @@ export default function Utilisateurs() {
         role: String(fd.get('role') || 'AGENT'),
         telephone: String(fd.get('phone') || '').trim(),
         isActive: String(fd.get('status') || 'Actif') === 'Actif',
+        // Champ laissé vide : le mot de passe actuel est conservé.
+        ...(String(fd.get('password') || '').trim() ? { password: String(fd.get('password')).trim() } : {}),
       });
       setShowEditModal(false);
       setSelectedUser(null);

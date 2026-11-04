@@ -1,30 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/feature/DashboardLayout';
-import { getProfileData } from '../../services/profile';
+import { getMyProfile } from '../../services/profile';
 import type { CurrentUser } from '../../services/auth';
-import { getStoredUserRole } from '../../services/auth';
-import { useYear } from '../../contexts/YearContext';
+import ChangePasswordForm from './components/ChangePasswordForm';
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super administrateur',
+  ADMIN: 'Administrateur',
+  AGENT: 'Agent',
+  COMPTABLE: 'Comptable',
+  SERVICE_FINANCES: 'Service des finances',
+  QUAI_PECHE: 'Quai de pêche',
+};
 
 export default function ProfilPage() {
-  const { selectedYear } = useYear();
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<CurrentUser | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const userRole = useMemo(() => {
-    const stored = getStoredUserRole();
-    if (stored) return stored;
-    return me?.role === 'SUPER_ADMIN' ? 'super_admin' : 'admin';
-  }, [me]);
-
   useEffect(() => {
     let mounted = true;
-    getProfileData(selectedYear)
+    getMyProfile()
       .then((data) => {
         if (!mounted) return;
         setErrorMsg('');
-        setMe(data.me);
+        setMe(data);
       })
       .catch(() => {
         if (!mounted) return;
@@ -37,7 +37,7 @@ export default function ProfilPage() {
     return () => {
       mounted = false;
     };
-  }, [selectedYear]);
+  }, []);
 
   const initials = useMemo(() => {
     const prenom = String(me?.prenom || '').trim().charAt(0).toUpperCase();
@@ -45,7 +45,7 @@ export default function ProfilPage() {
     return `${prenom}${nom}` || 'US';
   }, [me]);
 
-  const userRoleLabel = me?.role === 'ADMIN' ? 'Administrateur' : me?.role === 'COMPTABLE' ? 'Comptable' : 'Agent';
+  const userRoleLabel = ROLE_LABELS[String(me?.role || '').toUpperCase()] || 'Agent';
 
   return (
     <DashboardLayout>
@@ -87,42 +87,7 @@ export default function ProfilPage() {
                 </div>
               </div>
 
-              {/* Paramètres du Compte - Réservé SUPER_ADMIN */}
-              {userRole === 'super_admin' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Paramètres du Compte</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Link to="/profil" className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-3 mb-2">
-                      <i className="ri-user-settings-line text-xl text-gray-600"></i>
-                      <span className="font-medium text-gray-900">Informations du profil</span>
-                    </div>
-                    <p className="text-sm text-gray-600 ml-8">Gérez vos informations personnelles</p>
-                  </Link>
-                  <Link to="/parametres" className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-3 mb-2">
-                      <i className="ri-lock-password-line text-xl text-gray-600"></i>
-                      <span className="font-medium text-gray-900">Mot de passe</span>
-                    </div>
-                    <p className="text-sm text-gray-600 ml-8">Changez votre mot de passe</p>
-                  </Link>
-                  <Link to="/parametres" className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-3 mb-2">
-                      <i className="ri-notification-3-line text-xl text-gray-600"></i>
-                      <span className="font-medium text-gray-900">Notifications</span>
-                    </div>
-                    <p className="text-sm text-gray-600 ml-8">Configurez vos préférences</p>
-                  </Link>
-                  <Link to="/parametres" className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-3 mb-2">
-                      <i className="ri-palette-line text-xl text-gray-600"></i>
-                      <span className="font-medium text-gray-900">Apparence</span>
-                    </div>
-                    <p className="text-sm text-gray-600 ml-8">Thème et affichage</p>
-                  </Link>
-                </div>
-              </div>
-              )}
+              <ChangePasswordForm />
             </>
           )}
         </div>

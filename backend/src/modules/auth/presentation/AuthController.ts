@@ -6,6 +6,7 @@ import { GetCurrentUserUseCase } from '../application/GetCurrentUserUseCase';
 import { RequestPasswordResetUseCase } from '../application/RequestPasswordResetUseCase';
 import { RefreshTokenUseCase } from '../application/RefreshTokenUseCase';
 import { LogoutUseCase } from '../application/LogoutUseCase';
+import { ChangePasswordUseCase } from '../application/ChangePasswordUseCase';
 import { UnauthorizedError } from '../../../shared/errors/AppError';
 import { clearAuthCookies, clearPortalCookie, readCookie, setAuthCookies, REFRESH_TOKEN_COOKIE } from '../../../shared/http/cookies';
 
@@ -15,8 +16,20 @@ export class AuthController {
     private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
     private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
-    private readonly logoutUseCase: LogoutUseCase
+    private readonly logoutUseCase: LogoutUseCase,
+    private readonly changePasswordUseCase: ChangePasswordUseCase
   ) {}
+
+  async changePassword(req: AuthRequest, res: Response) {
+    await this.changePasswordUseCase.execute({
+      userId: req.user!.userId,
+      role: req.user!.role,
+      ipAddress: req.ip || null,
+      currentPassword: String(req.body?.currentPassword || ''),
+      newPassword: String(req.body?.newPassword || ''),
+    });
+    return message(res, 'Mot de passe modifié');
+  }
 
   async login(req: Request, res: Response) {
     const data = await this.loginUseCase.execute({

@@ -1,4 +1,5 @@
 import { ConflictError, NotFoundError, ValidationError } from '../../../shared/errors/AppError';
+import type { NumeroSequence } from '../../../shared/domain/NumeroSequence';
 import type { Actor, ActorDirectory, AuditTrail } from '../../../shared/audit/AuditTrail';
 import type { ContribuableLookup, ContribuableSummary } from '../../../shared/domain/ContribuableLookup';
 import type { MotoPayment, MotoPeopleDisplay, MotoRegistration, MotoRepository } from '../domain/Moto';
@@ -56,7 +57,8 @@ export class MotoService {
     private readonly repository: MotoRepository,
     private readonly contribuables: ContribuableLookup,
     private readonly actors: ActorDirectory,
-    private readonly auditTrail: AuditTrail
+    private readonly auditTrail: AuditTrail,
+    private readonly numeros: NumeroSequence
   ) {}
 
   async list(year: number, search: string, limit?: number) {
@@ -256,6 +258,9 @@ export class MotoService {
     const paiementDate = new Date();
     const nextDueDate = nextMonthDueDate();
     const reference = input.reference ? String(input.reference).trim() : null;
+    const year = input.year ? Number(input.year) : new Date().getFullYear();
+    // Le numéro du reçu officiel est attribué ici, jamais par le navigateur.
+    const numeroRecu = await this.numeros.next('recuMoto', year);
     const created = await this.repository.recordPayment(
       {
         motoId,
@@ -263,9 +268,9 @@ export class MotoService {
         reference,
         datePaiement: paiementDate,
         mois: input.mois ? String(input.mois).trim() : paiementDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
-        numeroRecu: reference || `MOTO-${Date.now()}`,
+        numeroRecu,
         agent: actorName,
-        year: input.year ? Number(input.year) : new Date().getFullYear(),
+        year,
         prochainPaiement: nextDueDate,
       },
       moto

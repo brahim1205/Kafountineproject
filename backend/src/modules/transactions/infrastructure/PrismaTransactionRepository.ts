@@ -1,4 +1,6 @@
 import type { Prisma } from '@prisma/client';
+import type { NumeroSequence } from '../../../shared/domain/NumeroSequence';
+import { PrismaNumeroSequence } from '../../../shared/infrastructure/prisma/PrismaNumeroSequence';
 import { db, inTransaction } from '../../../shared/infrastructure/prisma/transactionContext';
 import type {
   CreateTransactionPayload,
@@ -7,6 +9,8 @@ import type {
 } from '../domain/TransactionRepository';
 
 export class PrismaTransactionRepository implements TransactionRepository {
+  constructor(private readonly numeros: NumeroSequence = new PrismaNumeroSequence()) {}
+
   async search(filters: TransactionFilters) {
     const transactions = await db().transaction.findMany({
       where: this.buildWhere(filters),
@@ -39,28 +43,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
 
   async createWithAtomicNumero(payload: Omit<CreateTransactionPayload, 'numero'>) {
     return inTransaction(async (tx) => {
-      // Serialize numero generation per year to avoid unique constraint collisions.
-      const lockKey = Number(`${payload.year}`.slice(-4));
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
-
-      const last = await tx.transaction.findFirst({
-        where: { year: payload.year },
-        orderBy: { numero: 'desc' },
-        select: { numero: true },
-      });
-
-      let nextNumber = 1;
-      if (last?.numero) {
-        const parts = last.numero.split('-');
-        const tail = parts[parts.length - 1];
-        const parsed = Number(tail);
-        if (!Number.isNaN(parsed)) {
-          nextNumber = parsed + 1;
-        }
-      }
-
-      const numero = `TX-${payload.year}-${String(nextNumber).padStart(3, '0')}`;
-
+      const numero = await this.numeros.next('transaction', payload.year);
       return tx.transaction.create({
         data: {
           ...payload,

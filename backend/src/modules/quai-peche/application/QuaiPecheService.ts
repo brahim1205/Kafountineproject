@@ -1,4 +1,5 @@
 import { NotFoundError } from '../../../shared/errors/AppError';
+import type { NumeroSequence } from '../../../shared/domain/NumeroSequence';
 import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
 import type {
   FishCommission,
@@ -24,13 +25,12 @@ const text = (value: unknown) => String(value || '').trim();
 const optionalText = (value: unknown) => (value ? String(value).trim() : null);
 const optionalNumber = (value: unknown) => (value === undefined ? null : Number(value));
 const status = (value: unknown, fallback: string) => String(value || fallback).trim().toUpperCase();
-const reference = (prefix: string, year: number) =>
-  `${prefix}-${year}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
 
 export class QuaiPecheService {
   constructor(
     private readonly repository: QuaiPecheRepository,
-    private readonly auditTrail: AuditTrail
+    private readonly auditTrail: AuditTrail,
+    private readonly numeros: NumeroSequence
   ) {}
 
   async list(collection: QuaiCollection, year: number) {
@@ -116,7 +116,7 @@ export class QuaiPecheService {
         const fisherman = this.required('pecheurs', await this.repository.findFisherman(text(input.pecheurId)));
         const row = await this.repository.createCommission(
           {
-            numero: reference('CF', year),
+            numero: await this.numeros.next('commission', year),
             poids: Number(input.poids || 0),
             typePoisson: text(input.typePoisson),
             temperatura: optionalNumber(input.temperatura),
@@ -146,7 +146,7 @@ export class QuaiPecheService {
         const truck = this.required('camions', await this.repository.findTruck(text(input.camionId)));
         const row = await this.repository.createExpedition(
           {
-            numero: reference('EXP', year),
+            numero: await this.numeros.next('expedition', year),
             poids: Number(input.poids || 0),
             destination: optionalText(input.destination),
             montant: optionalNumber(input.montant),

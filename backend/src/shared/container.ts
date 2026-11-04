@@ -47,6 +47,7 @@ import { randomUUID } from 'node:crypto';
 import { PrismaAuditTrail } from './infrastructure/audit/PrismaAuditTrail';
 import { PrismaUnitOfWork } from './infrastructure/prisma/transactionContext';
 import { transactional } from './application/UnitOfWork';
+import { PrismaNumeroSequence } from './infrastructure/prisma/PrismaNumeroSequence';
 import { PrismaActorDirectory } from './infrastructure/audit/PrismaActorDirectory';
 import { PrismaContribuableLookup } from './infrastructure/contribuables/PrismaContribuableLookup';
 import { AuditController } from '../modules/audit/presentation/AuditController';
@@ -169,6 +170,7 @@ function buildMunicipalControllers() {
   const auditTrail = new PrismaAuditTrail();
   const actors = new PrismaActorDirectory();
   const contribuables = new PrismaContribuableLookup();
+  const numeros = new PrismaNumeroSequence();
   // Chaque écriture et son entrée d'audit sont validées ensemble, ou pas du tout.
   const uow = new PrismaUnitOfWork();
 
@@ -184,11 +186,11 @@ function buildMunicipalControllers() {
       ])
     ),
     etatCivil: new EtatCivilController(
-      transactional(new EtatCivilService(new PrismaEtatCivilRepository(), contribuables, auditTrail), uow, ['create', 'update', 'delete']),
+      transactional(new EtatCivilService(new PrismaEtatCivilRepository(), contribuables, auditTrail, numeros), uow, ['create', 'update', 'delete']),
       actors
     ),
     urbanisme: new UrbanismeController(
-      transactional(new UrbanismeService(new PrismaUrbanismeRepository(), contribuables, auditTrail), uow, ['create', 'update', 'delete']),
+      transactional(new UrbanismeService(new PrismaUrbanismeRepository(), contribuables, auditTrail, numeros), uow, ['create', 'update', 'delete']),
       actors
     ),
     marche: new MarcheController(
@@ -199,7 +201,7 @@ function buildMunicipalControllers() {
       ])
     ),
     motos: new MotosController(
-      transactional(new MotoService(new PrismaMotoRepository(), contribuables, actors, auditTrail), uow, ['create', 'update', 'createPayment'])
+      transactional(new MotoService(new PrismaMotoRepository(), contribuables, actors, auditTrail, numeros), uow, ['create', 'update', 'createPayment'])
     ),
     audit: new AuditController(new AuditService(new PrismaAuditLogRepository(), auditTrail)),
     notifications: new NotificationsController(
@@ -213,7 +215,7 @@ function buildMunicipalControllers() {
       ])
     ),
     quaiPeche: new QuaiPecheController(
-      transactional(new QuaiPecheService(new PrismaQuaiPecheRepository(), auditTrail), uow, ['create', 'update', 'delete'])
+      transactional(new QuaiPecheService(new PrismaQuaiPecheRepository(), auditTrail, numeros), uow, ['create', 'update', 'delete'])
     ),
     // Les sauvegardes restent hors unité de travail : la restauration gère sa propre transaction.
     parametres: new ParametresController(

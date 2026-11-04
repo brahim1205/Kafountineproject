@@ -1,5 +1,6 @@
 import { NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
+import type { NumeroSequence } from '../../../shared/domain/NumeroSequence';
 import type { ContribuableLookup } from '../../../shared/domain/ContribuableLookup';
 import type { UrbanismeCase, UrbanismeRepository } from '../domain/Urbanisme';
 
@@ -51,7 +52,8 @@ export class UrbanismeService {
   constructor(
     private readonly repository: UrbanismeRepository,
     private readonly contribuables: ContribuableLookup,
-    private readonly auditTrail: AuditTrail
+    private readonly auditTrail: AuditTrail,
+    private readonly numeros: NumeroSequence
   ) {}
 
   async list(filters: UrbanismeListFilters) {
@@ -109,7 +111,7 @@ export class UrbanismeService {
     const defaultStatus = actorRole === 'ADMIN' || actorRole === 'SUPER_ADMIN' ? 'VALIDE' : 'EN_ATTENTE';
     const numero = input.numero
       ? String(input.numero).trim()
-      : `URB-${year}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+      : await this.numeros.next('urbanisme', year);
 
     const created = await this.repository.create(
       {

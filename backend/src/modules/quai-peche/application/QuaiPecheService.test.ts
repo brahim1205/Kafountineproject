@@ -1,5 +1,5 @@
 import { NotFoundError } from '../../../shared/errors/AppError';
-import { agent, fakeAuditTrail } from '../../../shared/testing/ports';
+import { agent, fakeAuditTrail, fakeNumeroSequence } from '../../../shared/testing/ports';
 import type { Fisherman, QuaiPecheRepository, RefrigeratedTruck, ShippingExpedition } from '../domain/QuaiPeche';
 import { QuaiPecheService } from './QuaiPecheService';
 
@@ -98,7 +98,7 @@ describe('QuaiPecheService', () => {
       countBoats: jest.fn(),
     };
     auditTrail = fakeAuditTrail();
-    service = new QuaiPecheService(repository, auditTrail);
+    service = new QuaiPecheService(repository, auditTrail, fakeNumeroSequence());
   });
 
   describe('expéditions', () => {

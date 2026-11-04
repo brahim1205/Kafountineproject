@@ -149,6 +149,46 @@ describeIntegration('services municipaux (intégration)', () => {
     });
   });
 
+  describe('numérotation', () => {
+    const ticket = () => ({ contribuableId, categorie: 'Marché', type: 'Marché', service: 'Ticket journalier', quantite: 1, montant: 100, modePaiement: 'ESPECE' });
+
+    it('passe de TX-…-999 à TX-…-1000 puis 1001 (comparaison numérique, pas alphabétique)', async () => {
+      const { prisma } = require('../dist/src/shared/infrastructure/prisma/prismaClient');
+      const seed = await agent.post('/transactions', ticket());
+      expect(seed.status).toBe(201);
+      await prisma.transaction.update({ where: { numero: seed.body.data.numero }, data: { numero: `TX-${year}-999` } });
+
+      const next = await agent.post('/transactions', ticket());
+      const after = await agent.post('/transactions', ticket());
+      expect([next.status, after.status]).toEqual([201, 201]);
+      expect(next.body.data.numero).toBe(`TX-${year}-1000`);
+      expect(after.body.data.numero).toBe(`TX-${year}-1001`);
+    });
+
+    it('attribue des numéros distincts et consécutifs à des demandes simultanées', async () => {
+      const created = await Promise.all(
+        Array.from({ length: 10 }, () =>
+          admin.post('/etat-civil', { contribuableId, typeDocument: 'Extrait de naissance', exemplaires: 1, montant: 500, year })
+        )
+      );
+      expect(created.map((res) => res.status)).toEqual(Array(10).fill(201));
+      const numbers = created.map((res) => Number(res.body.data.numero.split('-').pop())).sort((a, b) => a - b);
+      expect(new Set(numbers).size).toBe(10);
+      expect(numbers[9] - numbers[0]).toBe(9);
+      for (const res of created) await admin.delete(`/etat-civil/${res.body.data.id}`);
+    });
+
+    it('numérote lui-même les reçus de moto', async () => {
+      const motos = (await admin.get(`/motos?year=${year}`)).body.data;
+      const moto = (motos.items || motos)[0];
+      const first = await admin.post('/motos/paiements', { motoId: moto.id, reference: 'saisie-navigateur', year });
+      const second = await admin.post('/motos/paiements', { motoId: moto.id, year });
+      expect([first.status, second.status]).toEqual([201, 201]);
+      expect(first.body.data.numeroRecu).toMatch(new RegExp(`^MOTO-${year}-\\d{5}$`));
+      expect(Number(second.body.data.numeroRecu.split('-').pop()) - Number(first.body.data.numeroRecu.split('-').pop())).toBe(1);
+    });
+  });
+
   describe('formulaires de modification', () => {
     it('modifie un contribuable avec le NIN renvoyé par le formulaire, et refuse un NIN déjà pris', async () => {
       const list = (await admin.get('/contribuables?limit=2')).body.data;

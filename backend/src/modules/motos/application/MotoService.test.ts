@@ -1,5 +1,5 @@
 import { ConflictError, NotFoundError, ValidationError } from '../../../shared/errors/AppError';
-import { agent, contribuable, fakeActorDirectory, fakeAuditTrail, fakeContribuables } from '../../../shared/testing/ports';
+import { agent, contribuable, fakeActorDirectory, fakeAuditTrail, fakeContribuables, fakeNumeroSequence } from '../../../shared/testing/ports';
 import type { MotoPayment, MotoRegistration, MotoRepository } from '../domain/Moto';
 import { MOTO_PENALITE_RETARD, MOTO_TARIF_MENSUEL, MotoService } from './MotoService';
 
@@ -71,7 +71,7 @@ describe('MotoService', () => {
       recordPayment: jest.fn(async (values, row) => paymentFrom(values, row)),
     };
     auditTrail = fakeAuditTrail();
-    service = new MotoService(repository, fakeContribuables(contribuable()), fakeActorDirectory(), auditTrail);
+    service = new MotoService(repository, fakeContribuables(contribuable()), fakeActorDirectory(), auditTrail, fakeNumeroSequence());
   });
 
   describe('createPayment', () => {
@@ -114,12 +114,14 @@ describe('MotoService', () => {
       expect(jours).toBeLessThanOrEqual(32);
     });
 
-    it('utilise la référence comme numéro de reçu quand elle est fournie', async () => {
+    it('attribue lui-même le numéro de reçu, à la suite, et garde la référence fournie', async () => {
       repository.findById.mockResolvedValue(moto());
 
-      await service.createPayment(agent, { motoId: 'moto-1', reference: ' REC-42 ' });
+      await service.createPayment(agent, { motoId: 'moto-1', reference: ' REC-42 ', year: 2026 });
+      await service.createPayment(agent, { motoId: 'moto-1', year: 2026 });
 
-      expect(repository.recordPayment.mock.calls[0][0]).toMatchObject({ reference: 'REC-42', numeroRecu: 'REC-42' });
+      expect(repository.recordPayment.mock.calls[0][0]).toMatchObject({ reference: 'REC-42', numeroRecu: 'MOTO-2026-00001' });
+      expect(repository.recordPayment.mock.calls[1][0]).toMatchObject({ reference: null, numeroRecu: 'MOTO-2026-00002' });
     });
 
     it('refuse un montant négatif', async () => {

@@ -33,13 +33,13 @@ export default function PaiementMotoModal({ moto, motoConfig, selectedYear, onCl
     setIsSubmitting(true);
 
     const moisPaiement = new FormData(e.currentTarget).get('mois') as string;
-    const numeroRecu = `MOTO-${now.getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`;
 
     try {
       // Le montant est calculé par le serveur (tarif mensuel + pénalité éventuelle).
-      const payment = await createMotoPayment({ motoId: moto.id, reference: numeroRecu, mois: moisPaiement });
+      const payment = await createMotoPayment({ motoId: moto.id, mois: moisPaiement });
       await onPaid({
-        numero: numeroRecu,
+        // Numéro de reçu attribué par le serveur, à la suite des précédents.
+        numero: payment.numeroRecu || '',
         date: now.toLocaleDateString('fr-FR', FULL_DATE),
         heure: now.toLocaleTimeString('fr-FR', SHORT_TIME),
         contribuable: moto.proprietaire.nom,

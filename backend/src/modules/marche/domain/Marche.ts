@@ -64,6 +64,13 @@ export interface MarcheRepository {
     values: Pick<MarketPayment, 'placeId' | 'montant' | 'reference' | 'periode' | 'statut' | 'year'> & { datePaiement: Date },
     place: MarketPlace
   ): Promise<MarketPayment>;
+  findPaymentsForPeriod(placeId: string, periode: string, year: number): Promise<Array<Pick<MarketPayment, 'id' | 'statut'>>>;
+  /** Encaisse un paiement existant (en attente ou en retard) au lieu d'en créer un second. */
+  settlePayment(
+    id: string,
+    values: Pick<MarketPayment, 'montant' | 'reference'> & { datePaiement: Date },
+    place: MarketPlace
+  ): Promise<MarketPayment>;
   listPlacesForStats(year: number): Promise<Array<Pick<MarketPlace, 'statut' | 'occupantId'>>>;
   listPaymentsForStats(year: number): Promise<Array<Pick<MarketPayment, 'montant' | 'statut'>>>;
 }

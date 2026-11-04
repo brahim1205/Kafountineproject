@@ -206,7 +206,7 @@ export default function AdminDashboard() {
       label: 'Budget',
       count: stats?.stats?.budget?.enAttente || 0,
       icon: 'ri-bank-card-line',
-      link: '/gestion-budget',
+      link: '/service-finances',
       color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     },
     {

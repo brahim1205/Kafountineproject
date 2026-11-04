@@ -46,11 +46,12 @@ export default function ServiceFinancesDashboard() {
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole() || 'service_finances';
   const userName = getStoredUserName() || 'Service des Finances';
-  // Même règle que l'API (PUT /budget/demandes/:id) : le service des finances et les admins tranchent les demandes.
-  const canDecide = userRole === 'admin' || userRole === 'super_admin' || userRole === 'service_finances';
+  // Même règle que l'API (PUT /budget/demandes/:id) : séparation des tâches, seuls les admins tranchent les demandes.
+  const canDecide = userRole === 'admin' || userRole === 'super_admin';
   const [showModalBudget, setShowModalBudget] = useState(false);
   const [showModalDepense, setShowModalDepense] = useState(false);
-  const [activeTab, setActiveTab] = useState<'budget' | 'depenses'>('budget');
+  // Les admins viennent ici pour trancher les demandes : on ouvre directement cet onglet.
+  const [activeTab, setActiveTab] = useState<'budget' | 'depenses'>(canDecide ? 'depenses' : 'budget');
   const [newLigneBudget, setNewLigneBudget] = useState({ code: '', libelle: '', prevu: 0 });
   const [newDepense, setNewDepense] = useState({ service: '', description: '', montant: 0 });
   const [budgetPrevisionnel, setBudgetPrevisionnel] = useState<LigneBudgetaire[]>([]);
@@ -178,7 +179,9 @@ export default function ServiceFinancesDashboard() {
       {/* En-tête */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bonjour, {userName.split(' ')[0]} — Service des Finances 👋</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {canDecide ? 'Budget et demandes de dépense' : `Bonjour, ${userName.split(' ')[0]} — Service des Finances 👋`}
+          </h1>
           <p className="text-sm text-gray-600 mt-1">Gestion du budget et des dépenses</p>
         </div>
         {/* Badge année passée - lecture seule */}
@@ -396,6 +399,7 @@ export default function ServiceFinancesDashboard() {
                               onClick={() => handleApprouver(demande.id)}
                               className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                               title="Approuver"
+                              aria-label="Approuver"
                             >
                               <i className="ri-check-line"></i>
                             </button>
@@ -403,6 +407,7 @@ export default function ServiceFinancesDashboard() {
                               onClick={() => handleRejeter(demande.id)}
                               className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                               title="Rejeter"
+                              aria-label="Rejeter"
                             >
                               <i className="ri-close-line"></i>
                             </button>

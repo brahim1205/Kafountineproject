@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError, ValidationError } from '../../../shared/errors/AppError';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
 import type { BudgetRepository } from '../domain/Budget';
 
@@ -19,6 +19,10 @@ export type BudgetRequestInput = {
   motif?: string;
   year?: number;
 };
+
+/** Séparation des tâches : le service qui engage la dépense ne la valide pas lui-même. */
+const DECISION_ROLES = new Set(['ADMIN', 'SUPER_ADMIN']);
+const DECISION_STATUSES = new Set(['APPROUVE', 'REJETE']);
 
 export class BudgetService {
   constructor(
@@ -190,6 +194,17 @@ export class BudgetService {
     }
 
     const nextStatut = input.statut ? String(input.statut).trim().toUpperCase() : existing.statut;
+    if (nextStatut !== existing.statut) {
+      if (nextStatut !== 'EN_ATTENTE' && !DECISION_STATUSES.has(nextStatut)) {
+        throw new ValidationError('Statut de demande inconnu.');
+      }
+      if (!DECISION_ROLES.has(String(actor.role || '').toUpperCase())) {
+        throw new ForbiddenError("Seul l'administrateur peut approuver ou rejeter une demande de dépense.");
+      }
+    }
+    if (DECISION_STATUSES.has(existing.statut) && (input.montant !== undefined && montant !== existing.montant)) {
+      throw new ValidationError("Le montant d'une demande déjà décidée ne peut plus être modifié.");
+    }
     // L'auteur de la décision n'est enregistré qu'au moment où la demande est approuvée ou rejetée.
     const approvedById =
       nextStatut !== existing.statut && (nextStatut === 'APPROUVE' || nextStatut === 'REJETE')

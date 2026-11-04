@@ -1,6 +1,29 @@
 import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
 import type { DashboardRepository } from '../domain/DashboardRepository';
 
+/**
+ * Toutes les recettes encaissées de l'année ($1), quel que soit le module qui les enregistre :
+ * taxes et tickets (Transaction payée), places du marché et motos (paiement payé),
+ * actes d'état civil délivrés et dossiers d'urbanisme validés. Aucun de ces modules ne crée
+ * de Transaction, il n'y a donc pas de double comptage.
+ */
+const LEDGER = `WITH recettes AS (
+  SELECT 'Taxes et tickets'::text AS source, "categorie"::text AS categorie, "montant", "createdAt" AS d
+    FROM "Transaction" WHERE "year" = $1 AND "statut" = 'PAYE'
+  UNION ALL
+  SELECT 'Marché', 'Marché', "montant", COALESCE("datePaiement", "createdAt")
+    FROM "MarketPayment" WHERE "year" = $1 AND "statut" = 'PAYE'
+  UNION ALL
+  SELECT 'Motos', 'Motos', "montant", COALESCE("datePaiement", "createdAt")
+    FROM "MotoPayment" WHERE "year" = $1 AND "statut" = 'PAYE'
+  UNION ALL
+  SELECT 'État civil', 'État civil', "montant", "createdAt"
+    FROM "EtatCivilRequest" WHERE "year" = $1 AND "statut" IN ('DELIVREE', 'VALIDE')
+  UNION ALL
+  SELECT 'Urbanisme', 'Urbanisme', "montant", "createdAt"
+    FROM "UrbanismeCase" WHERE "year" = $1 AND "statut" = 'VALIDE'
+)`;
+
 export class PrismaDashboardRepository implements DashboardRepository {
   countContribuables() {
     return prisma.contribuable.count();
@@ -39,25 +62,27 @@ export class PrismaDashboardRepository implements DashboardRepository {
   }
 
   async getPaidRevenueByYear(year: number) {
-    const result = await prisma.transaction.aggregate({
-      where: { year, statut: 'PAYE' },
-      _sum: { montant: true },
-    });
+    const [row] = await prisma.$queryRawUnsafe<Array<{ montant: number }>>(
+      `${LEDGER} SELECT COALESCE(SUM(montant), 0)::float8 AS montant FROM recettes`,
+      year
+    );
+    return Number(row?.montant || 0);
+  }
 
-    return Number(result._sum.montant || 0);
+  async getRevenueBySourceByYear(year: number) {
+    const rows = await prisma.$queryRawUnsafe<Array<{ source: string; montant: number; nombre: number }>>(
+      `${LEDGER} SELECT source, SUM(montant)::float8 AS montant, COUNT(*)::int AS nombre FROM recettes GROUP BY source ORDER BY 2 DESC`,
+      year
+    );
+    return rows.map((row) => ({ source: row.source, montant: Number(row.montant || 0), nombre: Number(row.nombre || 0) }));
   }
 
   async getRevenueByCategoryByYear(year: number) {
-    const results = await prisma.transaction.groupBy({
-      by: ['categorie'],
-      where: { year, statut: 'PAYE' },
-      _sum: { montant: true },
-    });
-
-    return results.map((r) => ({
-      categorie: r.categorie,
-      montant: Number(r._sum.montant || 0),
-    }));
+    const rows = await prisma.$queryRawUnsafe<Array<{ categorie: string; montant: number }>>(
+      `${LEDGER} SELECT categorie, SUM(montant)::float8 AS montant FROM recettes GROUP BY categorie`,
+      year
+    );
+    return rows.map((row) => ({ categorie: row.categorie, montant: Number(row.montant || 0) }));
   }
 
   async countTodayTransactionsByYear(year: number) {
@@ -71,21 +96,12 @@ export class PrismaDashboardRepository implements DashboardRepository {
   async getTodayRevenueByYear(year: number) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const result = await prisma.transaction.aggregate({
-      where: { year, statut: 'PAYE', createdAt: { gte: today } },
-      _sum: { montant: true },
-    });
-    return Number(result._sum.montant || 0);
+    return this.revenueBetween(year, today, null);
   }
 
   async getMonthlyRevenueByYear(year: number) {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const result = await prisma.transaction.aggregate({
-      where: { year, statut: 'PAYE', createdAt: { gte: startOfMonth } },
-      _sum: { montant: true },
-    });
-    return Number(result._sum.montant || 0);
+    return this.revenueBetween(year, new Date(now.getFullYear(), now.getMonth(), 1), null);
   }
 
   async getWeeklyEvolutionByYear(year: number) {
@@ -98,53 +114,39 @@ export class PrismaDashboardRepository implements DashboardRepository {
       date.setHours(0, 0, 0, 0);
       const nextDate = new Date(date);
       nextDate.setDate(nextDate.getDate() + 1);
-
-      const transactions = await prisma.transaction.findMany({
-        where: {
-          year,
-          statut: 'PAYE',
-          createdAt: { gte: date, lt: nextDate },
-        },
-        select: { montant: true },
-      });
-
-      days.push({
-        jour: date.toISOString().split('T')[0],
-        montant: transactions.reduce((sum, t) => sum + Number(t.montant), 0),
-        transactions: transactions.length,
-      });
+      const { montant, nombre } = await this.revenueRowsBetween(year, date, nextDate);
+      days.push({ jour: date.toISOString().split('T')[0], montant, transactions: nombre });
     }
 
     return days;
   }
 
   async getMonthlyEvolutionByYear(year: number) {
-    const months: Array<{ mois: string; montant: number; transactions: number }> = [];
     const monthNames = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    // We fetch for each month to be safe and compatible with SQLite/Postgres across the board without raw queries
-    for (let i = 0; i < 12; i++) {
-      const startDate = new Date(year, i, 1);
-      const endDate = new Date(year, i + 1, 1);
-      
-      const result = await prisma.transaction.aggregate({
-        where: {
-          year,
-          statut: 'PAYE',
-          createdAt: { gte: startDate, lt: endDate }
-        },
-        _sum: { montant: true },
-        _count: { id: true }
-      });
-      
-      months.push({
-        mois: monthNames[i],
-        montant: Number(result._sum.montant || 0),
-        transactions: result._count.id || 0
-      });
-    }
-    
-    return months;
+    const rows = await prisma.$queryRawUnsafe<Array<{ mois: number; montant: number; nombre: number }>>(
+      `${LEDGER} SELECT EXTRACT(MONTH FROM d)::int AS mois, SUM(montant)::float8 AS montant, COUNT(*)::int AS nombre
+       FROM recettes GROUP BY 1`,
+      year
+    );
+    return monthNames.map((mois, index) => {
+      const row = rows.find((item) => Number(item.mois) === index + 1);
+      return { mois, montant: Number(row?.montant || 0), transactions: Number(row?.nombre || 0) };
+    });
+  }
+
+  private async revenueBetween(year: number, from: Date, to: Date | null) {
+    return (await this.revenueRowsBetween(year, from, to)).montant;
+  }
+
+  private async revenueRowsBetween(year: number, from: Date, to: Date | null) {
+    const [row] = await prisma.$queryRawUnsafe<Array<{ montant: number; nombre: number }>>(
+      `${LEDGER} SELECT COALESCE(SUM(montant), 0)::float8 AS montant, COUNT(*)::int AS nombre
+       FROM recettes WHERE d >= $2 AND ($3::timestamp IS NULL OR d < $3::timestamp)`,
+      year,
+      from,
+      to
+    );
+    return { montant: Number(row?.montant || 0), nombre: Number(row?.nombre || 0) };
   }
 
   async getTopContribuables(year: number, limit: number) {

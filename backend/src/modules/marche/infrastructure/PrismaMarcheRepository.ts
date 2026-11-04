@@ -58,6 +58,50 @@ const SQL_UPDATE_PLACE = `UPDATE "MarketPlace"
        RETURNING
         ${PLACE_RETURNING}`;
 
+const PLACE_COLUMNS: Array<[string, string]> = [
+  ['text', 'numeroPlace'],
+  ['text', 'placeType'],
+  ['text', 'placeZone'],
+  ['text', 'occupantId'],
+  ['text', 'activite'],
+  ['double precision', 'tarif'],
+  ['text', 'placePeriode'],
+  ['text', 'placeStatut'],
+  ['text', 'placeTelephone'],
+  ['timestamp', 'placeDateAttribution'],
+  ['text', 'occupantNom'],
+  ['text', 'occupantPrenom'],
+  ['text', 'occupantNin'],
+  ['text', 'occupantTelephone'],
+];
+
+const PAYMENT_COLUMNS = ['"id"', '"placeId"', '"montant"', '"reference"', '"periode"', '"statut"', '"datePaiement"', '"year"', '"createdAt"', '"updatedAt"'];
+
+/** Colonnes renvoyées pour un paiement, complétées par la place passée en paramètres à partir de $first (voir placeParams). */
+function paymentReturning(first: number) {
+  const placeColumns = PLACE_COLUMNS.map(([type, alias], index) => `$${first + index}::${type} AS "${alias}"`);
+  return [...PAYMENT_COLUMNS, ...placeColumns].join(', ');
+}
+
+function placeParams(place: MarketPlace) {
+  return [
+    place.numeroPlace,
+    place.type,
+    place.zone,
+    place.occupantId,
+    place.activite,
+    place.tarif,
+    place.periode,
+    place.statut,
+    place.telephone,
+    place.dateAttribution,
+    place.occupantNom,
+    place.occupantPrenom,
+    place.occupantNin,
+    place.occupantTelephone,
+  ];
+}
+
 export class PrismaMarcheRepository implements MarcheRepository {
   listPlaces(year: number) {
     return db().$queryRawUnsafe<MarketPlace[]>(
@@ -163,53 +207,44 @@ export class PrismaMarcheRepository implements MarcheRepository {
     const [row] = await db().$queryRawUnsafe<MarketPayment[]>(
       `INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, $5, $21, $22, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING
-        "id",
-        "placeId",
-        "montant",
-        "reference",
-        "periode",
-        "statut",
-        "datePaiement",
-        "year",
-        "createdAt",
-        "updatedAt",
-        $7::text AS "numeroPlace",
-        $8::text AS "placeType",
-        $9::text AS "placeZone",
-        $10::text AS "occupantId",
-        $11::text AS "activite",
-        $12::double precision AS "tarif",
-        $13::text AS "placePeriode",
-        $14::text AS "placeStatut",
-        $15::text AS "placeTelephone",
-        $16::timestamp AS "placeDateAttribution",
-        $17::text AS "occupantNom",
-        $18::text AS "occupantPrenom",
-        $19::text AS "occupantNin",
-        $20::text AS "occupantTelephone"`,
+       RETURNING ${paymentReturning(7)}`,
       randomUUID(),
       values.placeId,
       values.montant,
       values.reference,
       values.periode,
       values.year,
-      place.numeroPlace,
-      place.type,
-      place.zone,
-      place.occupantId,
-      place.activite,
-      place.tarif,
-      place.periode,
-      place.statut,
-      place.telephone,
-      place.dateAttribution,
-      place.occupantNom,
-      place.occupantPrenom,
-      place.occupantNin,
-      place.occupantTelephone,
+      ...placeParams(place),
       values.statut,
       values.datePaiement
+    );
+    return row;
+  }
+
+  findPaymentsForPeriod(placeId: string, periode: string, year: number) {
+    return db().$queryRawUnsafe<Array<Pick<MarketPayment, 'id' | 'statut'>>>(
+      'SELECT "id", "statut" FROM "MarketPayment" WHERE "placeId" = $1 AND "periode" = $2 AND "year" = $3 ORDER BY "createdAt" ASC',
+      placeId,
+      periode,
+      year
+    );
+  }
+
+  async settlePayment(
+    id: string,
+    values: Pick<MarketPayment, 'montant' | 'reference'> & { datePaiement: Date },
+    place: MarketPlace
+  ) {
+    const [row] = await db().$queryRawUnsafe<MarketPayment[]>(
+      `UPDATE "MarketPayment"
+       SET "montant" = $2, "reference" = $3, "statut" = 'PAYE', "datePaiement" = $4, "updatedAt" = CURRENT_TIMESTAMP
+       WHERE "id" = $1
+       RETURNING ${paymentReturning(5)}`,
+      id,
+      values.montant,
+      values.reference,
+      values.datePaiement,
+      ...placeParams(place)
     );
     return row;
   }

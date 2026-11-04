@@ -98,6 +98,25 @@ describeIntegration('services municipaux (intégration)', () => {
     });
   });
 
+  describe('recettes', () => {
+    // Payload exact de createTransaction (front/src/services/taxes.ts), envoyé par Recettes et Taxes.
+    it('enregistre un ticket avec la catégorie envoyée par le frontend', async () => {
+      const res = await agent.post('/transactions', {
+        contribuableId,
+        categorie: 'Marché',
+        type: 'Marché',
+        service: 'Ticket journalier',
+        quantite: 1,
+        montant: 1500,
+        modePaiement: 'ESPECE',
+        reference: `REC-${suffix}`,
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.data).toMatchObject({ categorie: 'Marché', service: 'Ticket journalier' });
+      expect(Number(res.body.data.montant)).toBe(1500);
+    });
+  });
+
   describe('motos', () => {
     let motoId;
 

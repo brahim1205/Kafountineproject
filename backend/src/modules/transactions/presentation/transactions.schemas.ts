@@ -3,6 +3,8 @@ import { optionalTrimmedString, trimmedString } from '../../../shared/validation
 
 export const createTransactionSchema = z.object({
   contribuableId: z.string().uuid('ID contribuable invalide'),
+  // Envoyée par les écrans Recettes et Taxes ; le cas d'usage la préfère à `type`.
+  categorie: optionalTrimmedString(100),
   type: trimmedString(1, 100, 'Type de transaction requis'),
   service: optionalTrimmedString(120),
   quantite: z.coerce.number().int().min(1).optional().default(1),

@@ -7,7 +7,10 @@ export interface DashboardRepository {
     montant: number;
     agent?: { nom: string; prenom: string } | null;
   }>>;
+  /** Recettes encaissées de l'année, tous modules confondus (taxes, marché, motos, état civil, urbanisme). */
   getPaidRevenueByYear(year: number): Promise<number>;
+  /** Recettes encaissées de l'année, tous modules confondus, par source. */
+  getRevenueBySourceByYear(year: number): Promise<Array<{ source: string; montant: number; nombre: number }>>;
   getRevenueByCategoryByYear(year: number): Promise<Array<{ categorie: string; montant: number }>>;
   countTodayTransactionsByYear(year: number): Promise<number>;
   getTodayRevenueByYear(year: number): Promise<number>;

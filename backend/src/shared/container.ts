@@ -128,14 +128,14 @@ export function buildContainer() {
     new ListTransactionCategoryServicesUseCase(taxCatalog),
     new ListTransactionsUseCase(transactionRepository),
     transactional(new CreateTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute']),
-    new GetTransactionStatisticsUseCase(transactionRepository),
+    new GetTransactionStatisticsUseCase(transactionRepository, taxCatalog),
     new ExportTransactionsUseCase(),
     transactional(new UpdateTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute']),
     transactional(new DeleteTransactionUseCase(transactionRepository, transactionAudit), transactionUow, ['execute'])
   );
 
   const dashboardController = new DashboardController(
-    new GetDashboardStatisticsUseCase(dashboardRepository),
+    new GetDashboardStatisticsUseCase(dashboardRepository, taxCatalog),
     new GetTopContribuablesUseCase(dashboardRepository)
   );
 

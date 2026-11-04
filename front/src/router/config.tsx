@@ -5,7 +5,7 @@ import { restorePortalSession } from '../services/portalAuth';
 
 const LoginPage = lazy(() => import('../pages/login/page'));
 const DashboardPage = lazy(() => import('../pages/dashboard/page'));
-const ServiceFinancesDashboard = lazy(() => import('../pages/dashboard/components/ServiceFinancesDashboard'));
+const ServiceFinancesPage = lazy(() => import('../pages/service-finances/page'));
 const GestionBudgetPage = lazy(() => import('../pages/gestion-budget/page'));
 const QuaiPechePage = lazy(() => import('../pages/quai-peche/page'));
 const CommissionsPage = lazy(() => import('../pages/quai-peche/commissions/page'));
@@ -241,7 +241,7 @@ const routes: RouteObject[] = [
   },
   {
     path: '/service-finances',
-    element: protectRoles(['service_finances'], <ServiceFinancesDashboard />)
+    element: protectRoles(['service_finances', 'admin', 'super_admin'], <ServiceFinancesPage />)
   },
   {
     path: '/parametres',

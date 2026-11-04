@@ -1,8 +1,13 @@
 import type { DashboardRepository } from '../domain/DashboardRepository';
+import type { TaxCatalog } from '../../transactions/domain/TaxCatalog';
+import { buildCategoryLabeler } from '../../transactions/application/categoryLabels';
 import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
 
 export class GetDashboardStatisticsUseCase {
-  constructor(private readonly dashboardRepository: DashboardRepository) {}
+  constructor(
+    private readonly dashboardRepository: DashboardRepository,
+    private readonly taxCatalog?: TaxCatalog
+  ) {}
 
   async execute(year: number) {
     const [
@@ -27,6 +32,8 @@ export class GetDashboardStatisticsUseCase {
       urbanismeStats,
       quaiPecheStats,
       budgetStats,
+      recettesParSource,
+      label,
     ] = await Promise.all([
       this.dashboardRepository.countContribuables(),
       this.dashboardRepository.countTransactionsByYear(year),
@@ -56,7 +63,15 @@ export class GetDashboardStatisticsUseCase {
       this.getUrbanismeStats(year).catch(() => null),
       this.getQuaiPecheStats(year).catch(() => null),
       this.getBudgetStats(year).catch(() => null),
+      this.dashboardRepository.getRevenueBySourceByYear(year),
+      buildCategoryLabeler(this.taxCatalog),
     ]);
+
+    const byCategory = new Map<string, number>();
+    for (const item of categories) {
+      const nom = label(item.categorie);
+      byCategory.set(nom, (byCategory.get(nom) || 0) + item.montant);
+    }
 
     const transactionsAujourdhui = await this.dashboardRepository.countTodayTransactionsByYear(year);
     const topAgentUsers = topAgentsRaw.length
@@ -117,7 +132,11 @@ export class GetDashboardStatisticsUseCase {
           total: urbanismeStats?.total ?? 0,
         },
       },
-      categories: categories.map((c) => ({ categorie: c.categorie, nombre: 0, montant: c.montant })),
+      // Recettes de tous les modules (taxes, marché, motos, état civil, urbanisme) : base du solde de trésorerie.
+      recettesParSource,
+      categories: [...byCategory.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([categorie, montant]) => ({ categorie, nombre: 0, montant })),
       transactionsRecentes,
       topAgents,
       evolutionSemaine,

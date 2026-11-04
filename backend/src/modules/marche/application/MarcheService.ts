@@ -176,18 +176,17 @@ export class MarcheService {
     }
 
     const year = input.year ? Number(input.year) : new Date().getFullYear();
-    const created = await this.repository.createPayment(
-      {
-        placeId,
-        montant,
-        reference,
-        periode,
-        statut: input.statut || 'PAYE',
-        datePaiement: input.datePaiement ? new Date(input.datePaiement) : new Date(),
-        year,
-      },
-      place
-    );
+    const statut = input.statut || 'PAYE';
+    const datePaiement = input.datePaiement ? new Date(input.datePaiement) : new Date();
+    const existing = (await this.repository.findPaymentsForPeriod(placeId, periode, year)).filter((item) => item.statut !== 'ANNULE');
+    if (statut === 'PAYE' && existing.some((item) => item.statut === 'PAYE')) {
+      throw new ConflictError(`La période ${periode} de la place ${place.numeroPlace} est déjà payée.`);
+    }
+    // Un paiement en attente ou en retard pour la même période est encaissé, pas dupliqué.
+    const due = statut === 'PAYE' ? existing.find((item) => item.statut !== 'PAYE') : undefined;
+    const created = due
+      ? await this.repository.settlePayment(due.id, { montant, reference, datePaiement }, place)
+      : await this.repository.createPayment({ placeId, montant, reference, periode, statut, datePaiement, year }, place);
 
     await this.auditTrail.record(actor, {
       action: 'Paiement marché',

@@ -67,6 +67,10 @@ describe('MarcheService', () => {
       updatePlace: jest.fn(async (id, values, occupant) => place({ id, ...values, ...occupant })),
       listPayments: jest.fn(),
       createPayment: jest.fn(async (values, row) => paymentFrom(values, row)),
+      findPaymentsForPeriod: jest.fn().mockResolvedValue([]),
+      settlePayment: jest.fn(async (id, values, row) =>
+        paymentFrom({ ...values, placeId: row.id, periode: 'novembre 2026', statut: 'PAYE', year: 2026 }, row)
+      ),
       listPlacesForStats: jest.fn(),
       listPaymentsForStats: jest.fn(),
     };
@@ -94,6 +98,36 @@ describe('MarcheService', () => {
         action: 'Paiement marché',
         details: 'Paiement enregistré pour la place A-01 (5000 FCFA)',
       }));
+    });
+
+    it('encaisse le paiement en attente de la même période au lieu d’en créer un second', async () => {
+      repository.findPlaceById.mockResolvedValue(place());
+      repository.findPaymentsForPeriod.mockResolvedValue([{ id: 'paiement-attente', statut: 'EN_ATTENTE' }]);
+
+      await service.createPayment(agent, { placeId: 'place-1', periode: 'novembre 2026', montant: 5000, reference: 'MRC-1' });
+
+      expect(repository.settlePayment).toHaveBeenCalledWith('paiement-attente', expect.objectContaining({ montant: 5000, reference: 'MRC-1' }), expect.anything());
+      expect(repository.createPayment).not.toHaveBeenCalled();
+    });
+
+    it('refuse d’encaisser deux fois la même période', async () => {
+      repository.findPlaceById.mockResolvedValue(place());
+      repository.findPaymentsForPeriod.mockResolvedValue([{ id: 'paiement-1', statut: 'PAYE' }]);
+
+      await expect(service.createPayment(agent, { placeId: 'place-1', periode: 'novembre 2026', montant: 5000 })).rejects.toBeInstanceOf(
+        ConflictError
+      );
+      expect(repository.createPayment).not.toHaveBeenCalled();
+      expect(repository.settlePayment).not.toHaveBeenCalled();
+    });
+
+    it('ignore un paiement annulé de la même période', async () => {
+      repository.findPlaceById.mockResolvedValue(place());
+      repository.findPaymentsForPeriod.mockResolvedValue([{ id: 'paiement-annule', statut: 'ANNULE' }]);
+
+      await service.createPayment(agent, { placeId: 'place-1', periode: 'novembre 2026', montant: 5000 });
+
+      expect(repository.createPayment).toHaveBeenCalled();
     });
 
     it.each([0, -500])('refuse un montant de %s', async (montant) => {

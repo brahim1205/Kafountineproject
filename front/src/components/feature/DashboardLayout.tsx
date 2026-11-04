@@ -30,6 +30,7 @@ const allMenuItems = [
   { path: '/utilisateurs', icon: 'ri-team-line', label: 'Utilisateurs', roles: ['admin', 'super_admin'] },
   { path: '/budget-suivi', icon: 'ri-wallet-3-line', label: 'Suivi Budgétaire', roles: ['comptable', 'service_finances'] },
   { path: '/gestion-budget', icon: 'ri-money-dollar-circle-line', label: 'Gestion Budget', roles: ['service_finances'] },
+  { path: '/service-finances', icon: 'ri-bank-card-line', label: 'Budget & dépenses', roles: ['admin', 'super_admin'] },
   { path: '/rapports', icon: 'ri-bar-chart-box-line', label: 'Rapports', roles: ['admin', 'super_admin'] },
   { path: '/audit', icon: 'ri-file-list-3-line', label: 'Journal Audit', roles: ['super_admin'] },
 ];

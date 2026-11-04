@@ -1,14 +1,17 @@
+import type { TaxCatalog } from '../domain/TaxCatalog';
 import type { TransactionRepository } from '../domain/TransactionRepository';
+import { buildCategoryLabeler, type CategoryLabeler } from './categoryLabels';
 
 type YearTransaction = Awaited<ReturnType<TransactionRepository['findByYear']>>[number];
 
 /** Recettes encaissées (transactions PAYE) d'une période, avec leur répartition par catégorie. */
-function periodStats(transactions: YearTransaction[]) {
+function periodStats(transactions: YearTransaction[], label: CategoryLabeler) {
   const paid = transactions.filter((transaction) => transaction.statut === 'PAYE');
   const total = paid.reduce((sum, transaction) => sum + transaction.montant, 0);
   const byCategory = new Map<string, number>();
   for (const transaction of paid) {
-    byCategory.set(transaction.categorie, (byCategory.get(transaction.categorie) || 0) + transaction.montant);
+    const nom = label(transaction.categorie);
+    byCategory.set(nom, (byCategory.get(nom) || 0) + transaction.montant);
   }
   return {
     total,
@@ -20,17 +23,23 @@ function periodStats(transactions: YearTransaction[]) {
 }
 
 export class GetTransactionStatisticsUseCase {
-  constructor(private readonly transactionRepository: TransactionRepository) {}
+  constructor(
+    private readonly transactionRepository: TransactionRepository,
+    private readonly taxCatalog?: TaxCatalog
+  ) {}
 
   async execute(year: number, now = new Date()) {
-    const transactions = await this.transactionRepository.findByYear(year);
+    const [transactions, label] = await Promise.all([
+      this.transactionRepository.findByYear(year),
+      buildCategoryLabeler(this.taxCatalog),
+    ]);
     const sameDay = (date: Date) => date.toDateString() === now.toDateString();
     const sameMonth = (date: Date) => date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
 
     return {
-      aujourdhui: periodStats(transactions.filter((transaction) => sameDay(transaction.date))),
-      mois: periodStats(transactions.filter((transaction) => sameMonth(transaction.date))),
-      annee: periodStats(transactions),
+      aujourdhui: periodStats(transactions.filter((transaction) => sameDay(transaction.date)), label),
+      mois: periodStats(transactions.filter((transaction) => sameMonth(transaction.date)), label),
+      annee: periodStats(transactions, label),
       // Champs historiques, lus par le tableau de bord super admin.
       totalTransactions: transactions.length,
       recettesPayees: transactions

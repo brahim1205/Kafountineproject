@@ -84,6 +84,25 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(after.recettesEnRetard - before.recettesEnRetard).toBe(3000);
     });
 
+    it('encaisse le paiement en attente au lieu de le dupliquer, puis refuse un second encaissement', async () => {
+      const before = (await admin.get(`/marche/statistiques?year=${year}`)).body.data;
+
+      const settled = await admin.post('/marche/paiements', { placeId, montant: 3000, periode: 'Février', reference: `MRC-${suffix}`, year });
+      expect(settled.status).toBe(201);
+      expect(settled.body.data).toMatchObject({ statut: 'PAYE', reference: `MRC-${suffix}`, montant: 3000 });
+
+      const payments = (await admin.get(`/marche/paiements?year=${year}`)).body.data;
+      const list = payments.items || payments;
+      expect(list.filter((item) => item.placeId === placeId && item.periode === 'Février')).toHaveLength(1);
+
+      const after = (await admin.get(`/marche/statistiques?year=${year}`)).body.data;
+      expect(after.recettesMois - before.recettesMois).toBe(3000);
+      expect(before.recettesEnRetard - after.recettesEnRetard).toBe(3000);
+
+      const again = await admin.post('/marche/paiements', { placeId, montant: 3000, periode: 'Février', year });
+      expect(again.status).toBe(409);
+    });
+
     it("libère une place en retirant son occupant", async () => {
       const res = await admin.put(`/marche/places/${placeId}`, { occupantId: null, statut: 'LIBRE' });
       expect(res.status).toBe(200);
@@ -214,6 +233,20 @@ describeIntegration('services municipaux (intégration)', () => {
     });
   });
 
+  describe('tableau de bord', () => {
+    it('compte les recettes de tous les modules, par source', async () => {
+      const stats = (await admin.get(`/dashboard/statistiques?year=${year}`)).body.data;
+      const sources = Object.fromEntries(stats.recettesParSource.map((item) => [item.source, item.montant]));
+      // Le paiement marché encaissé plus haut figure dans les recettes, à côté des taxes.
+      expect(sources['Marché']).toBeGreaterThanOrEqual(8000);
+      const sum = stats.recettesParSource.reduce((total, item) => total + item.montant, 0);
+      expect(stats.totalRecettes).toBeCloseTo(sum, 2);
+      expect(stats.evolutionMensuelle).toHaveLength(12);
+      const categories = stats.categories.reduce((total, item) => total + item.montant, 0);
+      expect(categories).toBeCloseTo(sum, 2);
+    });
+  });
+
   describe('budget', () => {
     it('applique le cycle de vie des lignes et des demandes', async () => {
       const before = (await admin.get(`/budget/stats?year=${year}`)).body.data;
@@ -244,6 +277,19 @@ describeIntegration('services municipaux (intégration)', () => {
       const after = (await admin.get(`/budget/stats?year=${year}`)).body.data;
       expect(after.demandesApprouvees - before.demandesApprouvees).toBe(1);
       expect(after.totalDepense - before.totalDepense).toBe(400000);
+    });
+
+    it('réserve la décision sur une demande de dépense à l’administration', async () => {
+      const finances = await login('finances@kafountine.gouv.sn');
+      const demande = await finances.post('/budget/demandes', { service: 'Finances', description: 'Fournitures', montant: 50000, year });
+      expect(demande.status).toBe(201);
+
+      const selfApproval = await finances.put(`/budget/demandes/${demande.body.data.id}`, { statut: 'APPROUVE' });
+      expect(selfApproval.status).toBe(403);
+
+      const rejected = await admin.put(`/budget/demandes/${demande.body.data.id}`, { statut: 'REJETE', motif: 'Hors budget' });
+      expect(rejected.status).toBe(200);
+      expect(rejected.body.data.statut).toBe('REJETE');
     });
 
     it('accepte une description vide (null), puis la retire en modification', async () => {

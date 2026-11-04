@@ -5,6 +5,8 @@ import HistoriqueDemandes from './components/HistoriqueDemandes';
 import StatistiquesEtatCivil from './components/StatistiquesEtatCivil';
 
 export default function EtatCivilPage() {
+  // Incrémenté après une création, pour recharger l'historique.
+  const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<'historique' | 'statistiques'>('historique');
   const [showNouvelleDemande, setShowNouvelleDemande] = useState(false);
 
@@ -53,7 +55,7 @@ export default function EtatCivilPage() {
         </div>
 
         {/* Contenu */}
-        {activeTab === 'historique' && <HistoriqueDemandes />}
+        {activeTab === 'historique' && <HistoriqueDemandes refreshKey={refreshKey} />}
         {activeTab === 'statistiques' && <StatistiquesEtatCivil />}
       </div>
 
@@ -74,7 +76,12 @@ export default function EtatCivilPage() {
               </button>
             </div>
             <div className="p-6">
-              <TraiterDemande onSuccess={() => setShowNouvelleDemande(false)} />
+              <TraiterDemande
+                onSuccess={() => {
+                  setShowNouvelleDemande(false);
+                  setRefreshKey((key) => key + 1);
+                }}
+              />
             </div>
           </div>
         </div>

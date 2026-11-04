@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { listEtatCivilDemandes, updateEtatCivilDemande, deleteEtatCivilDemande, type EtatCivilDemande } from '../../../services/etatCivil';
-import { listContribuables, type Contribuable } from '../../../services/contribuables';
+import ContribuableSelect, { requireSelectedContribuable } from '../../../components/feature/ContribuableSelect';
+import { getTaxServices } from '../../../services/taxes';
 import { useYear } from '../../../contexts/YearContext';
 import { getStoredUserRole } from '../../../services/auth';
 import { useToast } from '../../../components/feature/Toast';
@@ -21,7 +22,7 @@ type UiEtatCivilDemande = EtatCivilDemande & {
   agent: string;
 };
 
-export default function HistoriqueDemandes() {
+export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: number }) {
   const { selectedYear } = useYear();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('tous');
@@ -31,7 +32,6 @@ export default function HistoriqueDemandes() {
   const [selectedDemande, setSelectedDemande] = useState<UiEtatCivilDemande | null>(null);
   const [selectedEditDemande, setSelectedEditDemande] = useState<UiEtatCivilDemande | null>(null);
   const [demandes, setDemandes] = useState<UiEtatCivilDemande[]>([]);
-  const [contribuables, setContribuables] = useState<Contribuable[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const userRole = getStoredUserRole();
   const { showToast } = useToast();
@@ -60,8 +60,15 @@ export default function HistoriqueDemandes() {
 
   useEffect(() => {
     loadDemandes();
-    listContribuables().then(setContribuables).catch(() => {});
-  }, [selectedYear]);
+  }, [selectedYear, refreshKey]);
+
+  // Types de documents du catalogue des taxes, pour le formulaire de modification.
+  const [typesDocuments, setTypesDocuments] = useState<string[]>([]);
+  useEffect(() => {
+    getTaxServices('etat-civil')
+      .then((services) => setTypesDocuments(services.map((service) => service.nom)))
+      .catch(() => setTypesDocuments([]));
+  }, []);
 
   const filteredDemandes = useMemo(() => demandes.filter(demande => {
     const matchSearch = demande.demandeur.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,9 +99,10 @@ export default function HistoriqueDemandes() {
     if (!validateFormElement(e.currentTarget)) return;
 
     const form = e.currentTarget;
+    const contribuableId = requireSelectedContribuable(form, 'contribuableId');
+    if (!contribuableId) return;
     const formData = new FormData(form);
     const typeDocument = String(formData.get('typeDocument') || '');
-    const contribuableId = String(formData.get('contribuableId') || '');
     const montant = Number(formData.get('montant') || 0);
     const exemplaires = Number(formData.get('exemplaires') || 1);
     const statut = String(formData.get('statut') || 'DELIVREE');
@@ -287,28 +295,25 @@ export default function HistoriqueDemandes() {
                     defaultValue={selectedEditDemande.typeDocument}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer"
                   >
-                    <option value="Extrait de naissance">Extrait de naissance</option>
-                    <option value="Certificat de résidence">Certificat de résidence</option>
-                    <option value="Légalisation de signature">Légalisation de signature</option>
-                    <option value="Certificat de vie">Certificat de vie</option>
-                    <option value="Certificat de célibat">Certificat de célibat</option>
+                    {/* Le type actuel figure toujours dans la liste : sinon le navigateur choisirait le premier et changerait le document. */}
+                    {Array.from(new Set([selectedEditDemande.typeDocument, ...typesDocuments].filter(Boolean))).map((nom) => (
+                      <option key={nom} value={nom}>
+                        {nom}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Contribuable</label>
-                  <select
+                  <ContribuableSelect
                     name="contribuableId"
-                    data-required="true"
-                    defaultValue={selectedEditDemande.contribuableId}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer"
-                  >
-                    <option value="">Sélectionner un contribuable</option>
-                    {contribuables.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {`${c.prenom || ''} ${c.nom || ''}`.trim()} ({c.nin})
-                      </option>
-                    ))}
-                  </select>
+                    initial={
+                      selectedEditDemande.contribuableId
+                        ? { id: selectedEditDemande.contribuableId, label: `${selectedEditDemande.demandeur} (${selectedEditDemande.cni})` }
+                        : undefined
+                    }
+                    inputClassName="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

@@ -181,7 +181,7 @@ export default function PortalPayer() {
           
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-500">Montant à payer</p>
-            <p className="text-2xl font-bold text-teal-600">{totalSelected.toLocaleString()} FCA</p>
+            <p className="text-2xl font-bold text-teal-600">{totalSelected.toLocaleString()} FCFA</p>
           </div>
 
           <Link
@@ -234,7 +234,7 @@ export default function PortalPayer() {
                     <p className="text-sm text-gray-500">Année {tax.annee}</p>
                   </div>
                 </div>
-                <p className="font-bold text-gray-900">{tax.montant.toLocaleString()} FCA</p>
+                <p className="font-bold text-gray-900">{tax.montant.toLocaleString()} FCFA</p>
               </label>
             ))}
           </div>
@@ -242,7 +242,7 @@ export default function PortalPayer() {
           <div className="p-4 bg-gray-50 border-t border-gray-200">
             <div className="flex justify-between items-center">
               <span className="font-medium text-gray-700">Total à payer</span>
-              <span className="text-2xl font-bold text-teal-600">{totalSelected.toLocaleString()} FCA</span>
+              <span className="text-2xl font-bold text-teal-600">{totalSelected.toLocaleString()} FCFA</span>
             </div>
           </div>
         </div>
@@ -325,7 +325,7 @@ export default function PortalPayer() {
           ) : (
             <>
               <i className="ri-bank-card-line"></i>
-              Payer {totalSelected.toLocaleString()} FCA
+              Payer {totalSelected.toLocaleString()} FCFA
             </>
           )}
         </button>

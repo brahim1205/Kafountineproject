@@ -46,7 +46,7 @@ export function ReportsTopContribuablesTable({ topContribuables, total }: Props)
                 </td>
                 <td className="py-3 px-4 text-sm text-gray-900">{contribuable.name}</td>
                 <td className="py-3 px-4 text-sm font-medium text-gray-900 text-right">
-                  {contribuable.amount.toLocaleString('fr-FR')} FCA
+                  {contribuable.amount.toLocaleString('fr-FR')} FCFA
                 </td>
                 <td className="py-3 px-4 text-sm text-gray-600 text-right">
                   {total > 0 ? ((contribuable.amount / total) * 100).toFixed(1) : 0}%

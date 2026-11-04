@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createCamion } from '../../../../services/quai-peche';
 import { clearFieldValidationError, validateFormElement } from '../../../../utils/formValidation';
 import { INPUT_CLASS } from './statuts';
-import Modal, { Field, FooterButtons } from './Modal';
+import Modal, { Field, FooterButtons } from '../../../../components/feature/Modal';
 
 type CamionModalProps = {
   onClose: () => void;

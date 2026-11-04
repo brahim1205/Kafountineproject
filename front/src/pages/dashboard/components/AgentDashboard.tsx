@@ -271,10 +271,10 @@ export default function AgentDashboard() {
                 </div>
               </div>
               <p className="text-sm text-gray-600 text-center">
-                <strong className="text-gray-900">{totalJour.toLocaleString()} FCA</strong> sur {objectifJour.toLocaleString()} FCA
+                <strong className="text-gray-900">{totalJour.toLocaleString()} FCFA</strong> sur {objectifJour.toLocaleString()} FCFA
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Reste : {Math.max(0, objectifJour - totalJour).toLocaleString()} FCA
+                Reste : {Math.max(0, objectifJour - totalJour).toLocaleString()} FCFA
               </p>
             </div>
           </div>
@@ -354,7 +354,7 @@ export default function AgentDashboard() {
                         <span className="text-sm text-gray-700">{collecte.contribuable}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-semibold text-gray-900">{collecte.montant.toLocaleString()} FCA</span>
+                        <span className="text-sm font-semibold text-gray-900">{collecte.montant.toLocaleString()} FCFA</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-600">{collecte.heure}</span>

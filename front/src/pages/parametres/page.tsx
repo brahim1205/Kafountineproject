@@ -29,7 +29,7 @@ type ModalState =
 const TABS: Array<{ id: Tab; label: string; icon: string }> = [
   { id: 'tarifs', label: 'Tarifs', icon: 'ri-price-tag-3-line' },
   { id: 'penalites', label: 'Pénalités', icon: 'ri-alert-line' },
-  { id: 'permissions', label: 'Permissions', icon: 'ri-shield-key-line' },
+  { id: 'permissions', label: 'Permissions', icon: 'ri-shield-keyhole-line' },
   { id: 'sauvegarde', label: 'Sauvegarde', icon: 'ri-database-2-line' },
 ];
 

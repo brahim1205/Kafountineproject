@@ -90,7 +90,7 @@ export default function Rapports() {
                             {m.name}
                           </span>
                           <span className="font-medium text-gray-900">
-                            {m.amount.toLocaleString('fr-FR')} FCA ({pct}%)
+                            {m.amount.toLocaleString('fr-FR')} FCFA ({pct}%)
                           </span>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-3">
@@ -178,7 +178,7 @@ export default function Rapports() {
                   <p className="text-sm text-gray-600">Certifications</p>
                 </div>
                 <div className="text-center p-4 bg-amber-50 rounded-lg">
-                  <i className="ri-money-dollar-line text-3xl text-amber-600 mb-2"></i>
+                  <i className="ri-money-dollar-box-line text-3xl text-amber-600 mb-2"></i>
                   <p className="text-2xl font-bold text-gray-900">{(overview?.formationsStats?.budgetTotal || 0) / 1000000}M</p>
                   <p className="text-sm text-gray-600">Budget (FCFA)</p>
                 </div>

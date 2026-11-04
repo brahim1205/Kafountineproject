@@ -24,7 +24,17 @@ export default function Modal({ title, onClose, children, footer }: ModalProps) 
   );
 }
 
-export function FooterButtons({ onCancel, form, submitting }: { onCancel: () => void; form: string; submitting: boolean }) {
+export function FooterButtons({
+  onCancel,
+  form,
+  submitting,
+  label = 'Enregistrer',
+}: {
+  onCancel: () => void;
+  form: string;
+  submitting: boolean;
+  label?: string;
+}) {
   return (
     <>
       <button type="button" onClick={onCancel} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
@@ -36,7 +46,7 @@ export function FooterButtons({ onCancel, form, submitting }: { onCancel: () => 
         disabled={submitting}
         className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-60"
       >
-        {submitting ? 'Enregistrement...' : 'Enregistrer'}
+        {submitting ? 'Enregistrement...' : label}
       </button>
     </>
   );

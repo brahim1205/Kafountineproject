@@ -26,7 +26,7 @@ export function ReportsOverviewCards({ total, tauxRecouvrement, overview }: Prop
             <p className="text-3xl font-bold mt-1">{tauxRecouvrement}%</p>
             <p className="text-purple-100 text-xs mt-1">taux de recouvrement</p>
           </div>
-          <i className="ri-trending-up-line text-4xl text-purple-200"></i>
+          <i className="ri-line-chart-line text-4xl text-purple-200"></i>
         </div>
       </div>
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">

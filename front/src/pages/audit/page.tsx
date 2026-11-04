@@ -131,7 +131,7 @@ export default function Audit() {
         {/* Message de succès */}
         {showSuccessMessage && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-            <i className="ri-check-circle-fill text-green-600 text-xl"></i>
+            <i className="ri-checkbox-circle-fill text-green-600 text-xl"></i>
             <div>
               <p className="text-sm font-medium text-gray-900">Export réussi !</p>
               <p className="text-xs text-gray-600">Le journal d'audit a été téléchargé</p>

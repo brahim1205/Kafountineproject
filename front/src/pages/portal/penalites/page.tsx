@@ -122,7 +122,7 @@ export default function PortalPenalites() {
               
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <i className="ri-money-cfa-circle-line text-teal-600"></i>
+                  <i className="ri-coins-line text-teal-600"></i>
                   <span className="text-lg font-bold text-teal-600">
                     {formatMontant(penalite.montant)} FCFA
                   </span>

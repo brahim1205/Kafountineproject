@@ -303,7 +303,7 @@ export default function ComptableDashboard() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-900">{module.module}</span>
-                      <span className="text-sm font-semibold text-gray-900">{module.montant.toLocaleString()} FCA</span>
+                      <span className="text-sm font-semibold text-gray-900">{module.montant.toLocaleString()} FCFA</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
@@ -355,7 +355,7 @@ export default function ComptableDashboard() {
                   <div 
                     className="absolute bottom-0 w-full bg-emerald-500 rounded-t"
                     style={{ height: `${(mois.recettes / maxMensuel) * 100}%`, left: '0' }}
-                    title={`Recettes: ${mois.recettes.toLocaleString()} FCA`}
+                    title={`Recettes: ${mois.recettes.toLocaleString()} FCFA`}
                   ></div>
                 </div>
                 <span className="text-xs text-gray-500 mt-2">{mois.mois}</span>
@@ -387,7 +387,7 @@ export default function ComptableDashboard() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-900">{agent.nom}</span>
-                      <span className="text-sm font-semibold text-gray-900">{agent.collecte.toLocaleString()} FCA</span>
+                      <span className="text-sm font-semibold text-gray-900">{agent.collecte.toLocaleString()} FCFA</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
@@ -421,16 +421,16 @@ export default function ComptableDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-sm text-gray-500">Budget total</p>
-            <p className="text-xl font-bold text-gray-900">{totalBudget.toLocaleString()} FCA</p>
+            <p className="text-xl font-bold text-gray-900">{totalBudget.toLocaleString()} FCFA</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-sm text-gray-500">Dépensé</p>
-            <p className="text-xl font-bold text-gray-900">{totalDepense.toLocaleString()} FCA</p>
+            <p className="text-xl font-bold text-gray-900">{totalDepense.toLocaleString()} FCFA</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-sm text-gray-500">Écart</p>
             <p className={`text-xl font-bold ${totalEcarts >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {totalEcarts.toLocaleString()} FCA
+              {totalEcarts.toLocaleString()} FCFA
             </p>
           </div>
         </div>
@@ -460,10 +460,10 @@ export default function ComptableDashboard() {
                 return (
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{poste.poste}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{poste.budget.toLocaleString()} FCA</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{poste.depense.toLocaleString()} FCA</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{poste.budget.toLocaleString()} FCFA</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{poste.depense.toLocaleString()} FCFA</td>
                     <td className={`px-4 py-3 text-sm ${ecart >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {ecart.toLocaleString()} FCA
+                      {ecart.toLocaleString()} FCFA
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">

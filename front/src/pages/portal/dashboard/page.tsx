@@ -136,7 +136,7 @@ export default function PortalDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total à payer</p>
-                <p className="text-2xl font-bold text-gray-900">{totalPending.toLocaleString()} FCA</p>
+                <p className="text-2xl font-bold text-gray-900">{totalPending.toLocaleString()} FCFA</p>
               </div>
               <i className="ri-money-dollar-circle-line text-3xl text-teal-500"></i>
             </div>
@@ -147,7 +147,7 @@ export default function PortalDashboard() {
               <div>
                 <p className="text-sm text-gray-600">Payé</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {taxes.filter(t => t.statut === 'PAID').reduce((sum, t) => sum + t.montant, 0).toLocaleString()} FCA
+                  {taxes.filter(t => t.statut === 'PAID').reduce((sum, t) => sum + t.montant, 0).toLocaleString()} FCFA
                 </p>
               </div>
               <i className="ri-checkbox-circle-line text-3xl text-green-500"></i>
@@ -200,7 +200,7 @@ export default function PortalDashboard() {
             className="bg-white text-gray-900 rounded-xl p-5 shadow-sm hover:bg-gray-50 transition-colors flex items-center gap-4 border"
           >
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <i className="ri-alert-circle-line text-2xl text-red-600"></i>
+              <i className="ri-error-warning-line text-2xl text-red-600"></i>
             </div>
             <div>
               <h3 className="font-bold">Pénalités</h3>
@@ -223,7 +223,7 @@ export default function PortalDashboard() {
                   <p className="text-sm text-gray-500">Année {tax.annee} • Échéance: {new Date(tax.dateEcheance).toLocaleDateString('fr-FR')}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-gray-900">{tax.montant.toLocaleString()} FCA</p>
+                  <p className="font-bold text-gray-900">{tax.montant.toLocaleString()} FCFA</p>
                   {getStatutBadge(tax.statut)}
                 </div>
               </div>

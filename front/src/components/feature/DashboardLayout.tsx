@@ -336,19 +336,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </Link>
           );
         })}
-
-        {/* Version Badge */}
-        <div className={`mt-8 pt-4 border-t border-gray-100 ${!expanded ? 'text-center' : 'px-3'}`}>
-          <div className={`inline-flex items-center gap-2 px-2 py-1 bg-gray-50 rounded-md border border-gray-100 ${!expanded ? 'justify-center' : ''}`}>
-            <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse"></div>
-            {expanded && (
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Version 2.0.0</span>
-            )}
-            {!expanded && (
-              <span className="text-[10px] font-black text-gray-400">V2</span>
-            )}
-          </div>
-        </div>
       </nav>
     </>
   );

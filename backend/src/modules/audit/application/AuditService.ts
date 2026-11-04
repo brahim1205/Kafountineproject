@@ -21,23 +21,18 @@ export class AuditService {
 
   async list(filters: AuditListFilters) {
     const { page, limit, year, search, module, status } = filters;
-    const logs = await this.repository.listByYear(year);
-
-    const normalizedSearch = search.toLowerCase();
-    const filteredLogs = logs.filter((log) => {
-      const matchesModule = !module || module === 'all' || log.module === module;
-      const matchesStatus = !status || status === 'all' || log.status === status;
-      const haystack = `${log.userName} ${log.action} ${log.details}`.toLowerCase();
-      const matchesSearch = !normalizedSearch || haystack.includes(normalizedSearch);
-      return matchesModule && matchesStatus && matchesSearch;
+    const { logs, total, success, warning, error } = await this.repository.search({
+      year,
+      module: !module || module === 'all' ? null : module,
+      status: !status || status === 'all' ? null : status,
+      search: search || null,
+      offset: (page - 1) * limit,
+      limit,
     });
 
-    const total = filteredLogs.length;
-    const countStatus = (value: string) => filteredLogs.filter((log) => log.status === value).length;
-
     return {
-      logs: filteredLogs.slice((page - 1) * limit, page * limit).map((log) => this.toView(log)),
-      stats: { total, success: countStatus('success'), warning: countStatus('warning'), error: countStatus('error') },
+      logs: logs.map((log) => this.toView(log)),
+      stats: { total, success, warning, error },
       pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
     };
   }

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type { AppNotification, NotificationRepository } from '../domain/Notification';
 
 function isMissingRelationError(error: unknown, relationName: string) {
@@ -10,7 +10,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
   async ensureSeed(year: number) {
     let count: { count: bigint } | undefined;
     try {
-      [count] = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+      [count] = await db().$queryRawUnsafe<Array<{ count: bigint }>>(
         'SELECT COUNT(*)::bigint AS count FROM "AppNotification" WHERE "year" = $1',
         year
       );
@@ -25,7 +25,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
       return;
     }
 
-    await prisma.$executeRaw`
+    await db().$executeRaw`
       INSERT INTO "AppNotification" ("id","userId","type","titre","message","montant","contribuable","agent","lu","readAt","year","createdAt","updatedAt")
       VALUES
       (${randomUUID()}, ${null}, ${'alerte'}, ${'Suivi recouvrement'}, ${'Vérifier les transactions en attente du mois courant.'}, ${null}, ${null}, ${null}, ${false}, ${null}, ${year}, ${new Date()}, ${new Date()}),
@@ -36,7 +36,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
 
   async list(year: number, limit: number) {
     try {
-      return await prisma.$queryRawUnsafe<AppNotification[]>(
+      return await db().$queryRawUnsafe<AppNotification[]>(
         'SELECT * FROM "AppNotification" WHERE "year" = $1 ORDER BY "createdAt" DESC LIMIT $2',
         year,
         limit
@@ -50,7 +50,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
   }
 
   async markRead(id: string) {
-    const count = await prisma.$executeRaw`
+    const count = await db().$executeRaw`
       UPDATE "AppNotification"
       SET "lu" = true, "readAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
       WHERE "id" = ${id}
@@ -59,7 +59,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
   }
 
   async markAllRead(year: number) {
-    await prisma.$executeRaw`
+    await db().$executeRaw`
       UPDATE "AppNotification"
       SET "lu" = true, "readAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
       WHERE "year" = ${year} AND "lu" = false
@@ -68,7 +68,7 @@ export class PrismaNotificationRepository implements NotificationRepository {
 
   async listActiveYears() {
     try {
-      const rows = await prisma.$queryRawUnsafe<Array<{ year: number }>>(
+      const rows = await db().$queryRawUnsafe<Array<{ year: number }>>(
         `
           SELECT DISTINCT "year"::int AS "year" FROM "Transaction"
           UNION SELECT DISTINCT "year"::int AS "year" FROM "BudgetLine"

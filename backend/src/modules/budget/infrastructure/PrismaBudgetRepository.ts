@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type {
   BudgetLine,
   BudgetLineValues,
@@ -23,19 +23,19 @@ const SQL_UPDATE_REQUEST = `UPDATE "BudgetRequest" SET "service" = $2, "descript
 
 export class PrismaBudgetRepository implements BudgetRepository {
   listLines(year: number) {
-    return prisma.$queryRawUnsafe<BudgetLine[]>(
+    return db().$queryRawUnsafe<BudgetLine[]>(
       SQL_LIST_LINES,
       year
     );
   }
 
   async findLineById(id: string) {
-    const [line] = await prisma.$queryRawUnsafe<BudgetLine[]>(SQL_FIND_LINE, id);
+    const [line] = await db().$queryRawUnsafe<BudgetLine[]>(SQL_FIND_LINE, id);
     return line || null;
   }
 
   async findLineByCode(code: string, year: number) {
-    const [line] = await prisma.$queryRawUnsafe<BudgetLine[]>(
+    const [line] = await db().$queryRawUnsafe<BudgetLine[]>(
       SQL_FIND_LINE_BY_CODE,
       code,
       year
@@ -44,7 +44,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async createLine(values: BudgetLineValues) {
-    const [line] = await prisma.$queryRawUnsafe<BudgetLine[]>(
+    const [line] = await db().$queryRawUnsafe<BudgetLine[]>(
       SQL_CREATE_LINE,
       randomUUID(),
       values.code,
@@ -58,7 +58,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async updateLine(id: string, values: BudgetLineValues) {
-    const [line] = await prisma.$queryRawUnsafe<BudgetLine[]>(
+    const [line] = await db().$queryRawUnsafe<BudgetLine[]>(
       SQL_UPDATE_LINE,
       id,
       values.code,
@@ -72,18 +72,18 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async deleteLine(id: string) {
-    await prisma.$executeRaw`DELETE FROM "BudgetLine" WHERE "id" = ${id}`;
+    await db().$executeRaw`DELETE FROM "BudgetLine" WHERE "id" = ${id}`;
   }
 
   listRequests(year: number) {
-    return prisma.$queryRawUnsafe<BudgetRequest[]>(
+    return db().$queryRawUnsafe<BudgetRequest[]>(
       SQL_LIST_REQUESTS,
       year
     );
   }
 
   async findRequestById(id: string) {
-    const [request] = await prisma.$queryRawUnsafe<BudgetRequest[]>(
+    const [request] = await db().$queryRawUnsafe<BudgetRequest[]>(
       SQL_FIND_REQUEST,
       id
     );
@@ -91,7 +91,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async createRequest(values: Omit<BudgetRequest, 'id' | 'createdAt' | 'updatedAt'>) {
-    const [request] = await prisma.$queryRawUnsafe<BudgetRequest[]>(
+    const [request] = await db().$queryRawUnsafe<BudgetRequest[]>(
       SQL_CREATE_REQUEST,
       randomUUID(),
       values.service,
@@ -107,7 +107,7 @@ export class PrismaBudgetRepository implements BudgetRepository {
   }
 
   async updateRequest(id: string, values: BudgetRequestValues) {
-    const [request] = await prisma.$queryRawUnsafe<BudgetRequest[]>(
+    const [request] = await db().$queryRawUnsafe<BudgetRequest[]>(
       SQL_UPDATE_REQUEST,
       id,
       values.service,

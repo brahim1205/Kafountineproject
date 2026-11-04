@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type { MarcheRepository, MarketPayment, MarketPlace, MarketPlaceValues, OccupantDisplay } from '../domain/Marche';
 
 const SELECT_PLACE = `SELECT
@@ -60,14 +60,14 @@ const SQL_UPDATE_PLACE = `UPDATE "MarketPlace"
 
 export class PrismaMarcheRepository implements MarcheRepository {
   listPlaces(year: number) {
-    return prisma.$queryRawUnsafe<MarketPlace[]>(
+    return db().$queryRawUnsafe<MarketPlace[]>(
       SQL_LIST_PLACES,
       year
     );
   }
 
   async findPlaceById(id: string) {
-    const [row] = await prisma.$queryRawUnsafe<MarketPlace[]>(
+    const [row] = await db().$queryRawUnsafe<MarketPlace[]>(
       SQL_FIND_PLACE_BY_ID,
       id
     );
@@ -75,7 +75,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
   }
 
   async findPlaceIdByNumero(numeroPlace: string, year: number) {
-    const [row] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    const [row] = await db().$queryRawUnsafe<Array<{ id: string }>>(
       'SELECT "id" FROM "MarketPlace" WHERE "numeroPlace" = $1 AND "year" = $2 LIMIT 1',
       numeroPlace,
       year
@@ -84,7 +84,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
   }
 
   async createPlace(values: MarketPlaceValues, occupant: OccupantDisplay) {
-    const [row] = await prisma.$queryRawUnsafe<MarketPlace[]>(
+    const [row] = await db().$queryRawUnsafe<MarketPlace[]>(
       SQL_CREATE_PLACE,
       randomUUID(),
       values.numeroPlace,
@@ -107,7 +107,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
   }
 
   async updatePlace(id: string, values: MarketPlaceValues, occupant: OccupantDisplay) {
-    const [row] = await prisma.$queryRawUnsafe<MarketPlace[]>(
+    const [row] = await db().$queryRawUnsafe<MarketPlace[]>(
       SQL_UPDATE_PLACE,
       id,
       values.numeroPlace,
@@ -130,7 +130,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
   }
 
   listPayments(year: number) {
-    return prisma.$queryRawUnsafe<MarketPayment[]>(
+    return db().$queryRawUnsafe<MarketPayment[]>(
       `SELECT
         mp.*,
         p."numeroPlace",
@@ -160,7 +160,7 @@ export class PrismaMarcheRepository implements MarcheRepository {
     values: Pick<MarketPayment, 'placeId' | 'montant' | 'reference' | 'periode' | 'statut' | 'year'> & { datePaiement: Date },
     place: MarketPlace
   ) {
-    const [row] = await prisma.$queryRawUnsafe<MarketPayment[]>(
+    const [row] = await db().$queryRawUnsafe<MarketPayment[]>(
       `INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, $5, $21, $22, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING
@@ -215,14 +215,14 @@ export class PrismaMarcheRepository implements MarcheRepository {
   }
 
   listPlacesForStats(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<MarketPlace, 'statut' | 'occupantId'>>>(
+    return db().$queryRawUnsafe<Array<Pick<MarketPlace, 'statut' | 'occupantId'>>>(
       'SELECT "statut", "occupantId" FROM "MarketPlace" WHERE "year" = $1',
       year
     );
   }
 
   listPaymentsForStats(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<MarketPayment, 'montant' | 'statut'>>>(
+    return db().$queryRawUnsafe<Array<Pick<MarketPayment, 'montant' | 'statut'>>>(
       'SELECT "montant", "statut" FROM "MarketPayment" WHERE "year" = $1',
       year
     );

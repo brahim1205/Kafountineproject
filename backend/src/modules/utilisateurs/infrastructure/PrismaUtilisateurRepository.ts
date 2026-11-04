@@ -1,10 +1,10 @@
 import bcrypt from 'bcryptjs';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type { PasswordHasher, UtilisateurRepository, UtilisateurValues } from '../domain/Utilisateur';
 
 export class PrismaUtilisateurRepository implements UtilisateurRepository {
   search(search: string) {
-    return prisma.user.findMany({
+    return db().user.findMany({
       where: search
         ? {
             OR: [
@@ -20,15 +20,15 @@ export class PrismaUtilisateurRepository implements UtilisateurRepository {
   }
 
   findById(id: string) {
-    return prisma.user.findUnique({ where: { id } });
+    return db().user.findUnique({ where: { id } });
   }
 
   findByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } });
+    return db().user.findUnique({ where: { email } });
   }
 
   async countTransactions(id: string) {
-    const user = await prisma.user.findUnique({
+    const user = await db().user.findUnique({
       where: { id },
       include: { _count: { select: { transactions: true } } },
     });
@@ -36,7 +36,7 @@ export class PrismaUtilisateurRepository implements UtilisateurRepository {
   }
 
   create(values: UtilisateurValues & { passwordHash: string }) {
-    return prisma.user.create({
+    return db().user.create({
       data: {
         email: values.email,
         nom: values.nom,
@@ -50,18 +50,18 @@ export class PrismaUtilisateurRepository implements UtilisateurRepository {
 
   update(id: string, values: UtilisateurValues) {
     const { passwordHash, ...data } = values;
-    return prisma.user.update({
+    return db().user.update({
       where: { id },
       data: passwordHash ? { ...data, password: passwordHash } : data,
     });
   }
 
   async deactivate(id: string) {
-    await prisma.user.update({ where: { id }, data: { isActive: false } });
+    await db().user.update({ where: { id }, data: { isActive: false } });
   }
 
   async delete(id: string) {
-    await prisma.user.delete({ where: { id } });
+    await db().user.delete({ where: { id } });
   }
 }
 

@@ -37,7 +37,7 @@ describe('UrbanismeService', () => {
 
   beforeEach(() => {
     repository = {
-      list: jest.fn(),
+      search: jest.fn(),
       findById: jest.fn(),
       create: jest.fn(async (values, display) => dossier({ ...values, ...display })),
       update: jest.fn(async (id, values, display) => dossier({ ...display, id, ...values })),
@@ -149,16 +149,12 @@ describe('UrbanismeService', () => {
     expect(auditTrail.record).toHaveBeenCalledWith(admin, expect.objectContaining({ action: 'Suppression dossier urbanisme' }));
   });
 
-  it('pagine après filtrage par statut', async () => {
-    repository.list.mockResolvedValue([
-      dossier({ id: '1', statut: 'VALIDE' }),
-      dossier({ id: '2', statut: 'EN_ATTENTE' }),
-      dossier({ id: '3', statut: 'VALIDE' }),
-      dossier({ id: '4', statut: 'VALIDE' }),
-    ]);
+  it('délègue filtrage et pagination au dépôt', async () => {
+    repository.search.mockResolvedValue({ rows: [dossier({ id: '4', statut: 'VALIDE' })], total: 3 });
 
     const result = await service.list({ page: 2, limit: 2, year: 2026, statut: 'VALIDE', type: '' });
 
+    expect(repository.search).toHaveBeenCalledWith({ year: 2026, statut: 'VALIDE', type: null, offset: 2, limit: 2 });
     expect(result.total).toBe(3);
     expect(result.data.map((item) => item.id)).toEqual(['4']);
   });

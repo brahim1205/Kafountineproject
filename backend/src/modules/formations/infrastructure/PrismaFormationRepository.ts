@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../../shared/infrastructure/prisma/prismaClient';
+import { db } from '../../../shared/infrastructure/prisma/transactionContext';
 import type {
   FormationRepository,
   TrainingProgram,
@@ -10,7 +10,7 @@ import type {
 
 export class PrismaFormationRepository implements FormationRepository {
   listPrograms(year: number) {
-    return prisma.$queryRawUnsafe<TrainingProgram[]>(
+    return db().$queryRawUnsafe<TrainingProgram[]>(
       `SELECT
         f.*,
         COALESCE(COUNT(e."id"), 0)::int AS "nombreInscrits",
@@ -25,7 +25,7 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async findProgramById(id: string) {
-    const [row] = await prisma.$queryRawUnsafe<TrainingProgram[]>(
+    const [row] = await db().$queryRawUnsafe<TrainingProgram[]>(
       `SELECT f.*, 0::int AS "nombreInscrits", 0::int AS "nombreCertifies" FROM "TrainingProgram" f WHERE f."id" = $1 LIMIT 1`,
       id
     );
@@ -33,7 +33,7 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async createProgram(values: TrainingProgramValues) {
-    const [row] = await prisma.$queryRawUnsafe<TrainingProgram[]>(
+    const [row] = await db().$queryRawUnsafe<TrainingProgram[]>(
       `INSERT INTO "TrainingProgram" ("id","nom","domaine","duree","responsable","budget","dateDebut","dateFin","statut","year","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        RETURNING *, 0::int AS "nombreInscrits", 0::int AS "nombreCertifies"`,
@@ -52,7 +52,7 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async updateProgram(id: string, values: TrainingProgramValues) {
-    const [row] = await prisma.$queryRawUnsafe<TrainingProgram[]>(
+    const [row] = await db().$queryRawUnsafe<TrainingProgram[]>(
       `UPDATE "TrainingProgram"
        SET "nom" = $2, "domaine" = $3, "duree" = $4, "responsable" = $5, "budget" = $6, "dateDebut" = $7, "dateFin" = $8, "statut" = $9, "year" = $10, "updatedAt" = CURRENT_TIMESTAMP
        WHERE "id" = $1
@@ -72,22 +72,22 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async deleteProgram(id: string) {
-    await prisma.$executeRaw`DELETE FROM "TrainingProgram" WHERE "id" = ${id}`;
+    await db().$executeRaw`DELETE FROM "TrainingProgram" WHERE "id" = ${id}`;
   }
 
   listProgramsForStats(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<TrainingProgram, 'domaine' | 'statut' | 'budget'>>>(
+    return db().$queryRawUnsafe<Array<Pick<TrainingProgram, 'domaine' | 'statut' | 'budget'>>>(
       'SELECT "domaine","statut","budget" FROM "TrainingProgram" WHERE "year" = $1',
       year
     );
   }
 
   listYouthSexes(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<YouthProfile, 'sexe'>>>('SELECT "sexe" FROM "YouthProfile" WHERE "year" = $1', year);
+    return db().$queryRawUnsafe<Array<Pick<YouthProfile, 'sexe'>>>('SELECT "sexe" FROM "YouthProfile" WHERE "year" = $1', year);
   }
 
   listEnrollmentOutcomes(year: number) {
-    return prisma.$queryRawUnsafe<Array<Pick<YouthProfile, 'statutFinal'>>>(
+    return db().$queryRawUnsafe<Array<Pick<YouthProfile, 'statutFinal'>>>(
       `SELECT e."statutFinal" FROM "YouthEnrollment" e
        INNER JOIN "TrainingProgram" f ON f."id" = e."formationId"
        WHERE f."year" = $1`,
@@ -96,7 +96,7 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   listYouthWithEnrollments(year: number) {
-    return prisma.$queryRawUnsafe<YouthProfile[]>(
+    return db().$queryRawUnsafe<YouthProfile[]>(
       `SELECT
         j.*,
         e."formationId",
@@ -114,7 +114,7 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async existsYouthWithCniOrPhone(cni: string, telephone: string) {
-    const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    const rows = await db().$queryRawUnsafe<Array<{ id: string }>>(
       'SELECT "id" FROM "YouthProfile" WHERE "cni" = $1 OR "telephone" = $2 LIMIT 1',
       cni,
       telephone
@@ -123,7 +123,7 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async createYouth(values: YouthProfileValues) {
-    const [row] = await prisma.$queryRawUnsafe<YouthProfile[]>(
+    const [row] = await db().$queryRawUnsafe<YouthProfile[]>(
       `INSERT INTO "YouthProfile" ("id","nom","prenom","cni","telephone","adresse","niveauEtude","sexe","dateNaiss","photo","year","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
        RETURNING *, NULL::text AS "formationId", NULL::timestamp AS "dateInscription", NULL::double precision AS "tauxAssiduite", NULL::text AS "statutFinal", NULL::int AS "presences", NULL::int AS "absences"`,
@@ -143,7 +143,7 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async findYouthById(id: string) {
-    const [row] = await prisma.$queryRawUnsafe<Array<Pick<YouthProfile, 'id' | 'nom' | 'prenom'>>>(
+    const [row] = await db().$queryRawUnsafe<Array<Pick<YouthProfile, 'id' | 'nom' | 'prenom'>>>(
       'SELECT "id","nom","prenom" FROM "YouthProfile" WHERE "id" = $1 LIMIT 1',
       id
     );
@@ -151,11 +151,11 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async deleteYouth(id: string) {
-    await prisma.$executeRaw`DELETE FROM "YouthProfile" WHERE "id" = ${id}`;
+    await db().$executeRaw`DELETE FROM "YouthProfile" WHERE "id" = ${id}`;
   }
 
   async existsEnrollment(jeuneId: string, formationId: string) {
-    const [row] = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    const [row] = await db().$queryRawUnsafe<Array<{ id: string }>>(
       'SELECT "id" FROM "YouthEnrollment" WHERE "jeuneId" = $1 AND "formationId" = $2 LIMIT 1',
       jeuneId,
       formationId
@@ -164,7 +164,7 @@ export class PrismaFormationRepository implements FormationRepository {
   }
 
   async createEnrollment(jeuneId: string, formationId: string) {
-    await prisma.$executeRaw`
+    await db().$executeRaw`
       INSERT INTO "YouthEnrollment" ("id","jeuneId","formationId","dateInscription","tauxAssiduite","statutFinal","presences","absences","createdAt","updatedAt")
       VALUES (${randomUUID()}, ${jeuneId}, ${formationId}, CURRENT_TIMESTAMP, 0, ${'En cours'}, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `;

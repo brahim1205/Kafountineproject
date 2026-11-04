@@ -218,4 +218,58 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(after.body.data).toEqual(before.body.data);
     });
   });
+
+  describe('unité de travail', () => {
+    const load = (path) => require(`../dist/src/${path}`);
+    const { transactional } = load('shared/application/UnitOfWork');
+    const { PrismaUnitOfWork } = load('shared/infrastructure/prisma/transactionContext');
+    const { PrismaAuditTrail } = load('shared/infrastructure/audit/PrismaAuditTrail');
+    const { BudgetService } = load('modules/budget/application/BudgetService');
+    const { PrismaBudgetRepository } = load('modules/budget/infrastructure/PrismaBudgetRepository');
+    const actor = { userId: null, role: 'ADMIN', ipAddress: '127.0.0.1' };
+    const repository = new PrismaBudgetRepository();
+    const budget = (auditTrail) => transactional(new BudgetService(repository, auditTrail), new PrismaUnitOfWork(), ['createLine']);
+
+    it("annule l'écriture quand l'audit échoue", async () => {
+      const code = `UOW-KO-${suffix}`;
+      const failingAudit = { record: () => Promise.reject(new Error('audit indisponible')) };
+
+      await expect(budget(failingAudit).createLine(actor, { code, libelle: 'Rollback', prevu: 1000, year })).rejects.toThrow(
+        'audit indisponible'
+      );
+      expect(await repository.findLineByCode(code, year)).toBeNull();
+    });
+
+    it("valide ensemble l'écriture et son entrée d'audit", async () => {
+      const code = `UOW-OK-${suffix}`;
+
+      await budget(new PrismaAuditTrail()).createLine(actor, { code, libelle: 'Commit', prevu: 1000, year });
+
+      expect(await repository.findLineByCode(code, year)).toMatchObject({ code });
+      const logs = (await admin.get(`/audit?year=${year}&limit=200`)).body.data;
+      const items = logs.items || logs.logs || logs;
+      expect(JSON.stringify(items)).toContain(code);
+    });
+  });
+
+  describe('journal d’audit', () => {
+    it('filtre, compte et pagine en base', async () => {
+      const all = (await admin.get(`/audit?year=${year}&limit=1`)).body.data;
+      expect(all.logs).toHaveLength(1);
+      expect(all.pagination.total).toBe(all.stats.total);
+      expect(all.stats.success + all.stats.warning + all.stats.error).toBeLessThanOrEqual(all.stats.total);
+
+      const page2 = (await admin.get(`/audit?year=${year}&limit=1&page=2`)).body.data;
+      if (all.stats.total > 1) expect(page2.logs[0].id).not.toBe(all.logs[0].id);
+
+      const warnings = (await admin.get(`/audit?year=${year}&statut=warning&limit=200`)).body.data;
+      expect(warnings.logs.every((item) => item.status === 'warning')).toBe(true);
+      expect(warnings.stats.total).toBe(all.stats.warning);
+    });
+
+    it('traite les jokers SQL de la recherche comme du texte', async () => {
+      const res = (await admin.get(`/audit?year=${year}&search=${encodeURIComponent('%_%')}`)).body.data;
+      expect(res.stats.total).toBe(0);
+    });
+  });
 });

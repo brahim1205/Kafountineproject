@@ -13,6 +13,8 @@ export const createEtatCivilSchema = z.object({
 }).strict();
 
 export const updateEtatCivilSchema = z.object({
+  // Le formulaire de modification permet de changer de contribuable ; le service le gère.
+  contribuableId: uuidSchema.optional(),
   typeDocument: optionalTrimmedString(120),
   exemplaires: z.coerce.number().int().min(1, 'Nombre d’exemplaires invalide').optional(),
   montant: nonNegativeNumberSchema.optional(),

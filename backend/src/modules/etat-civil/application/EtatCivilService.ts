@@ -1,7 +1,7 @@
 import { NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
 import type { ContribuableLookup } from '../../../shared/domain/ContribuableLookup';
-import type { EtatCivilRepository, EtatCivilRequest } from '../domain/EtatCivil';
+import type { EtatCivilDisplay, EtatCivilRepository, EtatCivilRequest } from '../domain/EtatCivil';
 
 export type EtatCivilInput = {
   contribuableId?: string;
@@ -116,10 +116,26 @@ export class EtatCivilService {
       throw new NotFoundError("Demande d'état civil introuvable.");
     }
 
+    const nextContribuableId = input.contribuableId ? String(input.contribuableId).trim() : existing.contribuableId;
+    let display: EtatCivilDisplay = existing;
+    if (nextContribuableId !== existing.contribuableId) {
+      const contribuable = await this.contribuables.findById(nextContribuableId);
+      if (!contribuable) {
+        throw new NotFoundError('Contribuable introuvable.');
+      }
+      display = {
+        ...existing,
+        contribuableNom: contribuable.nom,
+        contribuablePrenom: contribuable.prenom,
+        contribuableNin: contribuable.nin,
+        contribuableTelephone: contribuable.telephone,
+      };
+    }
+
     const updated = await this.repository.update(
       requestId,
       {
-        contribuableId: input.contribuableId ? String(input.contribuableId).trim() : existing.contribuableId,
+        contribuableId: nextContribuableId,
         typeDocument: input.typeDocument ? String(input.typeDocument).trim() : existing.typeDocument,
         exemplaires: input.exemplaires !== undefined ? Math.max(1, Number(input.exemplaires)) : existing.exemplaires,
         montant: input.montant !== undefined ? Number(input.montant) : existing.montant,
@@ -127,7 +143,7 @@ export class EtatCivilService {
         observations:
           input.observations === undefined ? existing.observations : String(input.observations || '').trim() || null,
       },
-      existing
+      display
     );
 
     await this.auditTrail.record(actor, {

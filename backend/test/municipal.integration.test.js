@@ -117,6 +117,34 @@ describeIntegration('services municipaux (intégration)', () => {
     });
   });
 
+  describe('formulaires de modification', () => {
+    it('modifie un contribuable avec le NIN renvoyé par le formulaire, et refuse un NIN déjà pris', async () => {
+      const list = (await admin.get('/contribuables?limit=2')).body.data;
+      const [first, second] = list.items || list;
+      const same = await admin.put(`/contribuables/${first.id}`, { nin: first.nin, nom: first.nom, prenom: first.prenom, telephone: first.telephone, isActive: true });
+      expect(same.status).toBe(200);
+      const taken = await admin.put(`/contribuables/${first.id}`, { nin: second.nin });
+      expect(taken.status).toBe(409);
+    });
+
+    it("change le contribuable d'une demande d'état civil", async () => {
+      const list = (await admin.get('/contribuables?limit=2')).body.data;
+      const [first, second] = list.items || list;
+      const created = await admin.post('/etat-civil', { contribuableId: first.id, typeDocument: 'Extrait de naissance', exemplaires: 1, montant: 500, year });
+      expect(created.status).toBe(201);
+      const id = created.body.data.id;
+
+      const moved = await admin.put(`/etat-civil/${id}`, { typeDocument: 'Extrait de naissance', contribuableId: second.id, montant: 500, exemplaires: 2, statut: 'EN_ATTENTE' });
+      expect(moved.status).toBe(200);
+      expect(moved.body.data.contribuableId).toBe(second.id);
+      expect(JSON.stringify(moved.body.data)).toContain(second.nom);
+
+      const unknown = await admin.put(`/etat-civil/${id}`, { contribuableId: '00000000-0000-4000-8000-000000000000' });
+      expect(unknown.status).toBe(404);
+      await admin.delete(`/etat-civil/${id}`);
+    });
+  });
+
   describe('motos', () => {
     let motoId;
 

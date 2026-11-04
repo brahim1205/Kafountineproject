@@ -18,6 +18,8 @@ export const createContribuableSchema = z.object({
 }).strict();
 
 export const updateContribuableSchema = z.object({
+  // Le formulaire de modification renvoie le NIN ; le cas d'usage refuse un NIN déjà attribué.
+  nin: optionalTrimmedString(30),
   nom: optionalTrimmedString(100),
   prenom: optionalTrimmedString(100),
   dateNaiss: optionalTrimmedString(50),

@@ -68,7 +68,7 @@ export class GetDashboardStatisticsUseCase {
         nom: user?.nom || 'Agent',
         prenom: user?.prenom || '',
         initiale: user ? `${user.prenom?.[0] || ''}${user.nom?.[0] || ''}`.trim() || user.nom[0] : 'A',
-        collecte: item._sum.montant || 0,
+        collecte: Number(item._sum.montant || 0),
         transactions: item._count._all || 0,
       };
     });

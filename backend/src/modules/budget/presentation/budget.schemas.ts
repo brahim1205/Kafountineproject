@@ -5,7 +5,8 @@ import { nonNegativeNumberSchema, positiveNumberSchema, yearSchema } from '../..
 export const createBudgetLineSchema = z.object({
   code: trimmedString(1, 40, 'Code requis'),
   libelle: trimmedString(1, 160, 'Libellé requis'),
-  description: optionalTrimmedString(255),
+  // null efface la description (le formulaire envoie null quand le champ est vide).
+  description: optionalTrimmedString(255).nullable(),
   prevu: nonNegativeNumberSchema,
   depense: nonNegativeNumberSchema.optional(),
   year: yearSchema.optional(),
@@ -14,7 +15,8 @@ export const createBudgetLineSchema = z.object({
 export const updateBudgetLineSchema = z.object({
   code: optionalTrimmedString(40),
   libelle: optionalTrimmedString(160),
-  description: optionalTrimmedString(255),
+  // null efface la description (le formulaire envoie null quand le champ est vide).
+  description: optionalTrimmedString(255).nullable(),
   prevu: nonNegativeNumberSchema.optional(),
   depense: nonNegativeNumberSchema.optional(),
   year: yearSchema.optional(),

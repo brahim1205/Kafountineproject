@@ -30,6 +30,8 @@ export default function Recettes() {
   const canCreate = isCurrentYear && (role === 'agent' || role === 'admin');
   // Même règle que l'API : seuls les admins modifient ou suppriment une transaction.
   const canEdit = role === 'admin' || role === 'super_admin';
+  // Statistiques de l'année : réservées par l'API à l'encadrement et aux finances.
+  const canSeeYearStats = canEdit || role === 'comptable' || role === 'service_finances';
 
   const [rows, setRows] = useState<RecetteRow[]>([]);
   const [stats, setStats] = useState<TransactionStats | null>(null);
@@ -42,7 +44,7 @@ export default function Recettes() {
       setLoading(true);
       const [transactions, yearStats] = await Promise.all([
         getTransactions({ page: 1, limit: PAGE_LIMIT, year: selectedYear }),
-        getTransactionStats(selectedYear).catch(() => null),
+        canSeeYearStats ? getTransactionStats(selectedYear).catch(() => null) : Promise.resolve(null),
       ]);
       setRows((transactions.data || []).map(toRecetteRow));
       setStats(yearStats);
@@ -64,8 +66,10 @@ export default function Recettes() {
   const truncated = rows.length >= PAGE_LIMIT;
 
   // Sans filtre, les totaux viennent des statistiques de l'année entière, pas des seules lignes chargées.
-  const yearTotals = filterType === 'all' && stats ? { total: stats.annee.total, count: stats.annee.transactions } : null;
-  const totals = yearTotals ?? { total: filteredRows.reduce((sum, row) => sum + row.amount, 0), count: filteredRows.length };
+  const yearTotals = filterType === 'all' && stats?.annee ? { total: stats.annee.total, count: stats.annee.transactions } : null;
+  // Comme les statistiques de l'API : seuls les tickets payés sont des recettes.
+  const paidRows = filteredRows.filter((row) => row.statut === 'PAYE');
+  const totals = yearTotals ?? { total: paidRows.reduce((sum, row) => sum + row.amount, 0), count: paidRows.length };
 
   const toReceipt = ({ ticketNumber, type, contributor, amount, date, time, agent }: RecetteRow): ReceiptData => ({
     ticketNumber,

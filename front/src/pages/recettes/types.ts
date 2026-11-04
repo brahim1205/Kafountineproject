@@ -14,6 +14,7 @@ export type RecetteRow = ReceiptData & {
   id: string;
   contribuableId: string;
   contribuableNin: string;
+  statut: string;
 };
 
 export const INPUT_CLASS =
@@ -37,5 +38,6 @@ export function toRecetteRow(item: TransactionItem): RecetteRow {
     time: formatTime(date),
     contribuableId: item.contribuable?.id || '',
     contribuableNin: item.contribuable?.nin || '',
+    statut: item.statut || 'PAYE',
   };
 }

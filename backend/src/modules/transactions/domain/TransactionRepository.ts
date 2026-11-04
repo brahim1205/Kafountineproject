@@ -42,8 +42,8 @@ export interface TransactionRepository {
   count(filters: TransactionFilters): Promise<number>;
   countByYear(year: number): Promise<number>;
   create(payload: CreateTransactionPayload): Promise<unknown>;
-  createWithAtomicNumero(payload: Omit<CreateTransactionPayload, 'numero'>): Promise<unknown>;
-  findByYear(year: number): Promise<Array<{ montant: number; statut: string }>>;
+  createWithAtomicNumero(payload: Omit<CreateTransactionPayload, 'numero'>): Promise<{ numero: string; service: string; montant: unknown }>;
+  findByYear(year: number): Promise<Array<{ montant: number; statut: string; categorie: string; date: Date }>>;
   findRecentByYear(year: number, limit: number): Promise<unknown[]>;
   findByContribuableId(contribuableId: string): Promise<Array<{ id: string; numero: string; categorie: string; service: string; year: number; montant: number; statut: string; date: Date }>>;
   findPortalPayables(contribuableId: string, transactionIds: string[]): Promise<Array<{ id: string; numero: string; montant: number; statut: string }>>;
@@ -66,5 +66,6 @@ export interface TransactionRepository {
     };
   } | null>;
   update(id: string, payload: Partial<CreateTransactionPayload>): Promise<unknown>;
+  findSummaryById(id: string): Promise<{ numero: string; montant: number; service: string } | null>;
   delete(id: string): Promise<void>;
 }

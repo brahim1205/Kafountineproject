@@ -1,9 +1,13 @@
+import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
 import type { TransactionRepository } from '../domain/TransactionRepository';
 
 export class CreateTransactionUseCase {
-  constructor(private readonly transactionRepository: TransactionRepository) {}
+  constructor(
+    private readonly transactionRepository: TransactionRepository,
+    private readonly auditTrail: AuditTrail
+  ) {}
 
-  async execute(input: {
+  async execute(actor: Actor, input: {
     contribuableId: string;
     agentId: string;
     categorie?: string;
@@ -17,7 +21,7 @@ export class CreateTransactionUseCase {
   }) {
     const year = new Date().getFullYear();
 
-    return this.transactionRepository.createWithAtomicNumero({
+    const created = await this.transactionRepository.createWithAtomicNumero({
       contribuableId: input.contribuableId,
       agentId: input.agentId,
       categorie: String(input.categorie || input.type || 'TAXE'),
@@ -29,5 +33,12 @@ export class CreateTransactionUseCase {
       date: input.date ? new Date(String(input.date)) : new Date(),
       year,
     });
+
+    await this.auditTrail.record(actor, {
+      action: 'Encaissement',
+      module: 'Recettes',
+      details: `Transaction ${created.numero} enregistrée : ${created.service} (${Number(created.montant)} FCFA)`,
+    });
+    return created;
   }
 }

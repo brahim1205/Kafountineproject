@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import { getPenalites, type Penalite } from '../../services/settings';
-import { listContribuables, type Contribuable } from '../../services/contribuables';
+import { getStoredUserName } from '../../services/auth';
+import { createTransaction } from '../../services/taxes';
 import RecuPDF from '../../components/feature/RecuPDF';
+import ContribuableSelect, { requireSelectedContribuable } from '../../components/feature/ContribuableSelect';
+import { clearFieldValidationError, getErrorMessage, validateFormElement } from '../../utils/formValidation';
+
+const INPUT_CLASS = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500';
 
 export default function Penalites() {
   const [penalites, setPenalites] = useState<Penalite[]>([]);
-  const [contribuables, setContribuables] = useState<Contribuable[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAssociateModal, setShowAssociateModal] = useState(false);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [selectedPenalite, setSelectedPenalite] = useState<Penalite | null>(null);
-  const [selectedContribuable, setSelectedContribuable] = useState<Contribuable | null>(null);
+  const [applying, setApplying] = useState(false);
   const [receiptData, setReceiptData] = useState<Record<string, unknown> | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -24,12 +28,8 @@ export default function Penalites() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [penalitesData, contribuablesData] = await Promise.all([
-        getPenalites(),
-        listContribuables({ limit: 100 })
-      ]);
+      const penalitesData = await getPenalites();
       setPenalites(penalitesData.filter((p: Penalite) => p.actif));
-      setContribuables(contribuablesData || []);
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Impossible de charger les données.');
     } finally {
@@ -47,32 +47,50 @@ export default function Penalites() {
     setTimeout(() => setErrorMessage(''), 5000);
   };
 
-  const handleAssociate = () => {
-    if (!selectedContribuable || !selectedPenalite) {
-      showError('Veuillez sélectionner un contribuable et une pénalité.');
-      return;
+  /** Enregistre la pénalité comme une recette, puis imprime le reçu à son vrai numéro. */
+  const handleAssociate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    if (!selectedPenalite || !validateFormElement(form)) return;
+    const contribuableId = requireSelectedContribuable(form, 'contribuableId');
+    if (!contribuableId) return;
+    const label = String(new FormData(form).get('contribuableRecherche') || '');
+    const nin = label.match(/\(([^)]*)\)\s*$/)?.[1] || '';
+
+    setApplying(true);
+    try {
+      const type = `Pénalité (${selectedPenalite.type})`;
+      const created = await createTransaction({
+        contribuableId,
+        categorie: 'Pénalités',
+        type,
+        service: type,
+        quantite: 1,
+        montant: selectedPenalite.montant,
+        modePaiement: 'ESPECE',
+        reference: `PEN-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
+      });
+      const date = created?.date ? new Date(created.date) : new Date();
+      setReceiptData({
+        ticketNumber: created.numero,
+        date: date.toLocaleDateString('fr-FR'),
+        time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        contributor: label.replace(/\s*\([^)]*\)\s*$/, ''),
+        type,
+        amount: selectedPenalite.montant,
+        agent: getStoredUserName() || 'Agent Municipal',
+        nin,
+        description: selectedPenalite.description,
+        statut: 'Validé',
+      });
+      showSuccess(`Pénalité enregistrée sous le numéro ${created.numero}.`);
+      setShowAssociateModal(false);
+      setShowPdfPreview(true);
+    } catch (error) {
+      showError(getErrorMessage(error, "Impossible d'enregistrer la pénalité."));
+    } finally {
+      setApplying(false);
     }
-
-    const now = new Date();
-    const data = {
-      ticketNumber: `PEN-${now.getFullYear()}-${Date.now().toString().slice(-6)}`,
-      date: now.toLocaleDateString('fr-FR'),
-      time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      contributor: `${selectedContribuable.prenom} ${selectedContribuable.nom}`,
-      type: `Pénalité (${selectedPenalite.type})`,
-      amount: selectedPenalite.montant,
-      agent: 'Agent Municipal',
-      nin: selectedContribuable.nin,
-      telephone: selectedContribuable.telephone,
-      adresse: selectedContribuable.adresse,
-      description: selectedPenalite.description,
-      statut: 'Validé'
-    };
-
-    setReceiptData(data);
-    showSuccess(`Pénalité appliquée avec succès.`);
-    setShowAssociateModal(false);
-    setShowPdfPreview(true);
   };
 
   const formatMontant = (montant: number) => {
@@ -113,15 +131,6 @@ export default function Penalites() {
                 <p className="text-2xl font-bold text-gray-900">{penalites.length}</p>
               </div>
               <i className="ri-error-warning-line text-3xl text-gray-400"></i>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Contribuables enregistrés</p>
-                <p className="text-2xl font-bold text-teal-600">{contribuables.length}</p>
-              </div>
-              <i className="ri-user-line text-3xl text-teal-500"></i>
             </div>
           </div>
         </div>
@@ -213,44 +222,22 @@ export default function Penalites() {
                 <p className="text-gray-600">Montant : <span className="font-bold text-teal-600">{formatMontant(selectedPenalite.montant)} FCFA</span></p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rechercher un contribuable</label>
-                <input
-                  type="text"
-                  placeholder="Nom, NIN ou téléphone..."
-                  onChange={(e) => {
-                    const term = e.target.value.toLowerCase();
-                    const found = contribuables.find(c => 
-                      `${c.nom} ${c.prenom}`.toLowerCase().includes(term) || 
-                      c.nin?.includes(term) || 
-                      c.telephone?.includes(term)
-                    );
-                    setSelectedContribuable(found || null);
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-
-              {selectedContribuable && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
-                  <p className="font-bold">{selectedContribuable.prenom} {selectedContribuable.nom}</p>
-                  <p className="text-gray-600">NIN: {selectedContribuable.nin || '-'}</p>
+              <form onSubmit={handleAssociate} onInput={clearFieldValidationError} noValidate className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Contribuable</label>
+                  <ContribuableSelect name="contribuableId" inputClassName={INPUT_CLASS} />
                 </div>
-              )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button onClick={() => setShowAssociateModal(false)} className="px-4 py-2 text-gray-600 border rounded-lg">
-                  Annuler
-                </button>
-                <button
-                  onClick={handleAssociate}
-                  disabled={!selectedContribuable}
-                  className="px-4 py-2 bg-teal-600 text-white rounded-lg disabled:opacity-50 flex items-center gap-2"
-                >
-                  <i className="ri-printer-line"></i>
-                  Valider et imprimer
-                </button>
-              </div>
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button type="button" onClick={() => setShowAssociateModal(false)} className="px-4 py-2 text-gray-600 border rounded-lg">
+                    Annuler
+                  </button>
+                  <button type="submit" disabled={applying} className="px-4 py-2 bg-teal-600 text-white rounded-lg disabled:opacity-50 flex items-center gap-2">
+                    <i className="ri-printer-line"></i>
+                    {applying ? 'Enregistrement...' : 'Valider et imprimer'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

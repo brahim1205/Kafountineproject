@@ -1,3 +1,4 @@
+import MotoPhoto from './MotoPhoto';
 import { useState } from 'react';
 import { createMotoPayment } from '../../../services/motos';
 import { useToast } from '../../../components/feature/Toast';
@@ -64,7 +65,7 @@ export default function PaiementMotoModal({ moto, motoConfig, selectedYear, onCl
         <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center gap-3 mb-3">
-              {moto.photo && <img src={moto.photo} alt={moto.matricule} className="w-20 h-16 object-cover rounded-lg" />}
+              <MotoPhoto src={moto.photo} alt={moto.matricule} sizeClass="w-20 h-16" />
               <div>
                 <p className="font-semibold text-gray-900">{moto.marque} {moto.modele}</p>
                 <p className="text-sm text-gray-600">{moto.proprietaire.nom}</p>

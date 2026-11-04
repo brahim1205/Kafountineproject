@@ -7,7 +7,7 @@ import {
   type MarcheStats,
   type PaiementMarche,
 } from '../../../services/marche';
-import { getStoredUserRole } from '../../../services/auth';
+import { getStoredUserName, getStoredUserRole } from '../../../services/auth';
 import { useYear } from '../../../contexts/YearContext';
 import { useToast } from '../../../components/feature/Toast';
 import {
@@ -98,7 +98,8 @@ export default function SuiviPaiements() {
   const handleImprimerRecu = (paiement: UiPaiementMarche) => {
     const now = new Date();
     const recuData = {
-      numero: `MRC-${paiement.id.toString().padStart(5, '0')}`,
+      // La référence enregistrée avec le paiement ; l'identifiant ne sert que pour les paiements anciens sans référence.
+      numero: paiement.reference || `MRC-${paiement.id.toString().padStart(5, '0')}`,
       date: paiement.datePaiement || now.toLocaleDateString('fr-FR'),
       heure: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       contribuable: paiement.occupant,
@@ -118,21 +119,22 @@ export default function SuiviPaiements() {
     }
     
     try {
+      const reference = `MRC-${Date.now()}`;
       await createPaiementMarche({
         placeId: selectedPaiement.placeId,
         periode: selectedPaiement.periode,
         montant: Number(selectedPaiement.montant),
-        reference: `MRC-${Date.now()}`,
+        reference,
       });
       const now = new Date();
       setTransactionData({
-        numero: `MRC-${selectedPaiement.id.toString().padStart(5, '0')}`,
+        numero: reference,
         date: now.toLocaleDateString('fr-FR'),
         heure: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
         contribuable: selectedPaiement.occupant,
         type: `Place de marché ${selectedPaiement.numero} - ${selectedPaiement.periode}`,
         montant: selectedPaiement.montant,
-        agent: 'Agent Municipal',
+        agent: getStoredUserName() || 'Agent Municipal',
       });
       setShowPaiementModal(false);
       setSelectedPaiement(null);

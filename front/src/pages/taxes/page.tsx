@@ -15,8 +15,10 @@ export default function TaxesPage() {
   const { selectedYear } = useYear();
   const currentYear = new Date().getFullYear();
   const isCurrentYear = selectedYear === currentYear;
-  const userRole = getStoredUserRole() || 'admin';
-  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && isCurrentYear;
+  const userRole = getStoredUserRole();
+  const canManage = (userRole === 'admin' || userRole === 'agent') && isCurrentYear;
+  // Même règle que l'API : les statistiques globales sont réservées à l'encadrement et aux finances.
+  const canSeeStats = userRole === 'admin' || userRole === 'super_admin' || userRole === 'comptable' || userRole === 'service_finances';
   const [periode, setPeriode] = useState<'aujourdhui' | 'mois' | 'annee'>('annee');
   const [categories, setCategories] = useState<TaxCategory[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
@@ -28,28 +30,31 @@ export default function TaxesPage() {
 
   useEffect(() => {
     let mounted = true;
+    const empty = { total: 0, transactions: 0, categories: [] };
 
-    Promise.all([getTaxCategories(), getTransactionStats(selectedYear)])
-      .then(([cats, apiStats]) => {
+    // Les catégories ne dépendent pas des statistiques : un échec de ces dernières ne doit pas bloquer la saisie.
+    getTaxCategories()
+      .then((cats) => {
         if (!mounted) return;
         setErrorMsg('');
         setCategories(cats || []);
-        setStats({
-          aujourdhui: apiStats?.aujourdhui || { total: 0, transactions: 0, categories: [] },
-          mois: apiStats?.mois || { total: 0, transactions: 0, categories: [] },
-          annee: apiStats?.annee || { total: 0, transactions: 0, categories: [] },
-        });
       })
       .catch(() => {
         if (!mounted) return;
         setCategories([]);
-        setStats({
-          aujourdhui: { total: 0, transactions: 0, categories: [] },
-          mois: { total: 0, transactions: 0, categories: [] },
-          annee: { total: 0, transactions: 0, categories: [] },
-        });
-        setErrorMsg("Impossible de charger les taxes.");
+        setErrorMsg('Impossible de charger les taxes.');
       });
+
+    if (canSeeStats) {
+      getTransactionStats(selectedYear)
+        .then((apiStats) => {
+          if (!mounted) return;
+          setStats({ aujourdhui: apiStats?.aujourdhui || empty, mois: apiStats?.mois || empty, annee: apiStats?.annee || empty });
+        })
+        .catch(() => {
+          if (mounted) setStats({ aujourdhui: empty, mois: empty, annee: empty });
+        });
+    }
 
     return () => {
       mounted = false;
@@ -84,86 +89,88 @@ export default function TaxesPage() {
         </div>
 
         {/* Statistiques */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Statistiques des recettes</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPeriode('annee')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                  periode === 'annee'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Année {selectedYear}
-              </button>
-              <button
-                onClick={() => setPeriode('mois')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                  periode === 'mois'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Ce mois
-              </button>
-              <button
-                onClick={() => setPeriode('aujourdhui')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                  periode === 'aujourdhui'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Aujourd'hui
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Total des recettes</p>
-                  <p className="text-3xl font-bold text-emerald-700">{Number(selectedStats.total || 0).toLocaleString()} FCFA</p>
-                </div>
-                <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <i className="ri-money-dollar-circle-line text-2xl text-emerald-600"></i>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Nombre de transactions</p>
-                  <p className="text-2xl font-bold text-gray-900">{Number(selectedStats.transactions || 0)}</p>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                  <i className="ri-file-list-3-line text-xl text-gray-600"></i>
-                </div>
+        {canSeeStats && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">Statistiques des recettes</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPeriode('annee')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                    periode === 'annee'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Année {selectedYear}
+                </button>
+                <button
+                  onClick={() => setPeriode('mois')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                    periode === 'mois'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Ce mois
+                </button>
+                <button
+                  onClick={() => setPeriode('aujourdhui')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                    periode === 'aujourdhui'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Aujourd'hui
+                </button>
               </div>
             </div>
 
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Répartition par catégorie</h3>
-              <div className="space-y-2">
-                {(selectedStats.categories || []).map((cat, index: number) => (
-                  <div key={index} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700">{cat.nom}</span>
-                      <span className="font-medium text-gray-900">{cat.montant.toLocaleString()} FCFA</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all"
-                        style={{ width: `${Math.min(cat.pourcentage, 100)}%` }}
-                      ></div>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Total des recettes</p>
+                    <p className="text-3xl font-bold text-emerald-700">{Number(selectedStats.total || 0).toLocaleString()} FCFA</p>
                   </div>
-                ))}
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <i className="ri-money-dollar-circle-line text-2xl text-emerald-600"></i>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Nombre de transactions</p>
+                    <p className="text-2xl font-bold text-gray-900">{Number(selectedStats.transactions || 0)}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                    <i className="ri-file-list-3-line text-xl text-gray-600"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Répartition par catégorie</h3>
+                <div className="space-y-2">
+                  {(selectedStats.categories || []).map((cat, index: number) => (
+                    <div key={index} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700">{cat.nom}</span>
+                        <span className="font-medium text-gray-900">{cat.montant.toLocaleString()} FCFA</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min(cat.pourcentage, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Catégories de taxes */}
         <div>

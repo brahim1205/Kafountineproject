@@ -1,3 +1,4 @@
+import { actorFrom } from '../../../shared/presentation/requestContext';
 import type { Request, Response } from 'express';
 import { ok, okWithMeta } from '../../../shared/http/response';
 import type { AuthRequest } from '../../../shared/types/AuthRequest';
@@ -44,7 +45,7 @@ export class TransactionsController {
   }
 
   async create(req: AuthRequest, res: Response) {
-    const created = await this.createTransactionUseCase.execute({
+    const created = await this.createTransactionUseCase.execute(actorFrom(req), {
       ...req.body,
       agentId: req.user!.userId,
     });
@@ -63,12 +64,12 @@ export class TransactionsController {
   }
 
   async update(req: Request, res: Response) {
-    const updated = await this.updateTransactionUseCase.execute(String(req.params.id), req.body);
+    const updated = await this.updateTransactionUseCase.execute(actorFrom(req), String(req.params.id), req.body);
     return ok(res, updated);
   }
 
   async delete(req: Request, res: Response) {
-    await this.deleteTransactionUseCase.execute(String(req.params.id));
+    await this.deleteTransactionUseCase.execute(actorFrom(req), String(req.params.id));
     return ok(res, { success: true });
   }
 }

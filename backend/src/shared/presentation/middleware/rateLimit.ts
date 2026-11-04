@@ -6,6 +6,8 @@ type RateLimitOptions = {
   windowMs: number;
   max: number;
   keyPrefix: string;
+  /** Identifiant du compteur ; par défaut l'adresse IP. */
+  key?: (req: Request) => string;
 };
 
 type Bucket = {
@@ -25,14 +27,14 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000).unref();
 
-function getClientIp(req: Request) {
+export function getClientIp(req: Request) {
   return req.ip || 'unknown';
 }
 
 export function rateLimit(options: RateLimitOptions) {
   return (req: Request, res: Response, next: NextFunction) => {
     void (async () => {
-      const key = `${options.keyPrefix}:${getClientIp(req)}`;
+      const key = `${options.keyPrefix}:${options.key ? options.key(req) : getClientIp(req)}`;
       const client = await getRedisClient();
 
       if (client) {

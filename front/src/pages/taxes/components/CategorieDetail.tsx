@@ -280,7 +280,7 @@ export default function CategorieDetail() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transaction.contribuable?.telephone || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transaction.quantite}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-semibold text-gray-900">{transaction.montant?.toLocaleString()} FCA</span>
+                        <span className="text-sm font-semibold text-gray-900">{transaction.montant?.toLocaleString()} FCFA</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{transaction.agent?.prenom} {transaction.agent?.nom}</td>
                       <td className="px-6 py-4 whitespace-nowrap">

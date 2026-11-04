@@ -240,7 +240,7 @@ export default function ServiceFinancesDashboard() {
             <i className="ri-wallet-3-line text-2xl"></i>
           </div>
           <p className="text-sm text-teal-100 mb-1">Budget Prévisionnel</p>
-          <h3 className="text-2xl font-bold">{totalPrevu.toLocaleString()} FCA</h3>
+          <h3 className="text-2xl font-bold">{totalPrevu.toLocaleString()} FCFA</h3>
           <p className="text-xs text-teal-200 mt-1">Annuel</p>
         </div>
         <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white">
@@ -248,7 +248,7 @@ export default function ServiceFinancesDashboard() {
             <i className="ri-money-dollar-circle-line text-2xl"></i>
           </div>
           <p className="text-sm text-amber-100 mb-1">Total Dépensé</p>
-          <h3 className="text-2xl font-bold">{totalDepense.toLocaleString()} FCA</h3>
+          <h3 className="text-2xl font-bold">{totalDepense.toLocaleString()} FCFA</h3>
           <p className="text-xs text-amber-200 mt-1">Exécuté</p>
         </div>
         <div className={`bg-gradient-to-br ${totalReste >= 0 ? 'from-emerald-500 to-emerald-600' : 'from-red-500 to-red-600'} rounded-xl p-5 text-white`}>
@@ -256,7 +256,7 @@ export default function ServiceFinancesDashboard() {
             <i className="ri-money-dollar-box-line text-2xl"></i>
           </div>
           <p className="text-sm text-emerald-100 mb-1">Reste à Disposer</p>
-          <h3 className="text-2xl font-bold">{totalReste.toLocaleString()} FCA</h3>
+          <h3 className="text-2xl font-bold">{totalReste.toLocaleString()} FCFA</h3>
           <p className="text-xs text-emerald-200 mt-1">{totalReste >= 0 ? 'Disponible' : 'Dépassement'}</p>
         </div>
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
@@ -375,7 +375,7 @@ export default function ServiceFinancesDashboard() {
                       <td className="px-4 py-3 text-sm font-mono text-gray-900">{demande.id}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{demande.service}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{demande.description}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">{demande.montant.toLocaleString()} FCA</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">{demande.montant.toLocaleString()} FCFA</td>
                       <td className="px-4 py-3 text-sm text-gray-600 text-center">{new Date(demande.createdAt).toLocaleDateString('fr-FR')}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${

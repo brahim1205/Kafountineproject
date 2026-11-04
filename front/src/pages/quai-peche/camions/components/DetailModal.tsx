@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { updateExpedition, type CamionFrigorifique, type Expedition } from '../../../../services/quai-peche';
 import { INPUT_CLASS, STATUTS_CAMION, STATUTS_EXPEDITION, formatDate, formatFcfa, formatKg } from './statuts';
-import Modal from './Modal';
+import Modal from '../../../../components/feature/Modal';
 
 type DetailModalProps =
   | { kind: 'camion'; item: CamionFrigorifique; canManage: boolean; onClose: () => void; onChanged: () => Promise<void> }

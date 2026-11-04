@@ -141,12 +141,14 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(duplicate.status).toBe(409);
 
       const updated = await admin.put(`/budget/lignes/${line.body.data.id}`, { depense: 400000 });
-      expect(Number(updated.body.data.depense)).toBe(400000);
-      expect(Number(updated.body.data.prevu)).toBe(1000000);
+      // Montants en nombres JSON (Decimal en base), pas en chaînes.
+      expect(updated.body.data.depense).toBe(400000);
+      expect(updated.body.data.prevu).toBe(1000000);
 
       const demande = await agent.post('/budget/demandes', { service: 'Voirie', description: 'Pavage', montant: 300000, year });
       expect(demande.status).toBe(201);
       expect(demande.body.data.statut).toBe('EN_ATTENTE');
+      expect(demande.body.data.montant).toBe(300000);
 
       const invalid = await admin.put(`/budget/demandes/${demande.body.data.id}`, { statut: 'APPROUVEE' });
       expect(invalid.status).toBe(400);
@@ -158,6 +160,18 @@ describeIntegration('services municipaux (intégration)', () => {
       const after = (await admin.get(`/budget/stats?year=${year}`)).body.data;
       expect(after.demandesApprouvees - before.demandesApprouvees).toBe(1);
       expect(after.totalDepense - before.totalDepense).toBe(400000);
+    });
+
+    it('accepte une description vide (null), puis la retire en modification', async () => {
+      const line = await admin.post('/budget/lignes', { code: `nd-${suffix}`, libelle: 'Sans description', description: null, prevu: 1000, year });
+      expect(line.status).toBe(201);
+      expect(line.body.data.description).toBeNull();
+
+      const withText = await admin.put(`/budget/lignes/${line.body.data.id}`, { description: 'Texte' });
+      expect(withText.body.data.description).toBe('Texte');
+      const cleared = await admin.put(`/budget/lignes/${line.body.data.id}`, { description: null });
+      expect(cleared.status).toBe(200);
+      expect(cleared.body.data.description).toBeNull();
     });
 
     it('refuse les lignes budgétaires aux agents', async () => {

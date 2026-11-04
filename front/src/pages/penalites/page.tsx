@@ -112,7 +112,7 @@ export default function Penalites() {
                 <p className="text-sm text-gray-600">Pénalités disponibles</p>
                 <p className="text-2xl font-bold text-gray-900">{penalites.length}</p>
               </div>
-              <i className="ri-alert-circle-line text-3xl text-gray-400"></i>
+              <i className="ri-error-warning-line text-3xl text-gray-400"></i>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">

@@ -5,7 +5,7 @@ import type { BudgetRepository } from '../domain/Budget';
 export type BudgetLineInput = {
   code?: string;
   libelle?: string;
-  description?: string;
+  description?: string | null;
   prevu?: number;
   depense?: number;
   year?: number;

@@ -99,17 +99,17 @@ export default function BudgetSuiviPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-5 text-white">
           <p className="text-sm text-teal-100 mb-1">Budget Total</p>
-          <h3 className="text-2xl font-bold">{totalBudget.toLocaleString()} FCA</h3>
+          <h3 className="text-2xl font-bold">{totalBudget.toLocaleString()} FCFA</h3>
           <p className="text-xs text-teal-200 mt-1">Allocation annuelle</p>
         </div>
         <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white">
           <p className="text-sm text-amber-100 mb-1">Total Dépensé</p>
-          <h3 className="text-2xl font-bold">{totalDepense.toLocaleString()} FCA</h3>
+          <h3 className="text-2xl font-bold">{totalDepense.toLocaleString()} FCFA</h3>
           <p className="text-xs text-amber-200 mt-1">Dépenses effectives</p>
         </div>
         <div className={`bg-gradient-to-br ${totalEcarts >= 0 ? 'from-emerald-500 to-emerald-600' : 'from-red-500 to-red-600'} rounded-xl p-5 text-white`}>
           <p className="text-sm text-emerald-100 mb-1">Écart</p>
-          <h3 className="text-2xl font-bold">{totalEcarts.toLocaleString()} FCA</h3>
+          <h3 className="text-2xl font-bold">{totalEcarts.toLocaleString()} FCFA</h3>
           <p className="text-xs text-emerald-200 mt-1">{totalEcarts >= 0 ? 'Disponible' : 'Dépassement'}</p>
         </div>
       </div>
@@ -156,10 +156,10 @@ export default function BudgetSuiviPage() {
                 return (
                   <tr key={idx} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{poste.poste}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900 text-right">{poste.budget.toLocaleString()} FCA</td>
-                    <td className="px-4 py-3 text-sm text-gray-900 text-right">{poste.depense.toLocaleString()} FCA</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 text-right">{poste.budget.toLocaleString()} FCFA</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 text-right">{poste.depense.toLocaleString()} FCFA</td>
                     <td className={`px-4 py-3 text-sm text-right font-medium ${ecart >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {ecart.toLocaleString()} FCA
+                      {ecart.toLocaleString()} FCFA
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
@@ -181,10 +181,10 @@ export default function BudgetSuiviPage() {
             <tfoot className="bg-gray-50 border-t border-gray-200">
               <tr>
                 <td className="px-4 py-3 text-sm font-bold text-gray-900">TOTAL</td>
-                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">{totalBudget.toLocaleString()} FCA</td>
-                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">{totalDepense.toLocaleString()} FCA</td>
+                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">{totalBudget.toLocaleString()} FCFA</td>
+                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right">{totalDepense.toLocaleString()} FCFA</td>
                 <td className={`px-4 py-3 text-sm font-bold text-right ${totalEcarts >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {totalEcarts.toLocaleString()} FCA
+                  {totalEcarts.toLocaleString()} FCFA
                 </td>
                 <td className="px-4 py-3 text-center">
                   <span className="text-sm font-bold text-teal-600">{tauxExecution}%</span>

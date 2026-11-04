@@ -39,6 +39,9 @@ export const env = {
   portalOtpDeliveryMode: (process.env.PORTAL_OTP_DELIVERY_MODE || 'dev').trim().toLowerCase(),
   portalOtpWebhookUrl: (process.env.PORTAL_OTP_WEBHOOK_URL || '').trim(),
   portalOtpWebhookToken: (process.env.PORTAL_OTP_WEBHOOK_TOKEN || '').trim(),
+  // Paiement en ligne du portail : simulé, sans opérateur (Wave, Orange Money) qui confirme l'encaissement.
+  // Jamais activé en production, sinon un citoyen pourrait marquer ses taxes payées sans payer.
+  portalOnlinePayments: process.env.NODE_ENV !== 'production' && process.env.PORTAL_ONLINE_PAYMENTS !== 'false',
   metricsBearerToken: (process.env.METRICS_BEARER_TOKEN || '').trim(),
   enableApiDocs: process.env.ENABLE_API_DOCS === 'true' || process.env.NODE_ENV !== 'production',
   enableMetrics: process.env.ENABLE_METRICS === 'true' || process.env.NODE_ENV !== 'production',

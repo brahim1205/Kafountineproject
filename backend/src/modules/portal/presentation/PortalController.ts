@@ -1,3 +1,5 @@
+import { ok } from '../../../shared/http/response';
+import { portalPaymentsAvailability } from '../application/portalPayments';
 import type { Request, Response } from 'express';
 import type { AuthRequest } from '../../../shared/types/AuthRequest';
 import { ForbiddenError } from '../../../shared/errors/AppError';
@@ -81,6 +83,10 @@ export class PortalController {
     }
 
     return res.json(await this.getPortalTransactionsUseCase.execute(String(req.params.id)));
+  }
+
+  paymentAvailability(_req: AuthRequest, res: Response) {
+    return ok(res, portalPaymentsAvailability());
   }
 
   async initiatePayment(req: AuthRequest, res: Response) {

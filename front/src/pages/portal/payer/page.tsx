@@ -22,6 +22,15 @@ export default function PortalPayer() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
   const [phone, setPhone] = useState('');
   const [step, setStep] = useState<'select' | 'payment' | 'confirm'>('select');
+  // null : disponibilité en cours de vérification. Désactivé tant qu'aucun opérateur ne confirme les encaissements.
+  const [onlinePayment, setOnlinePayment] = useState<{ enabled: boolean; message: string | null } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/v1/portal/payment/availability', { credentials: 'include' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((json) => setOnlinePayment(json?.data ?? { enabled: false, message: null }))
+      .catch(() => setOnlinePayment({ enabled: false, message: null }));
+  }, []);
 
   // Vérifier le statut du paiement après retour de Wave/Orange
   useEffect(() => {
@@ -191,6 +200,49 @@ export default function PortalPayer() {
             Retour au tableau de bord
           </Link>
         </div>
+      </div>
+    );
+  }
+
+  if (onlinePayment && !onlinePayment.enabled) {
+    const totalDu = taxes.reduce((sum, tax) => sum + tax.montant, 0);
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-teal-600 text-white">
+          <div className="max-w-2xl mx-auto px-4 py-4">
+            <Link to="/portal/dashboard" className="flex items-center gap-2 text-white">
+              <i className="ri-arrow-left-line"></i>
+              Retour
+            </Link>
+          </div>
+        </header>
+        <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+          <h1 className="text-2xl font-bold text-gray-900">Mes taxes à payer</h1>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 flex gap-3">
+            <i className="ri-information-line text-xl"></i>
+            <p>{onlinePayment.message || "Le paiement en ligne n'est pas encore disponible. Réglez vos taxes au guichet de la mairie."}</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            {taxes.length === 0 ? (
+              <p className="p-6 text-center text-sm text-gray-500">Aucune taxe en attente de paiement.</p>
+            ) : (
+              <ul className="divide-y divide-gray-200">
+                {taxes.map((tax) => (
+                  <li key={tax.id} className="flex items-center justify-between p-4 text-sm">
+                    <span className="text-gray-900">
+                      {tax.type} — {tax.annee}
+                    </span>
+                    <span className="font-semibold text-gray-900">{tax.montant.toLocaleString('fr-FR')} FCFA</span>
+                  </li>
+                ))}
+                <li className="flex items-center justify-between p-4 text-sm bg-gray-50">
+                  <span className="font-medium text-gray-700">Total dû</span>
+                  <span className="font-bold text-teal-700">{totalDu.toLocaleString('fr-FR')} FCFA</span>
+                </li>
+              </ul>
+            )}
+          </div>
+        </main>
       </div>
     );
   }

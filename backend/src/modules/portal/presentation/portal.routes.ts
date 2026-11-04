@@ -243,6 +243,7 @@ export function buildPortalRoutes(controller: PortalController) {
   router.post('/auth/logout', authenticatePortal, asyncHandler((req, res) => controller.logout(req, res)));
   router.get('/contribuable/:id/taxes', authenticatePortal, asyncHandler((req, res) => controller.listTaxes(req, res)));
   router.get('/contribuable/:id/transactions', authenticatePortal, asyncHandler((req, res) => controller.listTransactions(req, res)));
+  router.get('/payment/availability', authenticatePortal, (req, res) => controller.paymentAvailability(req as never, res));
   router.post('/payment/initiate', authenticatePortal, portalPaymentRateLimit, validate(portalPaymentInitiateSchema), asyncHandler((req, res) => controller.initiatePayment(req as never, res)));
   router.post('/payment/confirm', authenticatePortal, portalPaymentRateLimit, validate(portalPaymentConfirmSchema), asyncHandler((req, res) => controller.confirmPayment(req as never, res)));
   router.get('/recu/:id', authenticatePortal, asyncHandler((req, res) => controller.getReceipt(req as never, res)));

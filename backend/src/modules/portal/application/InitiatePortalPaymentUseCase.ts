@@ -1,3 +1,4 @@
+import { assertPortalPaymentsEnabled } from './portalPayments';
 import { randomUUID } from 'node:crypto';
 import { NotFoundError, ValidationError, ConflictError } from '../../../shared/errors/AppError';
 import { env } from '../../../shared/config/env';
@@ -31,6 +32,7 @@ export class InitiatePortalPaymentUseCase {
     taxes?: string[];
     categorie?: string;
   }, contribuableId: string) {
+    assertPortalPaymentsEnabled();
     const taxIds = Array.isArray(input.taxes) ? input.taxes.filter(Boolean) : [];
     if (taxIds.length === 0) {
       throw new ValidationError('Veuillez sélectionner au moins une taxe à payer');

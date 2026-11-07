@@ -97,6 +97,27 @@ jobs:
           run-id: ${{ steps.backup-run.outputs.run_id }}
           github-token: ${{ github.token }}
           path: restore
+      # Sauvegardes chiffrées par backup.yml (.dump.age) : déchiffrées ici avec la clé privée age.
+      - name: Decrypt backup
+        if: startsWith(inputs.action, 'restore-')
+        env:
+          AGE_IDENTITY: ${{ secrets.BACKUP_AGE_IDENTITY }}
+        run: |
+          set -euo pipefail
+          mapfile -t encrypted < <(find restore -type f -name '*.dump.age')
+          [[ ${#encrypted[@]} -eq 0 ]] && exit 0
+          if [[ -z "$AGE_IDENTITY" ]]; then
+            echo "::error::Sauvegarde chiffrée : ajoutez le secret BACKUP_AGE_IDENTITY (clé privée age) ou restaurez à la main (RUNBOOK_PRODUCTION.md)."
+            exit 1
+          fi
+          sudo apt-get install -y -qq age >/dev/null
+          umask 077
+          printf '%s\n' "$AGE_IDENTITY" > "$RUNNER_TEMP/age.key"
+          for file in "${encrypted[@]}"; do
+            age -d -i "$RUNNER_TEMP/age.key" -o "${file%.age}" "$file"
+            rm -f "$file"
+          done
+          rm -f "$RUNNER_TEMP/age.key"
       - name: Save current production database and transfer restore file
         if: startsWith(inputs.action, 'restore-')
         run: |

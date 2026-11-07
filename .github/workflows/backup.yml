@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   backup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: production
     timeout-minutes: 30
     env:
@@ -45,15 +45,34 @@ jobs:
           install -d -m 700 backups
           scp "kafontine-production:$APP_DIR/backups/$BACKUP_FILENAME" "backups/$BACKUP_FILENAME"
           test -s "backups/$BACKUP_FILENAME"
+      # La sauvegarde contient des données personnelles (NIN, téléphones) : elle est chiffrée avec age
+      # avant de quitter le serveur. Seule la clé privée, conservée hors de GitHub, permet de la lire
+      # (voir RUNBOOK_PRODUCTION.md, « Sauvegardes chiffrées »).
+      - name: Encrypt backup
+        id: encrypt
+        env:
+          AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$AGE_RECIPIENT" ]]; then
+            echo "::warning::Secret BACKUP_AGE_RECIPIENT absent : la sauvegarde est conservée NON chiffrée. Configurez-le (RUNBOOK_PRODUCTION.md)."
+            echo "file=backups/$BACKUP_FILENAME" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sudo apt-get install -y -qq age >/dev/null
+          age -r "$AGE_RECIPIENT" -o "backups/$BACKUP_FILENAME.age" "backups/$BACKUP_FILENAME"
+          test -s "backups/$BACKUP_FILENAME.age"
+          rm -f "backups/$BACKUP_FILENAME" "backups/$BACKUP_FILENAME.age"
+          echo "file=backups/$BACKUP_FILENAME.age" >> "$GITHUB_OUTPUT"
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact_name || 'database-backup' }}
-          path: backups/${{ env.BACKUP_FILENAME }}
+          path: ${{ steps.encrypt.outputs.file }}
           if-no-files-found: error
           retention-days: 30
       - name: Remove temporary credentials and dump
         if: always()
         run: |
           rm -f ~/.ssh/kafontine_actions
-          rm -f "backups/$BACKUP_FILENAME"
+          rm -f "backups/$BACKUP_FILENAME" "backups/$BACKUP_FILENAME.age"

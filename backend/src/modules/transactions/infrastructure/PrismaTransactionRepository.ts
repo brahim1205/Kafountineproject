@@ -12,6 +12,11 @@ import type {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** Agent d'un ticket : tous les champs du compte sauf le mot de passe (haché ou non, il ne sort jamais). */
+const AGENT_PUBLIC = {
+  select: { id: true, email: true, nom: true, prenom: true, role: true, telephone: true, isActive: true, lastLogin: true, createdAt: true, updatedAt: true },
+} as const;
+
 /** « 2026-11-04 » → minuit UTC (heure du Sénégal) ; null si la date est invalide. */
 function parseDay(value?: string) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
@@ -25,7 +30,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
   async search(filters: TransactionFilters) {
     const transactions = await db().transaction.findMany({
       where: this.buildWhere(filters),
-      include: { contribuable: true, agent: true },
+      include: { contribuable: true, agent: AGENT_PUBLIC },
       skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
       orderBy: { createdAt: 'desc' },
@@ -138,7 +143,7 @@ export class PrismaTransactionRepository implements TransactionRepository {
       where: { year },
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: { agent: true },
+      include: { agent: AGENT_PUBLIC },
     });
     return transactions.map((transaction) => this.mapTransaction(transaction));
   }

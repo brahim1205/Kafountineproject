@@ -245,6 +245,13 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(res.body.meta).toMatchObject({ page: 2, limit: 1, total: 3, totalPages: 3, montantPaye: 200 });
     });
 
+    it("n'expose jamais le mot de passe de l'agent d'un ticket", async () => {
+      const res = await agent.get(`/transactions?categorie=${categorie}&year=${year}&limit=3`);
+      expect(res.status).toBe(200);
+      expect(res.body.data[0].agent).toMatchObject({ nom: expect.any(String), prenom: expect.any(String) });
+      for (const ticket of res.body.data) expect(ticket.agent).not.toHaveProperty('password');
+    });
+
     it('filtre par agent et par jour de paiement', async () => {
       const today = new Date().toISOString().slice(0, 10);
       const me = (await agent.get('/auth/me')).body.data;

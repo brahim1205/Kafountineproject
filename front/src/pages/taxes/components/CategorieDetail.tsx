@@ -5,7 +5,7 @@ import DashboardLayout from '../../../components/feature/DashboardLayout';
 import Pagination from '../../../components/feature/Pagination';
 import { getTaxCategories, getTransactions, getTaxServices, type TaxCategory, type TransactionItem, type TaxService } from '../../../services/taxes';
 import RecuPDF from '../../../components/feature/RecuPDF';
-import { getStoredUserRole } from '../../../services/auth';
+import { getStoredUserRole, canWriteData } from '../../../services/auth';
 
 /** Tickets par page : recherche, période et totaux sont calculés par le serveur sur toute la catégorie. */
 const PAGE_SIZE = 50;
@@ -220,7 +220,7 @@ export default function CategorieDetail() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Historique des transactions</h2>
-              {userRole !== 'super_admin' && isCurrentYear && (
+              {userRole !== 'super_admin' && canWriteData(userRole) && isCurrentYear && (
                 <button
                   onClick={() => navigate('/taxes/nouvelle-transaction', { state: { categorieId } })}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap"

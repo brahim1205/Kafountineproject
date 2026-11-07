@@ -129,6 +129,14 @@ export function getStoredUserRole(): UiRole | null {
   return readStoredSession()?.userRole || null;
 }
 
+/** Rôles en consultation seule : l'administrateur voit tout ce que son rôle permet, sans rien modifier (même règle que l'API). */
+const READ_ONLY_ROLES: ReadonlySet<UiRole> = new Set<UiRole>(['admin']);
+
+/** Le rôle (par défaut celui de la session) peut-il créer, modifier ou supprimer des données ? */
+export function canWriteData(role: UiRole | null = getStoredUserRole()): boolean {
+  return !!role && !READ_ONLY_ROLES.has(role);
+}
+
 export function getStoredUserName(): string {
   return readStoredSession()?.userName || '';
 }

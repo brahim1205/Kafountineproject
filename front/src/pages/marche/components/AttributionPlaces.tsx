@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listPlacesMarche } from '../../../services/marche';
-import { getStoredUserRole } from '../../../services/auth';
+import { getStoredUserRole, canWriteData } from '../../../services/auth';
 import { useYear } from '../../../contexts/YearContext';
 import PlacesTable from './places/PlacesTable';
 import PlaceDetailModal from './places/PlaceDetailModal';
@@ -14,7 +14,7 @@ export default function AttributionPlaces() {
   const { selectedYear } = useYear();
   const isCurrentYear = selectedYear === new Date().getFullYear();
   const userRole = getStoredUserRole() || 'admin';
-  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && isCurrentYear;
+  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && canWriteData(userRole) && isCurrentYear;
 
   const [places, setPlaces] = useState<UiPlace[]>([]);
   const [modal, setModal] = useState<Modal>(null);

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { canWriteData } from '../../services/auth';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import { createUser, deleteUser, listUsers, updateUser } from '../../services/users';
 import { useYear } from '../../contexts/YearContext';
@@ -152,7 +153,7 @@ export default function Utilisateurs() {
             <h1 className="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h1>
             <p className="text-sm text-gray-600 mt-1">Administration des comptes et des rôles</p>
           </div>
-          {isCurrentYear && (
+          {isCurrentYear && canWriteData() && (
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"

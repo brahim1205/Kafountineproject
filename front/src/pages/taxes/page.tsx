@@ -16,7 +16,8 @@ export default function TaxesPage() {
   const currentYear = new Date().getFullYear();
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole();
-  const canManage = (userRole === 'admin' || userRole === 'agent') && isCurrentYear;
+  // L'administrateur est en consultation seule.
+  const canManage = userRole === 'agent' && isCurrentYear;
   // Même règle que l'API : les statistiques globales sont réservées à l'encadrement et aux finances.
   const canSeeStats = userRole === 'admin' || userRole === 'super_admin' || userRole === 'comptable' || userRole === 'service_finances';
   const [periode, setPeriode] = useState<'aujourdhui' | 'mois' | 'annee'>('annee');

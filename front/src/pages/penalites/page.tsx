@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import { getPenalites, type Penalite } from '../../services/settings';
-import { getStoredUserName } from '../../services/auth';
+import { canWriteData, getStoredUserName } from '../../services/auth';
 import { createTransaction } from '../../services/taxes';
 import RecuPDF from '../../components/feature/RecuPDF';
 import ContribuableSelect, { requireSelectedContribuable } from '../../components/feature/ContribuableSelect';
@@ -10,6 +10,8 @@ import { clearFieldValidationError, getErrorMessage, validateFormElement } from 
 const INPUT_CLASS = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500';
 
 export default function Penalites() {
+  // L'administrateur est en consultation seule : il voit les pénalités sans les appliquer.
+  const canApply = canWriteData();
   const [penalites, setPenalites] = useState<Penalite[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -186,6 +188,7 @@ export default function Penalites() {
                         <span className="text-sm text-gray-600">{penalite.delai}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {canApply && (
                         <button
                           onClick={() => {
                             setSelectedPenalite(penalite);
@@ -196,6 +199,7 @@ export default function Penalites() {
                           <i className="ri-hand-coin-line"></i>
                           Appliquer
                         </button>
+                        )}
                       </td>
                     </tr>
                   ))}

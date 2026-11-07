@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { canWriteData } from '../../services/auth';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import {
   deletePenalite,
@@ -36,6 +37,8 @@ const TABS: Array<{ id: Tab; label: string; icon: string }> = [
 const errorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback);
 
 export default function Parametres() {
+  // Administrateur : consultation des paramètres, sans modification (même règle que l'API).
+  const readOnly = !canWriteData();
   const [activeTab, setActiveTab] = useState<Tab>('tarifs');
   const [modal, setModal] = useState<ModalState>(null);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
@@ -164,6 +167,7 @@ export default function Parametres() {
                     onAdd={() => setModal({ type: 'tarif' })}
                     onEdit={(tarif) => setModal({ type: 'tarif', tarif })}
                     onDelete={supprimerTarif}
+                    readOnly={readOnly}
                   />
                 )}
                 {activeTab === 'penalites' && (
@@ -173,12 +177,13 @@ export default function Parametres() {
                     onEdit={(penalite) => setModal({ type: 'penalite', penalite })}
                     onToggle={basculerPenalite}
                     onDelete={supprimerPenalite}
+                    readOnly={readOnly}
                   />
                 )}
                 {activeTab === 'permissions' && (
-                  <PermissionsTab permissions={permissions} onSaved={afterChange} onError={showError} />
+                  <PermissionsTab permissions={permissions} onSaved={afterChange} onError={showError} readOnly={readOnly} />
                 )}
-                {activeTab === 'sauvegarde' && <SauvegardeTab backups={backups} onChanged={afterChange} onError={showError} />}
+                {activeTab === 'sauvegarde' && <SauvegardeTab backups={backups} onChanged={afterChange} onError={showError} readOnly={readOnly} />}
               </>
             )}
           </div>

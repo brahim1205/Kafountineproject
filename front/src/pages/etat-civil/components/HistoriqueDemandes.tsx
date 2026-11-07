@@ -218,7 +218,7 @@ export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: nu
                       >
                         <i className="ri-eye-line"></i>
                       </button>
-                      {(userRole === 'admin' || userRole === 'super_admin') ? (
+                      {userRole === 'super_admin' ? (
                         <button 
                           onClick={() => handleEdit(demande)}
                           className="w-8 h-8 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"

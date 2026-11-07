@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useYear } from '../../../contexts/YearContext';
 import { useToast } from '../../../components/feature/Toast';
 import { apiRequest } from '../../../services/api';
-import { getStoredUserName, getStoredUserRole } from '../../../services/auth';
+import { getStoredUserName, getStoredUserRole, canWriteData } from '../../../services/auth';
 import {
   clearFieldValidationError,
   validateFormElement,
@@ -46,12 +46,15 @@ export default function ServiceFinancesDashboard() {
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole() || 'service_finances';
   const userName = getStoredUserName() || 'Service des Finances';
-  // Même règle que l'API (PUT /budget/demandes/:id) : séparation des tâches, seuls les admins tranchent les demandes.
-  const canDecide = userRole === 'admin' || userRole === 'super_admin';
+  // Même règle que l'API (PUT /budget/demandes/:id) : séparation des tâches, le super admin tranche les demandes.
+  const canDecide = userRole === 'super_admin';
+  // L'administrateur consulte le budget et les demandes sans rien modifier.
+  const canWrite = canWriteData(userRole);
+  const showsDecisions = canDecide || userRole === 'admin';
   const [showModalBudget, setShowModalBudget] = useState(false);
   const [showModalDepense, setShowModalDepense] = useState(false);
   // Les admins viennent ici pour trancher les demandes : on ouvre directement cet onglet.
-  const [activeTab, setActiveTab] = useState<'budget' | 'depenses'>(canDecide ? 'depenses' : 'budget');
+  const [activeTab, setActiveTab] = useState<'budget' | 'depenses'>(showsDecisions ? 'depenses' : 'budget');
   const [newLigneBudget, setNewLigneBudget] = useState({ code: '', libelle: '', prevu: 0 });
   const [newDepense, setNewDepense] = useState({ service: '', description: '', montant: 0 });
   const [budgetPrevisionnel, setBudgetPrevisionnel] = useState<LigneBudgetaire[]>([]);
@@ -180,7 +183,7 @@ export default function ServiceFinancesDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {canDecide ? 'Budget et demandes de dépense' : `Bonjour, ${userName.split(' ')[0]} — Service des Finances 👋`}
+            {showsDecisions ? 'Budget et demandes de dépense' : `Bonjour, ${userName.split(' ')[0]} — Service des Finances 👋`}
           </h1>
           <p className="text-sm text-gray-600 mt-1">Gestion du budget et des dépenses</p>
         </div>
@@ -191,7 +194,7 @@ export default function ServiceFinancesDashboard() {
             <span className="text-sm font-medium">Année {selectedYear} - Consultation seule</span>
           </div>
         )}
-        {isCurrentYear && (
+        {isCurrentYear && canWrite && (
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowModalBudget(true)}

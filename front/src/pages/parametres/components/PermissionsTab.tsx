@@ -15,9 +15,11 @@ type PermissionsTabProps = {
   permissions: Permission[];
   onSaved: (message: string) => void;
   onError: (message: string) => void;
+  /** Consultation seule (administrateur). */
+  readOnly?: boolean;
 };
 
-export default function PermissionsTab({ permissions, onSaved, onError }: PermissionsTabProps) {
+export default function PermissionsTab({ permissions, onSaved, onError, readOnly = false }: PermissionsTabProps) {
   const [draft, setDraft] = useState(permissions);
   const [saving, setSaving] = useState(false);
 
@@ -55,10 +57,12 @@ export default function PermissionsTab({ permissions, onSaved, onError }: Permis
       <SectionHeader
         title="Gestion des permissions granulaires par rôle et module"
         action={
-          <button onClick={save} disabled={saving || changes.length === 0} className={PRIMARY_BUTTON}>
-            <i className="ri-save-line"></i>
-            {saving ? 'Enregistrement...' : `Enregistrer les permissions${changes.length ? ` (${changes.length})` : ''}`}
-          </button>
+          readOnly ? null : (
+            <button onClick={save} disabled={saving || changes.length === 0} className={PRIMARY_BUTTON}>
+              <i className="ri-save-line"></i>
+              {saving ? 'Enregistrement...' : `Enregistrer les permissions${changes.length ? ` (${changes.length})` : ''}`}
+            </button>
+          )
         }
       />
       <div className="overflow-x-auto">
@@ -81,6 +85,7 @@ export default function PermissionsTab({ permissions, onSaved, onError }: Permis
                       type="checkbox"
                       checked={perm[role.key]}
                       onChange={() => toggle(index, role.key)}
+                      disabled={readOnly}
                       aria-label={`${role.label} — ${perm.module}`}
                       className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
                     />

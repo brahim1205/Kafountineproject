@@ -5,6 +5,7 @@ import type { NumeroSequence } from '../domain/NumeroSequence';
 
 export const agent: Actor = { userId: 'user-agent', role: 'AGENT', ipAddress: '127.0.0.1' };
 export const admin: Actor = { userId: 'user-admin', role: 'ADMIN', ipAddress: '127.0.0.1' };
+export const superAdmin: Actor = { userId: 'user-superadmin', role: 'SUPER_ADMIN', ipAddress: '127.0.0.1' };
 
 export function fakeAuditTrail(): jest.Mocked<AuditTrail> {
   return { record: jest.fn().mockResolvedValue(undefined) };

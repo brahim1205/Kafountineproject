@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { canWriteData } from '../../services/auth';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import TraiterDemande from './components/TraiterDemande';
 import HistoriqueDemandes from './components/HistoriqueDemandes';
@@ -19,6 +20,7 @@ export default function EtatCivilPage() {
             <h1 className="text-2xl font-bold text-gray-900">État Civil</h1>
             <p className="text-sm text-gray-600 mt-1">Traitement des demandes et génération de documents</p>
           </div>
+          {canWriteData() && (
           <button
             onClick={() => setShowNouvelleDemande(true)}
             className="px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 whitespace-nowrap"
@@ -26,6 +28,7 @@ export default function EtatCivilPage() {
             <i className="ri-add-line"></i>
             Nouvelle demande
           </button>
+          )}
         </div>
 
         {/* Onglets */}

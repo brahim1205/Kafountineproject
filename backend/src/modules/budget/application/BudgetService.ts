@@ -21,7 +21,8 @@ export type BudgetRequestInput = {
 };
 
 /** Séparation des tâches : le service qui engage la dépense ne la valide pas lui-même. */
-const DECISION_ROLES = new Set(['ADMIN', 'SUPER_ADMIN']);
+// L'administrateur est en consultation seule : la décision revient au super administrateur.
+const DECISION_ROLES = new Set(['SUPER_ADMIN']);
 const DECISION_STATUSES = new Set(['APPROUVE', 'REJETE']);
 
 export class BudgetService {
@@ -199,7 +200,7 @@ export class BudgetService {
         throw new ValidationError('Statut de demande inconnu.');
       }
       if (!DECISION_ROLES.has(String(actor.role || '').toUpperCase())) {
-        throw new ForbiddenError("Seul l'administrateur peut approuver ou rejeter une demande de dépense.");
+        throw new ForbiddenError("Seul le super administrateur peut approuver ou rejeter une demande de dépense.");
       }
     }
     if (DECISION_STATUSES.has(existing.statut) && (input.montant !== undefined && montant !== existing.montant)) {

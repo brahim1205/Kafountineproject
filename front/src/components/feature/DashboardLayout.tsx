@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useYear, AVAILABLE_YEARS } from '../../contexts/YearContext';
 import NotificationPanel from './NotificationPanel';
-import { logoutRequest, clearSession, getStoredUserInitials, getStoredUserName, getStoredUserRole } from '../../services/auth';
+import { canWriteData, logoutRequest, clearSession, getStoredUserInitials, getStoredUserName, getStoredUserRole } from '../../services/auth';
 import { listContribuables, type Contribuable } from '../../services/contribuables';
 import { getTransactions, type TransactionItem } from '../../services/taxes';
 import { listNotifications } from '../../services/notifications';
+import { FEATURES } from '../../config/features';
 
 type UserRole = 'admin' | 'super_admin' | 'agent' | 'comptable' | 'service_finances' | 'quai_peche';
 
@@ -21,7 +22,7 @@ const allMenuItems = [
   { path: '/contribuables', icon: 'ri-user-line', label: 'Contribuables', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
   { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'comptable', 'service_finances'] },
   { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
-  { path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent'] },
+  ...(FEATURES.formations ? [{ path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent'] }] : []),
   { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
   { path: '/etat-civil', icon: 'ri-file-text-line', label: 'État Civil', roles: ['admin', 'super_admin', 'agent'] },
   { path: '/urbanisme', icon: 'ri-building-line', label: 'Urbanisme', roles: ['admin', 'super_admin', 'agent'] },
@@ -31,7 +32,6 @@ const allMenuItems = [
   { path: '/budget-suivi', icon: 'ri-wallet-3-line', label: 'Suivi Budgétaire', roles: ['comptable', 'service_finances'] },
   { path: '/gestion-budget', icon: 'ri-money-dollar-circle-line', label: 'Gestion Budget', roles: ['service_finances'] },
   { path: '/service-finances', icon: 'ri-bank-card-line', label: 'Budget & dépenses', roles: ['admin', 'super_admin'] },
-  { path: '/rapports', icon: 'ri-bar-chart-box-line', label: 'Rapports', roles: ['admin', 'super_admin'] },
   { path: '/audit', icon: 'ri-file-list-3-line', label: 'Journal Audit', roles: ['super_admin'] },
 ];
 
@@ -313,7 +313,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         ) : null}
       </div>
 
-      <nav className="space-y-1 overflow-y-auto p-4" style={{ height: 'calc(100vh - 64px)' }}>
+      <nav className="space-y-1 overflow-y-auto no-scrollbar p-4" style={{ height: 'calc(100vh - 64px)' }}>
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
 
@@ -336,19 +336,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </Link>
           );
         })}
-
-        {/* Version Badge */}
-        <div className={`mt-8 pt-4 border-t border-gray-100 ${!expanded ? 'text-center' : 'px-3'}`}>
-          <div className={`inline-flex items-center gap-2 px-2 py-1 bg-gray-50 rounded-md border border-gray-100 ${!expanded ? 'justify-center' : ''}`}>
-            <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse"></div>
-            {expanded && (
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Version 2.0.0</span>
-            )}
-            {!expanded && (
-              <span className="text-[10px] font-black text-gray-400">V2</span>
-            )}
-          </div>
-        </div>
       </nav>
     </>
   );
@@ -501,7 +488,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
                 <div className="hidden text-left sm:block">
                   <p className="text-sm font-medium text-gray-900">{userName}</p>
-                  <p className="text-xs text-gray-600">{roleLabels[userRole]}</p>
+                  <p className="text-xs text-gray-600">
+                    {roleLabels[userRole]}
+                    {!canWriteData(userRole) && ' · consultation'}
+                  </p>
                 </div>
                 <i className="ri-arrow-down-s-line text-gray-600"></i>
               </button>
@@ -518,14 +508,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       <i className="ri-user-line text-lg"></i>
                       Mon profil
                     </Link>
-                    <Link
-                      to="/audit"
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <i className="ri-file-list-3-line text-lg"></i>
-                      Journal Audit
-                    </Link>
+                    {userRole === 'super_admin' && (
+                      <Link
+                        to="/audit"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <i className="ri-file-list-3-line text-lg"></i>
+                        Journal Audit
+                      </Link>
+                    )}
+                    {(userRole === 'admin' || userRole === 'super_admin') && (
+                      <Link
+                        to="/rapports"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <i className="ri-bar-chart-box-line text-lg"></i>
+                        Rapports
+                      </Link>
+                    )}
                     <hr className="my-2 border-gray-200" />
                     <button
                       type="button"

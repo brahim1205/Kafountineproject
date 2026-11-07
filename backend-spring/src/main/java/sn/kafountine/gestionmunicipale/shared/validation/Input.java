@@ -535,6 +535,11 @@ public final class Input {
     }
   }
 
+  /** Number(valeur) de JavaScript. */
+  public static double jsNumber(JsonNode raw) {
+    return Num.coerce(raw);
+  }
+
   // --- Aides de conversion ----------------------------------------------------------------------
 
   /** new Date(chaîne) de JavaScript (voir Js.parseDate) ; null si la date est invalide. */

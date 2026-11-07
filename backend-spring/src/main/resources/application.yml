@@ -1,52 +1,35 @@
+# Configuration lue à partir des MÊMES variables d'environnement que le backend Node
+# (DATABASE_URL, REDIS_URL, JWT_SECRET…) : voir shared/config/Env.java.
 server:
-  port: ${PORT:3001}
-
-debug: false
+  port: ${PORT:3000}
+  forward-headers-strategy: none
+  error:
+    whitelabel:
+      enabled: false
 
 spring:
   application:
     name: kafountine-backend-spring
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5434/kafountine}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres123}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-    properties:
-      hibernate:
-        physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-        jdbc:
-          time_zone: UTC
-  data:
-    redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6380}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-
-app:
-  jwt:
-    secret: ${JWT_SECRET:local-dev-jwt-secret-not-for-production}
-    refresh-secret: ${JWT_REFRESH_SECRET:local-dev-refresh-secret-not-for-production}
-    expires-in-seconds: ${JWT_EXPIRES_IN_SECONDS:86400}
-    refresh-expires-in-seconds: ${JWT_REFRESH_EXPIRES_IN_SECONDS:604800}
-  cors-origins: ${CORS_ORIGIN:http://localhost:5173,http://127.0.0.1:5173}
-  cookie-secure: ${COOKIE_SECURE:false}
-  portal-url: ${PORTAL_URL:http://127.0.0.1:5173}
-  service-name: kafountine-backend-spring
+  main:
+    banner-mode: off
+  jackson:
+    default-property-inclusion: always
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 springdoc:
+  api-docs:
+    path: /api-docs/openapi.json
   swagger-ui:
     path: /api-docs
 
 logging:
   level:
     root: INFO
-    org.springframework: INFO
-    org.hibernate.SQL: WARN

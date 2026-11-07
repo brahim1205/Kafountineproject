@@ -32,6 +32,8 @@ public final class Input {
   private final boolean query;
   private final Set<String> declared = new LinkedHashSet<>();
   private final List<Map<String, String>> issues = new ArrayList<>();
+  /** Corps non-objet : Zod s'arrête à l'erreur racine. */
+  private boolean rootFailed;
 
   private Input(ObjectNode node, boolean query) {
     this.node = node;
@@ -43,7 +45,8 @@ public final class Input {
     if (body == null || body.isNull() || body.isMissingNode()) return new Input(JsonNodeFactory.instance.objectNode(), false);
     if (!body.isObject()) {
       Input input = new Input(JsonNodeFactory.instance.objectNode(), false);
-      input.issue("", "Entrée invalide : objet attendu");
+      input.issue("", "Entrée invalide : objet attendu, " + received(body) + " reçu");
+      input.rootFailed = true;
       return input;
     }
     return new Input((ObjectNode) body, false);
@@ -53,7 +56,14 @@ public final class Input {
   public static Input query(Map<String, String[]> parameters) {
     ObjectNode node = JsonNodeFactory.instance.objectNode();
     parameters.forEach((key, values) -> {
-      if (values != null && values.length > 0) node.put(key, values[values.length - 1]);
+      if (values == null || values.length == 0) return;
+      if (values.length == 1) {
+        node.put(key, values[0]);
+      } else {
+        // ?a=1&a=2 donne un tableau côté Express (qs).
+        com.fasterxml.jackson.databind.node.ArrayNode array = node.putArray(key);
+        for (String value : values) array.add(value);
+      }
     });
     return new Input(node, true);
   }
@@ -65,6 +75,7 @@ public final class Input {
   }
 
   void issue(String field, String message) {
+    if (rootFailed) return;
     Map<String, String> issue = new LinkedHashMap<>();
     issue.put("field", field);
     issue.put("message", message);
@@ -115,229 +126,389 @@ public final class Input {
       if (!declared.contains(name)) unknown.add(name);
     });
     if (!unknown.isEmpty()) {
-      issue("", (unknown.size() > 1 ? "Clés non reconnues : " : "Clé non reconnue : ") + String.join(", ", unknown.stream().map(k -> "« " + k + " »").toList()));
+      issue("", (unknown.size() > 1 ? "Clés non reconnues : " : "Clé non reconnue : ") + String.join(", ", unknown.stream().map(k -> "\"" + k + "\"").toList()));
     }
     if (!issues.isEmpty()) throw AppException.validation("Données invalides", issues);
   }
 
   // --- Champs -----------------------------------------------------------------------------------
 
-  /** Chaîne (z.string().trim()…), « » transformé en absent pour les champs optionnels. */
+  /** Nom du type reçu, comme util.parsedType + TypeDictionary du locale fr de Zod. */
+  static String received(JsonNode raw) {
+    if (raw == null || raw.isMissingNode()) return "indéfini";
+    if (raw.isNull()) return "null";
+    if (raw.isTextual()) return "chaîne de caractères";
+    if (raw.isNumber()) return "nombre";
+    if (raw.isBoolean()) return "booléen";
+    if (raw.isArray()) return "tableau";
+    return "objet";
+  }
+
+  /** Nombre affiché comme en JavaScript (100, 0.5). */
+  static String js(double v) {
+    return v == Math.rint(v) && !Double.isInfinite(v) ? Long.toString((long) v) : Double.toString(v);
+  }
+
+  private interface Rule {
+    String test(String value);
+  }
+
+  /**
+   * Chaîne Zod (z.string().trim() puis contrôles). Les contrôles sont évalués à la fin, tous ensemble
+   * comme Zod v4 (un « x » donne à la fois l'erreur de longueur et celle de format) ; une erreur de
+   * type arrête l'évaluation. Terminaisons :
+   * <ul>
+   *   <li>{@link #required()} : champ obligatoire (z.string()…) ;</li>
+   *   <li>{@link #optional()} : optionalTrimmedString (union, « » conservé, null refusé « Entrée invalide ») ;</li>
+   *   <li>{@link #optionalPlain()} : trimmedString(…).optional() (erreur de type détaillée) ;</li>
+   *   <li>{@link #optionalOrEmpty()} : union avec z.literal('') transformé en absent.</li>
+   * </ul>
+   */
   public static final class Str {
     private final Input input;
     private final String key;
-    private String value;
+    private final JsonNode raw;
+    private final List<Rule> rules = new ArrayList<>();
+    /** Contrôles de longueur, que Zod applique aussi à un tableau reçu à la place d'une chaîne. */
+    private final List<java.util.function.IntFunction<String>> lengthRules = new ArrayList<>();
+    private boolean nullable;
+    private boolean lower;
+    private boolean upper;
+    private boolean trim = true;
+    private String[] allowed;
+    private boolean nullValue;
     private boolean present;
-    private boolean failed;
-    private boolean emptyAsAbsent = true;
 
     Str(Input input, String key) {
       this.input = input;
       this.key = key;
-      JsonNode raw = input.raw(key);
-      if (raw == null || raw.isNull()) return;
-      present = true;
-      if (raw.isTextual()) {
-        value = raw.asText().trim();
-      } else if (input.query && (raw.isNumber() || raw.isBoolean())) {
-        value = raw.asText();
-      } else {
-        fail("Entrée invalide : chaîne attendue");
-      }
+      this.raw = input.raw(key);
+      present = raw != null;
+      nullValue = raw != null && raw.isNull();
     }
 
-    private void fail(String message) {
-      if (!failed) input.issue(key, message);
-      failed = true;
-    }
-
-    private boolean active() {
-      return present && !failed && value != null && !(emptyAsAbsent && value.isEmpty() && optionalEmpty);
-    }
-
-    private boolean optionalEmpty = false;
-
-    /** Longueur minimale (une chaîne vide n'est permise que pour les champs optionnels). */
-    public Str min(int min, String message) {
-      if (present && !failed && value != null && value.length() < min) fail(message);
+    /** Accepte null (z.string().nullable()). */
+    public Str nullable() {
+      nullable = true;
       return this;
     }
 
+    /** null explicitement reçu. */
+    public boolean isNull() {
+      return nullValue;
+    }
+
+    /** Pas de .trim() dans le schéma. */
+    public Str noTrim() {
+      trim = false;
+      return this;
+    }
+
+    public Str min(int min, String message) {
+      java.util.function.IntFunction<String> rule = n -> n < min ? (message != null ? message : "Trop petit : chaîne de caractères doit avoir >=" + min + " caractères") : null;
+      lengthRules.add(rule);
+      rules.add(v -> rule.apply(v.length()));
+      return this;
+    }
+
+    public Str min(int min) {
+      return min(min, null);
+    }
+
     public Str max(int max, String message) {
-      if (present && !failed && value != null && value.length() > max) fail(message + " (max " + max + ")");
+      java.util.function.IntFunction<String> rule = n -> n > max ? (message != null ? message : "Trop grand : chaîne de caractères doit avoir <=" + max + " caractères") : null;
+      lengthRules.add(rule);
+      rules.add(v -> rule.apply(v.length()));
       return this;
     }
 
     public Str max(int max) {
-      if (present && !failed && value != null && value.length() > max) fail("Trop grand : " + max + " caractère(s) au plus");
-      return this;
+      return max(max, null);
+    }
+
+    /** trimmedString(min, max, message) de sanitizers.ts. */
+    public Str trimmed(int min, int max, String message) {
+      return min(min, message).max(max, message + " (max " + max + ")");
     }
 
     public Str email(String message) {
-      if (present && !failed && value != null && !EMAIL.matcher(value).matches()) fail(message);
+      rules.add(v -> EMAIL.matcher(v).matches() ? null : (message != null ? message : "adresse e-mail invalide"));
       return this;
     }
 
     public Str uuid(String message) {
-      if (present && !failed && value != null && !UUID.matcher(value).matches()) fail(message);
+      rules.add(v -> UUID.matcher(v).matches() ? null : (message != null ? message : "UUID invalide"));
       return this;
     }
 
     public Str pattern(String regex, String message) {
-      if (present && !failed && value != null && !Pattern.compile(regex).matcher(value).matches()) fail(message);
+      Pattern compiled = Pattern.compile(regex);
+      rules.add(v -> compiled.matcher(v).find() ? null : (message != null ? message : "Chaîne de caractères invalide : doit correspondre au motif /" + regex + "/"));
       return this;
     }
 
-    public Str oneOf(String... allowed) {
-      if (present && !failed && value != null && !Arrays.asList(allowed).contains(value)) {
-        fail("Option invalide : une valeur parmi " + String.join("|", Arrays.stream(allowed).map(a -> "\"" + a + "\"").toList()) + " attendue");
-      }
+    /** .refine(prédicat, message) : évalué après les autres contrôles, comme Zod. */
+    public Str refine(java.util.function.Predicate<String> ok, String message) {
+      rules.add(v -> ok.test(v) ? null : message);
+      return this;
+    }
+
+    /** z.enum([...]) : toute autre valeur, même absente ou d'un autre type, donne « Option invalide ». */
+    public Str oneOf(String... values) {
+      allowed = values;
       return this;
     }
 
     public Str lower() {
-      if (value != null) value = value.toLowerCase(Locale.ROOT);
+      lower = true;
       return this;
     }
 
     public Str upper() {
-      if (value != null) value = value.toUpperCase(Locale.ROOT);
+      upper = true;
       return this;
     }
 
-    /** Champ obligatoire ; null si invalide (l'erreur est déjà enregistrée). */
-    public String required(String message) {
-      if (!present) {
-        fail(message == null ? "Entrée invalide : chaîne attendue, reçu undefined" : message);
+    private String enumMessage() {
+      return "Option invalide : une valeur parmi " + String.join("|", Arrays.stream(allowed).map(a -> "\"" + a + "\"").toList()) + " attendue";
+    }
+
+    private String transform(String value) {
+      if (lower) value = value.toLowerCase(Locale.ROOT);
+      if (upper) value = value.toUpperCase(Locale.ROOT);
+      return value;
+    }
+
+    /** Évalue la valeur présente ; null si une erreur a été enregistrée. */
+    private String evaluate(boolean union) {
+      if (allowed != null) {
+        if (raw != null && raw.isTextual() && Arrays.asList(allowed).contains(raw.asText())) return raw.asText();
+        input.issue(key, enumMessage());
         return null;
       }
-      return failed ? null : value;
+      if (!raw.isTextual()) {
+        input.issue(key, union ? "Entrée invalide" : "Entrée invalide : chaîne de caractères attendu, " + received(raw) + " reçu");
+        if (!union && raw.isArray()) {
+          for (var rule : lengthRules) {
+            String message = rule.apply(raw.size());
+            if (message != null) input.issue(key, message);
+          }
+        }
+        return null;
+      }
+      String value = trim ? raw.asText().strip() : raw.asText();
+      boolean ok = true;
+      for (Rule rule : rules) {
+        String message = rule.test(value);
+        if (message != null) {
+          input.issue(key, message);
+          ok = false;
+        }
+      }
+      return ok ? transform(value) : null;
     }
 
-    /** Champ optionnel (optionalTrimmedString) : absent, null ou « » donnent null. */
+    public String required() {
+      if (nullValue && nullable) return null;
+      if (!present && allowed == null) {
+        input.issue(key, "Entrée invalide : chaîne de caractères attendu, indéfini reçu");
+        return null;
+      }
+      if (!present) {
+        input.issue(key, enumMessage());
+        return null;
+      }
+      return evaluate(false);
+    }
+
+    /** optionalTrimmedString (ou z.enum(...).optional()) : absent donne null, « » reste « ». */
     public String optional() {
-      if (!present || failed || value == null || value.isEmpty()) return null;
-      return value;
+      if (!present) return null;
+      if (nullValue && nullable) return null;
+      return evaluate(allowed == null);
     }
 
-    /** Champ optionnel où « » reste une chaîne vide (z.string().optional()). */
-    public String optionalKeepEmpty() {
-      if (!present || failed) return null;
-      return value;
+    /** trimmedString(...).optional() / z.string().optional() : erreurs de type détaillées. */
+    public String optionalPlain() {
+      if (!present) return null;
+      if (nullValue && nullable) return null;
+      return evaluate(false);
+    }
+
+    /** z.union([chaîne contrôlée, z.literal('').transform(() => undefined)]).optional(). */
+    public String optionalOrEmpty() {
+      if (!present) return null;
+      if (raw.isTextual() && raw.asText().isEmpty()) return null;
+      if (!raw.isTextual()) {
+        input.issue(key, "Entrée invalide");
+        return null;
+      }
+      return evaluate(false);
+    }
+
+    /** Champ présent (même vide ou invalide). */
+    public boolean present() {
+      return present;
+    }
+
+    /** Champ présent, chaîne non vide. */
+    public boolean provided() {
+      return present && raw.isTextual() && !raw.asText().strip().isEmpty();
     }
   }
 
-  /** Nombre (z.coerce.number()), avec contrôles entier/min/max. */
+  /** Nombre z.coerce.number() : conversion Number(…) de JavaScript, puis entier/min/max. */
   public static final class Num {
+    private static final Pattern DECIMAL = Pattern.compile("^[+-]?(\\d+\\.?\\d*|\\.\\d+)([eE][+-]?\\d+)?$");
     private final Input input;
     private final String key;
-    private Double value;
-    private boolean present;
-    private boolean failed;
+    private final JsonNode raw;
+    private boolean integer;
+    private final List<java.util.function.DoubleFunction<String>> rules = new ArrayList<>();
 
     Num(Input input, String key) {
       this.input = input;
       this.key = key;
-      JsonNode raw = input.raw(key);
-      if (raw == null || raw.isNull()) return;
-      if (raw.isTextual() && raw.asText().trim().isEmpty() && input.query) return;
-      present = true;
-      if (raw.isNumber()) {
-        value = raw.asDouble();
-      } else if (raw.isTextual()) {
-        try {
-          value = raw.asText().trim().isEmpty() ? 0.0 : Double.parseDouble(raw.asText().trim());
-        } catch (NumberFormatException e) {
-          fail("Entrée invalide : nombre attendu, reçu NaN");
-        }
-      } else if (raw.isBoolean()) {
-        value = raw.asBoolean() ? 1.0 : 0.0;
-      } else {
-        fail("Entrée invalide : nombre attendu");
-      }
-      if (value != null && (value.isNaN() || value.isInfinite())) fail("Entrée invalide : nombre attendu, reçu NaN");
+      this.raw = input.raw(key);
     }
 
-    private void fail(String message) {
-      if (!failed) input.issue(key, message);
-      failed = true;
+    /** Number(x) en JavaScript. */
+    static double coerce(JsonNode raw) {
+      if (raw == null || raw.isMissingNode()) return Double.NaN;
+      if (raw.isNull()) return 0;
+      if (raw.isNumber()) return raw.asDouble();
+      if (raw.isBoolean()) return raw.asBoolean() ? 1 : 0;
+      if (raw.isArray()) {
+        if (raw.size() == 0) return 0;
+        if (raw.size() == 1) return coerce(raw.get(0).isArray() || raw.get(0).isObject() ? raw.get(0) : JsonNodeFactory.instance.textNode(raw.get(0).asText()));
+        return Double.NaN;
+      }
+      if (!raw.isTextual()) return Double.NaN;
+      String s = raw.asText().strip();
+      if (s.isEmpty()) return 0;
+      if (DECIMAL.matcher(s).matches()) return Double.parseDouble(s);
+      if (s.matches("^[+-]?Infinity$")) return s.startsWith("-") ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+      try {
+        if (s.matches("^0[xX][0-9a-fA-F]+$")) return Long.parseLong(s.substring(2), 16);
+        if (s.matches("^0[oO][0-7]+$")) return Long.parseLong(s.substring(2), 8);
+        if (s.matches("^0[bB][01]+$")) return Long.parseLong(s.substring(2), 2);
+      } catch (NumberFormatException e) {
+        return Double.NaN;
+      }
+      return Double.NaN;
     }
 
     public Num integer() {
-      if (present && !failed && value != null && value != Math.rint(value)) fail("Entrée invalide : entier attendu, reçu nombre");
+      integer = true;
       return this;
     }
 
     public Num min(double min, String message) {
-      if (present && !failed && value != null && value < min) fail(message == null ? "Trop petit : >=" + fmt(min) + " attendu" : message);
+      rules.add(v -> v < min ? (message != null ? message : "Trop petit : nombre doit être >=" + js(min)) : null);
       return this;
     }
 
+    public Num min(double min) {
+      return min(min, null);
+    }
+
     public Num positive(String message) {
-      if (present && !failed && value != null && value <= 0) fail(message == null ? "Trop petit : >0 attendu" : message);
+      rules.add(v -> v <= 0 ? (message != null ? message : "Trop petit : nombre doit être >0") : null);
       return this;
     }
 
     public Num max(double max, String message) {
-      if (present && !failed && value != null && value > max) fail(message == null ? "Trop grand : <=" + fmt(max) + " attendu" : message);
+      rules.add(v -> v > max ? (message != null ? message : "Trop grand : nombre doit être <=" + js(max)) : null);
       return this;
     }
 
-    private static String fmt(double v) {
-      return v == Math.rint(v) ? Long.toString((long) v) : Double.toString(v);
+    public Num max(double max) {
+      return max(max, null);
     }
 
-    public Double required(String message) {
-      if (!present) {
-        fail(message == null ? "Entrée invalide : nombre attendu, reçu NaN" : message);
+    private Double evaluate() {
+      double v = coerce(raw);
+      if (Double.isNaN(v)) {
+        input.issue(key, "Entrée invalide : nombre attendu, NaN reçu");
         return null;
       }
-      return failed ? null : value;
+      if (Double.isInfinite(v)) {
+        input.issue(key, "Entrée invalide : nombre attendu, nombre reçu");
+        return null;
+      }
+      if (integer && v != Math.rint(v)) {
+        input.issue(key, "Entrée invalide : entier attendu, nombre reçu");
+        return null;
+      }
+      boolean ok = true;
+      for (var rule : rules) {
+        String message = rule.apply(v);
+        if (message != null) {
+          input.issue(key, message);
+          ok = false;
+        }
+      }
+      return ok ? v : null;
+    }
+
+    public boolean present() {
+      return raw != null;
+    }
+
+    public Double required() {
+      return evaluate();
     }
 
     public Double optional() {
-      return present && !failed ? value : null;
+      return raw == null ? null : evaluate();
     }
 
-    public Double optional(double fallback) {
-      return present && !failed ? value : (failed ? null : fallback);
+    /** .optional().default(fallback) ; en cas d'erreur, la valeur de repli (check() lèvera ensuite). */
+    public double optional(double fallback) {
+      if (raw == null) return fallback;
+      Double v = evaluate();
+      return v == null ? fallback : v;
     }
 
     public Integer optionalInt() {
       Double v = optional();
-      return v == null ? null : v.intValue();
+      return v == null ? null : (int) Math.round(v);
     }
 
-    public Integer optionalInt(int fallback) {
-      Double v = optional(fallback);
-      return v == null ? null : v.intValue();
+    public int optionalInt(int fallback) {
+      return (int) Math.round(optional((double) fallback));
+    }
+
+    public int requiredInt() {
+      Double v = required();
+      return v == null ? 0 : (int) Math.round(v);
     }
   }
 
-  /** Booléen (z.boolean(), ou chaîne « true/false » en paramètre de requête). */
+  /** Booléen z.boolean(). */
   public static final class Bool {
     private final Input input;
     private final String key;
-    private Boolean value;
-    private boolean failed;
+    private final JsonNode raw;
 
     Bool(Input input, String key) {
       this.input = input;
       this.key = key;
-      JsonNode raw = input.raw(key);
-      if (raw == null || raw.isNull()) return;
-      if (raw.isBoolean()) {
-        value = raw.asBoolean();
-      } else if (input.query && raw.isTextual() && (raw.asText().equals("true") || raw.asText().equals("false"))) {
-        value = Boolean.parseBoolean(raw.asText());
-      } else {
-        input.issue(key, "Entrée invalide : booléen attendu");
-        failed = true;
-      }
+      this.raw = input.raw(key);
+    }
+
+    private Boolean evaluate() {
+      if (raw != null && raw.isBoolean()) return raw.asBoolean();
+      input.issue(key, "Entrée invalide : booléen attendu, " + received(raw) + " reçu");
+      return null;
+    }
+
+    public Boolean required() {
+      return evaluate();
     }
 
     public Boolean optional() {
-      return failed ? null : value;
+      return raw == null ? null : evaluate();
     }
   }
 

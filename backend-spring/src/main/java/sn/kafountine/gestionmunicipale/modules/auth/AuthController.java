@@ -40,8 +40,8 @@ public class AuthController {
     String rawEmail = body != null && body.has("email") && body.get("email").isTextual() ? body.get("email").asText() : "";
     rateLimiter.check(request, response, "auth-login", Env.LOGIN_RATE_LIMIT_WINDOW_MS, Env.LOGIN_RATE_LIMIT_MAX, RateLimiter.KeyKind.LOGIN_ATTEMPT, rawEmail);
     Input input = Input.body(body);
-    String email = input.str("email").min(5, "Email invalide").max(254, "Email invalide").email("Email invalide").lower().required("Email invalide");
-    String password = input.str("password").min(8, "Mot de passe invalide").max(128, "Mot de passe invalide").required("Mot de passe invalide");
+    String email = input.str("email").trimmed(5, 254, "Email invalide").email("Email invalide").lower().required();
+    String password = input.str("password").trimmed(8, 128, "Mot de passe invalide").required();
     input.check();
     AuthService.Tokens tokens = auth.login(email, password);
     Cookies.setAuthCookies(response, tokens.accessToken(), tokens.refreshToken());
@@ -53,9 +53,8 @@ public class AuthController {
   @RateLimit(prefix = "auth-change-password", windowMs = 15 * 60 * 1000, max = 5, key = RateLimiter.KeyKind.USER_OR_IP)
   public ResponseEntity<Map<String, Object>> changePassword(@RequestBody(required = false) JsonNode body, HttpServletRequest request) {
     Input input = Input.body(body);
-    String current = input.str("currentPassword").min(1, "Mot de passe actuel requis").max(128, "Mot de passe actuel requis").required("Mot de passe actuel requis");
-    String next = input.str("newPassword").min(12, "Le nouveau mot de passe doit contenir au moins 12 caractères")
-        .max(128, "Le nouveau mot de passe doit contenir au moins 12 caractères").required("Le nouveau mot de passe doit contenir au moins 12 caractères");
+    String current = input.str("currentPassword").trimmed(1, 128, "Mot de passe actuel requis").required();
+    String next = input.str("newPassword").trimmed(12, 128, "Le nouveau mot de passe doit contenir au moins 12 caractères").required();
     input.check();
     AuthUser user = RequestContext.user(request);
     auth.changePassword(user.userId(), user.role(), RequestContext.clientIp(request), current, next);
@@ -95,7 +94,7 @@ public class AuthController {
   @RateLimit(prefix = "auth-forgot-password", windowMs = 15 * 60 * 1000, max = 5)
   public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody(required = false) JsonNode body) {
     Input input = Input.body(body);
-    String email = input.str("email").min(5, "Email invalide").max(254, "Email invalide").email("Email invalide").lower().required("Email invalide");
+    String email = input.str("email").trimmed(5, 254, "Email invalide").email("Email invalide").lower().required();
     input.check();
     return Api.message(auth.requestPasswordReset(email));
   }

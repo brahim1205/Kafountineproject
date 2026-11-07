@@ -36,6 +36,9 @@ public final class Input {
   private final List<Map<String, String>> issues = new ArrayList<>();
   /** Corps non-objet : Zod s'arrête à l'erreur racine. */
   private boolean rootFailed;
+  /** Erreur de type (non « continuable ») : les .refine() de l'objet ne s'exécutent pas. */
+  private boolean aborted;
+  private final List<Object[]> refinements = new ArrayList<>();
 
   private Input(ObjectNode node, boolean query) {
     this.node = node;
@@ -47,7 +50,7 @@ public final class Input {
     if (body == null || body.isNull() || body.isMissingNode()) return new Input(JsonNodeFactory.instance.objectNode(), false);
     if (!body.isObject()) {
       Input input = new Input(JsonNodeFactory.instance.objectNode(), false);
-      input.issue("", "Entrée invalide : objet attendu, " + received(body) + " reçu");
+      input.abortingIssue("", "Entrée invalide : objet attendu, " + received(body) + " reçu");
       input.rootFailed = true;
       return input;
     }
@@ -76,6 +79,12 @@ public final class Input {
     return new Input(node, true);
   }
 
+  /** Erreur de type, d'énumération ou d'union : elle interrompt les .refine() de l'objet. */
+  void abortingIssue(String field, String message) {
+    aborted = true;
+    issue(field, message);
+  }
+
   void issue(String field, String message) {
     if (rootFailed) return;
     Map<String, String> issue = new LinkedHashMap<>();
@@ -97,6 +106,12 @@ public final class Input {
     declared.add(key);
     JsonNode value = node.get(key);
     return value == null || value.isMissingNode() ? null : value;
+  }
+
+  /** .refine() de l'objet (évalué par check()). */
+  public Input refine(java.util.function.BooleanSupplier ok, String field, String message) {
+    refinements.add(new Object[] {ok, field, message});
+    return this;
   }
 
   /** Déclare des clés acceptées sans contrôle de type (lues ensuite librement). */
@@ -129,6 +144,12 @@ public final class Input {
     });
     if (!unknown.isEmpty()) {
       issue("", (unknown.size() > 1 ? "Clés non reconnues : " : "Clé non reconnue : ") + String.join(", ", unknown.stream().map(k -> "\"" + k + "\"").toList()));
+    }
+    // .refine() de l'objet : après les champs et les clés inconnues, sauf erreur de type.
+    if (!aborted) {
+      for (Object[] refinement : refinements) {
+        if (!((java.util.function.BooleanSupplier) refinement[0]).getAsBoolean()) issue((String) refinement[1], (String) refinement[2]);
+      }
     }
     if (!issues.isEmpty()) throw AppException.validation("Données invalides", issues);
   }
@@ -285,11 +306,11 @@ public final class Input {
     private String evaluate(boolean union) {
       if (allowed != null) {
         if (raw != null && raw.isTextual() && Arrays.asList(allowed).contains(raw.asText())) return raw.asText();
-        input.issue(key, enumMessage());
+        input.abortingIssue(key, enumMessage());
         return null;
       }
       if (!raw.isTextual()) {
-        input.issue(key, union ? "Entrée invalide" : "Entrée invalide : chaîne de caractères attendu, " + received(raw) + " reçu");
+        input.abortingIssue(key, union ? "Entrée invalide" : "Entrée invalide : chaîne de caractères attendu, " + received(raw) + " reçu");
         if (!union && raw.isArray()) {
           for (var rule : lengthRules) {
             String message = rule.apply(raw.size());
@@ -313,11 +334,11 @@ public final class Input {
     public String required() {
       if (nullValue && nullable) return null;
       if (!present && allowed == null) {
-        input.issue(key, "Entrée invalide : chaîne de caractères attendu, indéfini reçu");
+        input.abortingIssue(key, "Entrée invalide : chaîne de caractères attendu, indéfini reçu");
         return null;
       }
       if (!present) {
-        input.issue(key, enumMessage());
+        input.abortingIssue(key, enumMessage());
         return null;
       }
       return evaluate(false);
@@ -342,7 +363,7 @@ public final class Input {
       if (!present) return null;
       if (raw.isTextual() && raw.asText().isEmpty()) return null;
       if (!raw.isTextual()) {
-        input.issue(key, "Entrée invalide");
+        input.abortingIssue(key, "Entrée invalide");
         return null;
       }
       return evaluate(false);
@@ -431,15 +452,15 @@ public final class Input {
     private Double evaluate() {
       double v = coerce(raw);
       if (Double.isNaN(v)) {
-        input.issue(key, "Entrée invalide : nombre attendu, NaN reçu");
+        input.abortingIssue(key, "Entrée invalide : nombre attendu, NaN reçu");
         return null;
       }
       if (Double.isInfinite(v)) {
-        input.issue(key, "Entrée invalide : nombre attendu, nombre reçu");
+        input.abortingIssue(key, "Entrée invalide : nombre attendu, nombre reçu");
         return null;
       }
       if (integer && v != Math.rint(v)) {
-        input.issue(key, "Entrée invalide : entier attendu, nombre reçu");
+        input.abortingIssue(key, "Entrée invalide : entier attendu, nombre reçu");
         return null;
       }
       boolean ok = true;
@@ -501,7 +522,7 @@ public final class Input {
 
     private Boolean evaluate() {
       if (raw != null && raw.isBoolean()) return raw.asBoolean();
-      input.issue(key, "Entrée invalide : booléen attendu, " + received(raw) + " reçu");
+      input.abortingIssue(key, "Entrée invalide : booléen attendu, " + received(raw) + " reçu");
       return null;
     }
 
@@ -516,20 +537,8 @@ public final class Input {
 
   // --- Aides de conversion ----------------------------------------------------------------------
 
-  /** Date d'une chaîne ISO ou AAAA-MM-JJ (comme new Date(...)) ; null si invalide. */
+  /** new Date(chaîne) de JavaScript (voir Js.parseDate) ; null si la date est invalide. */
   public static Instant parseDate(String value) {
-    if (value == null || value.isBlank()) return null;
-    String v = value.trim();
-    try {
-      if (v.matches("^\\d{4}-\\d{2}-\\d{2}$")) return LocalDate.parse(v).atStartOfDay(ZoneOffset.UTC).toInstant();
-      if (v.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?$")) return java.time.LocalDateTime.parse(v).toInstant(ZoneOffset.UTC);
-      return OffsetDateTime.parse(v).toInstant();
-    } catch (DateTimeParseException e) {
-      try {
-        return Instant.parse(v);
-      } catch (DateTimeParseException ignored) {
-        return null;
-      }
-    }
+    return sn.kafountine.gestionmunicipale.shared.text.Js.parseDate(value);
   }
 }

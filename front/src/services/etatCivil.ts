@@ -78,3 +78,10 @@ export async function deleteEtatCivilDemande(id: string): Promise<void> {
     method: 'DELETE',
   });
 }
+
+export type EtatCivilDocumentType = { id: string; nom: string; tarif: number; unite: string };
+
+/** Types de documents (libellés lisibles, tarifs du catalogue modifiables dans Paramètres). */
+export async function getEtatCivilDocumentTypes(): Promise<EtatCivilDocumentType[]> {
+  return apiRequest<EtatCivilDocumentType[]>('/etat-civil/types-documents');
+}

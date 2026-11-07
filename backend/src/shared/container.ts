@@ -173,6 +173,7 @@ function buildMunicipalControllers() {
   const actors = new PrismaActorDirectory();
   const contribuables = new PrismaContribuableLookup();
   const numeros = new PrismaNumeroSequence();
+  const taxCatalog = new PrismaTaxCatalog();
   // Chaque écriture et son entrée d'audit sont validées ensemble, ou pas du tout.
   const uow = new PrismaUnitOfWork();
 
@@ -188,7 +189,7 @@ function buildMunicipalControllers() {
       ])
     ),
     etatCivil: new EtatCivilController(
-      transactional(new EtatCivilService(new PrismaEtatCivilRepository(), contribuables, auditTrail, numeros), uow, ['create', 'update', 'delete']),
+      transactional(new EtatCivilService(new PrismaEtatCivilRepository(), contribuables, auditTrail, numeros, taxCatalog), uow, ['create', 'update', 'delete']),
       actors
     ),
     urbanisme: new UrbanismeController(

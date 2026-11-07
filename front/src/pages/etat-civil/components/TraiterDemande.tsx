@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import RecuPDF from '../../../components/feature/RecuPDF';
-import { createEtatCivilDemande } from '../../../services/etatCivil';
+import { createEtatCivilDemande, getEtatCivilDocumentTypes } from '../../../services/etatCivil';
 import { ensureContribuableByIdentity } from '../../../services/contribuables';
-import { getTaxServices, type TaxService } from '../../../services/taxes';
+import type { TaxService } from '../../../services/taxes';
 import { getStoredUserName } from '../../../services/auth';
 import { useToast } from '../../../components/feature/Toast';
 import { useYear } from '../../../contexts/YearContext';
@@ -42,7 +42,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
   useEffect(() => {
     const loadServices = async () => {
       try {
-        const services = await getTaxServices('etat-civil');
+        const services = await getEtatCivilDocumentTypes();
         setTypesDocuments(services.map((service) => ({
           id: service.id,
           nom: service.nom,

@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import RecuPDF from '../../../components/feature/RecuPDF';
-import { listEtatCivilDemandes, updateEtatCivilDemande, deleteEtatCivilDemande, type EtatCivilDemande } from '../../../services/etatCivil';
+import { getEtatCivilDocumentTypes, listEtatCivilDemandes, updateEtatCivilDemande, deleteEtatCivilDemande, type EtatCivilDemande } from '../../../services/etatCivil';
 import ContribuableSelect, { requireSelectedContribuable } from '../../../components/feature/ContribuableSelect';
-import { getTaxServices } from '../../../services/taxes';
 import { useYear } from '../../../contexts/YearContext';
 import { getStoredUserRole } from '../../../services/auth';
 import { useToast } from '../../../components/feature/Toast';
@@ -62,13 +61,18 @@ export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: nu
     loadDemandes();
   }, [selectedYear, refreshKey]);
 
-  // Types de documents du catalogue des taxes, pour le formulaire de modification.
+  // Types de documents (libellés lisibles du serveur), pour le filtre et le formulaire de modification.
   const [typesDocuments, setTypesDocuments] = useState<string[]>([]);
   useEffect(() => {
-    getTaxServices('etat-civil')
-      .then((services) => setTypesDocuments(services.map((service) => service.nom)))
+    getEtatCivilDocumentTypes()
+      .then((types) => setTypesDocuments(types.map((type) => type.nom)))
       .catch(() => setTypesDocuments([]));
   }, []);
+  // Filtre : les types du catalogue et ceux des demandes affichées (anciennes saisies comprises).
+  const filterTypes = useMemo(
+    () => Array.from(new Set([...typesDocuments, ...demandes.map((demande) => demande.typeDocument)].filter(Boolean))).sort((a, b) => a.localeCompare(b, 'fr')),
+    [typesDocuments, demandes]
+  );
 
   const filteredDemandes = useMemo(() => demandes.filter(demande => {
     const matchSearch = demande.demandeur.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -170,11 +174,11 @@ export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: nu
               className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="tous">Tous les documents</option>
-              <option value="Extrait de naissance">Extrait de naissance</option>
-              <option value="Certificat de résidence">Certificat de résidence</option>
-              <option value="Légalisation de signature">Légalisation de signature</option>
-              <option value="Certificat de vie">Certificat de vie</option>
-              <option value="Certificat de célibat">Certificat de célibat</option>
+              {filterTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
             </select>
           </div>
         </div>

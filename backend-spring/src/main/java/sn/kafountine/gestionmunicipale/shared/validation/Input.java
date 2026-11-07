@@ -25,8 +25,10 @@ import sn.kafountine.gestionmunicipale.shared.errors.AppException;
  * ({ field, message }) sous le message « Données invalides ».
  */
 public final class Input {
-  private static final Pattern EMAIL = Pattern.compile("^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$");
-  private static final Pattern UUID = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+  /** Regex « email » de Zod v4 (core/regexes.js). */
+  private static final Pattern EMAIL = Pattern.compile("^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$");
+  /** Regex « uuid » de Zod v4 : version 1 à 8, variante RFC, ou UUID nul / max. */
+  private static final Pattern UUID = Pattern.compile("^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$");
 
   private final ObjectNode node;
   private final boolean query;

@@ -10,7 +10,7 @@ public final class Common {
   /** resourceIdParamsSchema : identifiant UUID dans le chemin. */
   public static String id(String value) {
     Input input = Input.params(Map.of("id", value == null ? "" : value));
-    String id = input.str("id").uuid("Identifiant invalide").required();
+    String id = input.str("id").noTrim().uuid("Identifiant invalide").required();
     input.check();
     return id;
   }

@@ -5,6 +5,13 @@ import type { UnitOfWork } from '../../application/UnitOfWork';
 
 const currentTransaction = new AsyncLocalStorage<Prisma.TransactionClient>();
 
+/**
+ * Limites des transactions (Prisma : 2 s d'attente d'une connexion, 5 s d'exécution par défaut).
+ * Aux heures d'affluence, les tickets d'une même série attendent le verrou de leur compteur :
+ * des limites trop courtes feraient échouer des encaissements valides.
+ */
+const TRANSACTION_OPTIONS = { maxWait: 10_000, timeout: 20_000 };
+
 /** Client à utiliser par les dépôts : la transaction en cours s'il y en a une, sinon le client global. */
 export function db(): Prisma.TransactionClient {
   return currentTransaction.getStore() ?? prisma;
@@ -16,7 +23,7 @@ export function inTransaction<T>(work: (tx: Prisma.TransactionClient) => Promise
   if (current) {
     return work(current);
   }
-  return prisma.$transaction((tx) => currentTransaction.run(tx, () => work(tx)));
+  return prisma.$transaction((tx) => currentTransaction.run(tx, () => work(tx)), TRANSACTION_OPTIONS);
 }
 
 export class PrismaUnitOfWork implements UnitOfWork {

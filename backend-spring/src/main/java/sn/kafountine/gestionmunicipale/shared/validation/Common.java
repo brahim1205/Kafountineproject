@@ -30,6 +30,15 @@ public final class Common {
     Input query = Input.query(parameters);
     Integer year = year(query);
     query.check();
-    return yearOrCurrent(year);
+    return yearOrCurrent(year == null || year == 0 ? null : year);
+  }
+
+  /** yearLimitQuerySchema : year et limit (1 à 500, non utilisé par les listes). */
+  public static int yearLimitQuery(Map<String, String[]> parameters) {
+    Input query = Input.query(parameters);
+    Integer year = year(query);
+    query.num("limit").integer().min(1).max(500).optionalInt();
+    query.check();
+    return yearOrCurrent(year == null || year == 0 ? null : year);
   }
 }

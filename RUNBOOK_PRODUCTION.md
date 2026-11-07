@@ -55,7 +55,8 @@ Avant d'ouvrir l'application aux agents, la base de production ne doit contenir 
 démonstration (comptes `agent@`, `admin@`… et leur mot de passe de démo, contribuables et tickets fictifs).
 
 ```bash
-ssh root@72.62.234.215 'bash -s -- --je-confirme' < scripts/reset-demo-data.sh
+scp scripts/reset-demo-data.sh root@72.62.234.215:/tmp/
+ssh -t root@72.62.234.215 'bash /tmp/reset-demo-data.sh --je-confirme; rm -f /tmp/reset-demo-data.sh'
 ```
 
 Le script sauvegarde la base (`/opt/kafontine/backups/avant_reset_demo_*.dump`), vide toutes les données
@@ -86,7 +87,8 @@ contient des données personnelles (NIN, téléphones).
 Mise en place (une fois, sur un poste de confiance) :
 
 ```bash
-age-keygen -o kafountine-sauvegardes.key        # affiche la clé publique « age1… »
+sudo apt install age                            # outil de chiffrement
+age-keygen -o kafountine-sauvegardes.key        # affiche la clé publique « age1… » (62 caractères)
 gh secret set BACKUP_AGE_RECIPIENT --env production --body 'age1…'          # clé publique
 gh secret set BACKUP_AGE_IDENTITY --env production < kafountine-sauvegardes.key  # pour la reprise d'activité
 ```

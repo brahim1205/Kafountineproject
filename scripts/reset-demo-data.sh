@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Remise à zéro des données de démonstration avant l'ouverture aux utilisateurs.
-#   ssh root@72.62.234.215 'bash -s -- --je-confirme' < scripts/reset-demo-data.sh
+#   scp scripts/reset-demo-data.sh root@72.62.234.215:/tmp/
+#   ssh -t root@72.62.234.215 'bash /tmp/reset-demo-data.sh --je-confirme; rm -f /tmp/reset-demo-data.sh'
 #
 # CONSERVE : tarifs, pénalités, permissions, catalogue des taxes (Paramètres) et le compte super admin,
 #            qui reçoit un NOUVEAU mot de passe aléatoire (affiché une seule fois) : l'ancien mot de
@@ -26,7 +27,9 @@ fi
 psql_run() { eval "$PSQL" '"$@"'; }
 
 sql_email=${SUPER_ADMIN_EMAIL//\'/\'\'}
-users=$(psql_run -At -c 'SELECT count(*) FROM "User"')
+# Chaque commande docker reçoit explicitement son entrée (</dev/null, tube ou texte) : sinon, si le
+# script est lu depuis l'entrée standard (bash -s), « docker compose exec » en avalerait la suite.
+users=$(psql_run -At -c 'SELECT count(*) FROM "User"' </dev/null)
 super=$(printf "SELECT count(*) FROM \"User\" WHERE email = '%s' AND role = 'SUPER_ADMIN';\n" "$sql_email" | psql_run -At)
 [[ $super == 1 ]] || die "compte super admin $SUPER_ADMIN_EMAIL introuvable : rien n'a été modifié."
 printf 'Comptes actuels : %s (le super admin %s sera conservé)\n' "$users" "$SUPER_ADMIN_EMAIL"
@@ -34,7 +37,7 @@ printf 'Comptes actuels : %s (le super admin %s sera conservé)\n' "$users" "$SU
 backup_dir=${BACKUP_DIR:-$APP_DIR/backups}
 install -d -m 700 "$backup_dir"
 backup="$backup_dir/avant_reset_demo_$(date -u +%Y%m%dT%H%M%SZ).dump"
-eval "$PG_DUMP" > "$backup"
+eval "$PG_DUMP" </dev/null > "$backup"
 [[ -s $backup ]] || die "sauvegarde vide : rien n'a été modifié."
 chmod 600 "$backup"
 printf 'Sauvegarde : %s\n' "$backup"
@@ -73,7 +76,7 @@ SQL
 
 # Sessions ouvertes avec les anciens comptes : déconnectées (sessions dans Redis).
 if [[ -n ${compose+x} ]]; then
-  "${compose[@]}" exec -T redis sh -c 'redis-cli ${REDIS_PASSWORD:+-a "$REDIS_PASSWORD"} --no-auth-warning FLUSHDB' >/dev/null 2>&1 \
+  "${compose[@]}" exec -T redis sh -c 'redis-cli ${REDIS_PASSWORD:+-a "$REDIS_PASSWORD"} --no-auth-warning FLUSHDB' </dev/null >/dev/null 2>&1 \
     && printf 'Sessions ouvertes : fermées.\n' || printf 'Sessions : à fermer en redémarrant le backend.\n'
 fi
 

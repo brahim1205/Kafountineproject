@@ -54,8 +54,9 @@ jobs:
           AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
         run: |
           set -euo pipefail
-          if [[ -z "$AGE_RECIPIENT" ]]; then
-            echo "::warning::Secret BACKUP_AGE_RECIPIENT absent : la sauvegarde est conservée NON chiffrée. Configurez-le (RUNBOOK_PRODUCTION.md)."
+          if [[ ! "$AGE_RECIPIENT" =~ ^age1[02-9ac-hj-np-z]{58}$ ]]; then
+            # Absent ou invalide (ex. texte d'exemple « age1… ») : on garde la sauvegarde plutôt que de la perdre.
+            echo "::warning::Secret BACKUP_AGE_RECIPIENT absent ou invalide (clé publique age1… de 62 caractères attendue) : sauvegarde conservée NON chiffrée. Voir RUNBOOK_PRODUCTION.md."
             echo "file=backups/$BACKUP_FILENAME" >> "$GITHUB_OUTPUT"
             exit 0
           fi

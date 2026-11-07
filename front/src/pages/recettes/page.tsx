@@ -36,11 +36,11 @@ export default function Recettes() {
   const { showToast } = useToast();
   const isCurrentYear = selectedYear === new Date().getFullYear();
   const role = getStoredUserRole();
-  const canCreate = isCurrentYear && (role === 'agent' || role === 'admin');
-  // Même règle que l'API : seuls les admins modifient ou suppriment une transaction.
-  const canEdit = role === 'admin' || role === 'super_admin';
+  // L'administrateur est en consultation seule : saisie par les agents, correction par le super admin.
+  const canCreate = isCurrentYear && role === 'agent';
+  const canEdit = role === 'super_admin';
   // Statistiques de l'année et export complet : réservés par l'API à l'encadrement et aux finances.
-  const canSeeYearStats = canEdit || role === 'comptable' || role === 'service_finances';
+  const canSeeYearStats = role === 'admin' || role === 'super_admin' || role === 'comptable' || role === 'service_finances';
 
   const [rows, setRows] = useState<RecetteRow[]>([]);
   const [total, setTotal] = useState(0);

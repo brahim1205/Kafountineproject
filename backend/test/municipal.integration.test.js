@@ -45,6 +45,24 @@ describeIntegration('services municipaux (intégration)', () => {
     await (await getRedisClient())?.quit();
   });
 
+  describe('administrateur en consultation seule', () => {
+    it('lit tout mais ne peut rien modifier', async () => {
+      const lecteur = await login('admin@kafountine.gouv.sn');
+      expect((await lecteur.get(`/transactions?year=${year}&limit=1`)).status).toBe(200);
+      expect((await lecteur.get(`/dashboard/statistiques?year=${year}`)).status).toBe(200);
+
+      const ticket = await lecteur.post('/transactions', { contribuableId, categorie: 'Marché', type: 'Marché', service: 'Ticket', quantite: 1, montant: 100 });
+      expect(ticket.status).toBe(403);
+      expect(ticket.body.message).toContain('consultation seule');
+      expect((await lecteur.post('/contribuables', {})).status).toBe(403);
+      expect((await lecteur.post('/users', {})).status).toBe(403);
+
+      // Son propre mot de passe reste modifiable (ici refusé pour mot de passe actuel erroné, pas pour le rôle).
+      const pwd = await lecteur.post('/auth/change-password', { currentPassword: 'Faux-mot-de-passe-1!', newPassword: 'Nouveau-Mot-De-Passe-2026!' });
+      expect(pwd.status).toBe(401);
+    });
+  });
+
   describe('marché', () => {
     let placeId;
 

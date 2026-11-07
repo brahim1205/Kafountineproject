@@ -6,11 +6,13 @@ type SauvegardeTabProps = {
   backups: BackupFile[];
   onChanged: (message: string) => void;
   onError: (message: string) => void;
+  /** Consultation seule (administrateur). */
+  readOnly?: boolean;
 };
 
 const errorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback);
 
-export default function SauvegardeTab({ backups, onChanged, onError }: SauvegardeTabProps) {
+export default function SauvegardeTab({ backups, onChanged, onError, readOnly = false }: SauvegardeTabProps) {
   const [busy, setBusy] = useState(false);
 
   const run = async (action: () => Promise<string>, fallback: string) => {
@@ -62,10 +64,12 @@ export default function SauvegardeTab({ backups, onChanged, onError }: Sauvegard
         <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
           <h3 className="font-medium text-gray-900 mb-4">Actions</h3>
           <div className="space-y-3">
-            <button onClick={create} disabled={busy} className={`${PRIMARY_BUTTON} w-full justify-center`}>
-              <i className="ri-save-3-line"></i>
-              {busy ? 'Traitement...' : 'Créer une sauvegarde maintenant'}
-            </button>
+            {!readOnly && (
+              <button onClick={create} disabled={busy} className={`${PRIMARY_BUTTON} w-full justify-center`}>
+                <i className="ri-save-3-line"></i>
+                {busy ? 'Traitement...' : 'Créer une sauvegarde maintenant'}
+              </button>
+            )}
             <button
               onClick={() => backups[0] && download(backups[0].filename)}
               disabled={!backups[0]}
@@ -95,9 +99,11 @@ export default function SauvegardeTab({ backups, onChanged, onError }: Sauvegard
                 <button onClick={() => download(backup.filename)} className="text-sm text-gray-600 hover:text-teal-700">
                   Télécharger
                 </button>
-                <button onClick={() => restore(backup.filename)} disabled={busy} className="text-sm text-teal-600 hover:text-teal-700">
-                  Restaurer
-                </button>
+                {!readOnly && (
+                  <button onClick={() => restore(backup.filename)} disabled={busy} className="text-sm text-teal-600 hover:text-teal-700">
+                    Restaurer
+                  </button>
+                )}
               </div>
             </div>
           ))}

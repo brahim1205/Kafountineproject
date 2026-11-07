@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { getDossiersUrbanisme, type DossierUrbanisme } from '../../../services/urbanisme';
 import { getTaxServices, type TaxService } from '../../../services/taxes';
-import { getStoredUserRole } from '../../../services/auth';
+import { getStoredUserRole, canWriteData } from '../../../services/auth';
 import { useYear } from '../../../contexts/YearContext';
 import DossiersTable from './dossiers/DossiersTable';
 import DossierDetailModal from './dossiers/DossierDetailModal';
@@ -14,7 +14,7 @@ type Modal = { type: 'nouveau' } | { type: 'detail'; dossier: DossierUrbanisme }
 export default function GestionDossiers() {
   const { selectedYear } = useYear();
   const isCurrentYear = selectedYear === new Date().getFullYear();
-  const canCreate = getStoredUserRole() !== 'super_admin' && isCurrentYear;
+  const canCreate = getStoredUserRole() !== 'super_admin' && canWriteData() && isCurrentYear;
 
   const [dossiers, setDossiers] = useState<DossierUrbanisme[]>([]);
   const [types, setTypes] = useState<TaxService[]>([]);

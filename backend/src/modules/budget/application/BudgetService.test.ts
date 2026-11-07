@@ -1,5 +1,5 @@
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/AppError';
-import { admin, agent, fakeAuditTrail } from '../../../shared/testing/ports';
+import { admin, agent, fakeAuditTrail, superAdmin } from '../../../shared/testing/ports';
 import type { BudgetLine, BudgetRepository, BudgetRequest } from '../domain/Budget';
 import { BudgetService } from './BudgetService';
 
@@ -118,9 +118,9 @@ describe('BudgetService', () => {
     it('enregistre l’auteur de la décision quand la demande est approuvée', async () => {
       repository.findRequestById.mockResolvedValue(request());
 
-      await service.updateRequest(admin, 'demande-1', { statut: 'approuve' });
+      await service.updateRequest(superAdmin, 'demande-1', { statut: 'approuve' });
 
-      expect(repository.updateRequest.mock.calls[0][1]).toMatchObject({ statut: 'APPROUVE', approvedById: 'user-admin', montant: 150_000 });
+      expect(repository.updateRequest.mock.calls[0][1]).toMatchObject({ statut: 'APPROUVE', approvedById: 'user-superadmin', montant: 150_000 });
     });
 
     it('refuse la décision à un autre rôle que l’administration', async () => {
@@ -128,13 +128,15 @@ describe('BudgetService', () => {
       const finances = { userId: 'user-finances', role: 'SERVICE_FINANCES', ipAddress: '127.0.0.1' };
 
       await expect(service.updateRequest(finances, 'demande-1', { statut: 'APPROUVE' })).rejects.toBeInstanceOf(ForbiddenError);
+      // L'administrateur est en consultation seule.
+      await expect(service.updateRequest(admin, 'demande-1', { statut: 'APPROUVE' })).rejects.toBeInstanceOf(ForbiddenError);
       await expect(service.updateRequest(agent, 'demande-1', { statut: 'REJETE' })).rejects.toBeInstanceOf(ForbiddenError);
       expect(repository.updateRequest).not.toHaveBeenCalled();
     });
 
     it('refuse un statut inconnu et la modification du montant après décision', async () => {
       repository.findRequestById.mockResolvedValue(request());
-      await expect(service.updateRequest(admin, 'demande-1', { statut: 'PAYE' })).rejects.toBeInstanceOf(ValidationError);
+      await expect(service.updateRequest(superAdmin, 'demande-1', { statut: 'PAYE' })).rejects.toBeInstanceOf(ValidationError);
 
       repository.findRequestById.mockResolvedValue(request({ statut: 'APPROUVE', approvedById: 'user-admin' }));
       await expect(service.updateRequest(admin, 'demande-1', { montant: 999_999 })).rejects.toBeInstanceOf(ValidationError);

@@ -36,9 +36,11 @@ export default function Contribuables() {
   const currentYear = new Date().getFullYear();
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole();
-  const canManage = (userRole === 'admin' || userRole === 'agent') && isCurrentYear;
+  // L'administrateur est en consultation seule.
+  const canManage = userRole === 'agent' && isCurrentYear;
   // Même règle que l'API : seuls les admins suppriment une fiche (et seulement sans pièce rattachée).
-  const canDelete = canManage && userRole === 'admin';
+  const canDelete = userRole === 'super_admin' && isCurrentYear;
+  const hasActions = canManage || canDelete;
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Actif' | 'Inactif'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -274,7 +276,7 @@ export default function Contribuables() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Zone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Téléphone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Statut</th>
-                  {canManage && (
+                  {hasActions && (
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Actions</th>
                   )}
                 </tr>
@@ -292,9 +294,10 @@ export default function Contribuables() {
                         {item.status}
                       </span>
                     </td>
-                    {canManage && (
+                    {hasActions && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {canManage && (
                           <button
                             onClick={() => {
                               setSelectedContribuable(item);
@@ -306,6 +309,7 @@ export default function Contribuables() {
                           >
                             <i className="ri-edit-line text-lg"></i>
                           </button>
+                          )}
                           {canDelete && (
                           <button
                             onClick={() => {

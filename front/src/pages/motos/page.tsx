@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import RecuPDF from '../../components/feature/RecuPDF';
 import { getMotoConfiguration, getMotosStats, listMotoPayments, listMotos, type MotoStats } from '../../services/motos';
-import { getStoredUserRole } from '../../services/auth';
+import { getStoredUserRole, canWriteData } from '../../services/auth';
 import { useYear } from '../../contexts/YearContext';
 import MotosStats from './components/MotosStats';
 import MotoList from './components/MotoList';
@@ -32,7 +32,7 @@ export default function MotosPage() {
   const { selectedYear } = useYear();
   const isCurrentYear = selectedYear === new Date().getFullYear();
   const userRole = getStoredUserRole() || 'admin';
-  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && isCurrentYear;
+  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && canWriteData(userRole) && isCurrentYear;
 
   const [activeTab, setActiveTab] = useState<Tab>('liste');
   const [modal, setModal] = useState<Modal>(null);

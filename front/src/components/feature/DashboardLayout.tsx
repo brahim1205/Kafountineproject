@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useYear, AVAILABLE_YEARS } from '../../contexts/YearContext';
 import NotificationPanel from './NotificationPanel';
-import { logoutRequest, clearSession, getStoredUserInitials, getStoredUserName, getStoredUserRole } from '../../services/auth';
+import { canWriteData, logoutRequest, clearSession, getStoredUserInitials, getStoredUserName, getStoredUserRole } from '../../services/auth';
 import { listContribuables, type Contribuable } from '../../services/contribuables';
 import { getTransactions, type TransactionItem } from '../../services/taxes';
 import { listNotifications } from '../../services/notifications';
@@ -32,7 +32,6 @@ const allMenuItems = [
   { path: '/budget-suivi', icon: 'ri-wallet-3-line', label: 'Suivi Budgétaire', roles: ['comptable', 'service_finances'] },
   { path: '/gestion-budget', icon: 'ri-money-dollar-circle-line', label: 'Gestion Budget', roles: ['service_finances'] },
   { path: '/service-finances', icon: 'ri-bank-card-line', label: 'Budget & dépenses', roles: ['admin', 'super_admin'] },
-  { path: '/rapports', icon: 'ri-bar-chart-box-line', label: 'Rapports', roles: ['admin', 'super_admin'] },
   { path: '/audit', icon: 'ri-file-list-3-line', label: 'Journal Audit', roles: ['super_admin'] },
 ];
 
@@ -489,7 +488,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
                 <div className="hidden text-left sm:block">
                   <p className="text-sm font-medium text-gray-900">{userName}</p>
-                  <p className="text-xs text-gray-600">{roleLabels[userRole]}</p>
+                  <p className="text-xs text-gray-600">
+                    {roleLabels[userRole]}
+                    {!canWriteData(userRole) && ' · consultation'}
+                  </p>
                 </div>
                 <i className="ri-arrow-down-s-line text-gray-600"></i>
               </button>
@@ -506,14 +508,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       <i className="ri-user-line text-lg"></i>
                       Mon profil
                     </Link>
-                    <Link
-                      to="/audit"
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <i className="ri-file-list-3-line text-lg"></i>
-                      Journal Audit
-                    </Link>
+                    {userRole === 'super_admin' && (
+                      <Link
+                        to="/audit"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <i className="ri-file-list-3-line text-lg"></i>
+                        Journal Audit
+                      </Link>
+                    )}
+                    {(userRole === 'admin' || userRole === 'super_admin') && (
+                      <Link
+                        to="/rapports"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <i className="ri-bar-chart-box-line text-lg"></i>
+                        Rapports
+                      </Link>
+                    )}
                     <hr className="my-2 border-gray-200" />
                     <button
                       type="button"

@@ -27,7 +27,7 @@ export default function GestionBudgetPage() {
   const [modal, setModal] = useState<ModalState>(null);
   // Même règle que l'API : seuls les admins suppriment une ligne budgétaire.
   const role = getStoredUserRole();
-  const canDelete = role === 'admin' || role === 'super_admin';
+  const canDelete = role === 'super_admin';
 
   const loadBudgetData = async () => {
     try {

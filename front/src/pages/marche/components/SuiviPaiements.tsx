@@ -7,7 +7,7 @@ import {
   type MarcheStats,
   type PaiementMarche,
 } from '../../../services/marche';
-import { getStoredUserName, getStoredUserRole } from '../../../services/auth';
+import { getStoredUserName, getStoredUserRole, canWriteData } from '../../../services/auth';
 import { useYear } from '../../../contexts/YearContext';
 import { useToast } from '../../../components/feature/Toast';
 import {
@@ -40,7 +40,7 @@ export default function SuiviPaiements() {
   const { selectedYear } = useYear();
   const { showToast } = useToast();
   const userRole = getStoredUserRole() || 'admin';
-  const canManage = userRole !== 'super_admin' && userRole !== 'comptable';
+  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && canWriteData(userRole);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatut, setFilterStatut] = useState('tous');
   const [showPaiementModal, setShowPaiementModal] = useState(false);

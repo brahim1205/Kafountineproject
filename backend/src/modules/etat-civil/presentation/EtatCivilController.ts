@@ -29,6 +29,10 @@ export class EtatCivilController {
     return message(res, 'Suppression effectuée');
   }
 
+  async documentTypes(_req: Request, res: Response) {
+    return ok(res, await this.etatCivilService.documentTypes());
+  }
+
   async stats(req: Request, res: Response) {
     return ok(res, await this.etatCivilService.stats(yearFrom(req.query)));
   }

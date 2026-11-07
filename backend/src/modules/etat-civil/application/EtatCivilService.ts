@@ -3,6 +3,8 @@ import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
 import type { NumeroSequence } from '../../../shared/domain/NumeroSequence';
 import type { ContribuableLookup } from '../../../shared/domain/ContribuableLookup';
 import type { EtatCivilDisplay, EtatCivilRepository, EtatCivilRequest } from '../domain/EtatCivil';
+import { documentLabel } from '../domain/documentLabels';
+import type { TaxCatalog } from '../../transactions/domain/TaxCatalog';
 
 export type EtatCivilInput = {
   contribuableId?: string;
@@ -44,8 +46,15 @@ export class EtatCivilService {
     private readonly repository: EtatCivilRepository,
     private readonly contribuables: ContribuableLookup,
     private readonly auditTrail: AuditTrail,
-    private readonly numeros: NumeroSequence
+    private readonly numeros: NumeroSequence,
+    private readonly catalog?: TaxCatalog
   ) {}
+
+  /** Types de documents du catalogue des taxes (tarifs modifiables dans Paramètres), avec leur libellé lisible. */
+  async documentTypes() {
+    const services = this.catalog ? await this.catalog.listServices('etat-civil') : [];
+    return services.map((service) => ({ id: service.id, nom: documentLabel(service.nom), tarif: service.tarif, unite: service.unite }));
+  }
 
   async list(year: number) {
     const rows = await this.repository.list(year);
@@ -86,7 +95,7 @@ export class EtatCivilService {
         numero,
         contribuableId: contribuable.id,
         agentId: actor.userId,
-        typeDocument: documentType.nom,
+        typeDocument: documentLabel(documentType.nom),
         exemplaires,
         montant,
         statut,
@@ -138,7 +147,7 @@ export class EtatCivilService {
       requestId,
       {
         contribuableId: nextContribuableId,
-        typeDocument: input.typeDocument ? String(input.typeDocument).trim() : existing.typeDocument,
+        typeDocument: input.typeDocument ? documentLabel(String(input.typeDocument)) : existing.typeDocument,
         exemplaires: input.exemplaires !== undefined ? Math.max(1, Number(input.exemplaires)) : existing.exemplaires,
         montant: input.montant !== undefined ? Number(input.montant) : existing.montant,
         statut: input.statut ? normalizeEtatCivilStatus(String(input.statut)) : existing.statut,
@@ -194,7 +203,8 @@ export class EtatCivilService {
       id: row.id,
       numero: row.numero,
       contribuableId: row.contribuableId,
-      typeDocument: row.typeDocument,
+      // Libellé lisible, y compris pour les demandes enregistrées avec l'identifiant du catalogue.
+      typeDocument: documentLabel(row.typeDocument),
       exemplaires: Number(row.exemplaires || 0),
       montant: Number(row.montant || 0),
       statut: row.statut,

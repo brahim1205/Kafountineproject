@@ -72,13 +72,13 @@ import {
 export function buildUrbanismeRoutes(controller: UrbanismeController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
-  const adminOnly = authorize('ADMIN', 'SUPER_ADMIN');
+  const adminOnly = authorize('ADMIN', 'SUPER_ADMIN', 'REGISSEUR');
 
   router.get('/urbanisme', authenticate, validate(urbanismeListQuerySchema, 'query'), asyncHandler((req, res) => controller.list(req, res)));
   router.get('/urbanisme/statistiques', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.stats(req, res)));
   router.get('/urbanisme/:id', authenticate, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.show(req, res)));
-  router.post('/urbanisme', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(createUrbanismeSchema), asyncHandler((req, res) => controller.create(req, res)));
-  router.put('/urbanisme/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(resourceIdParamsSchema, 'params'), validate(updateUrbanismeSchema), asyncHandler((req, res) => controller.update(req, res)));
+  router.post('/urbanisme', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(createUrbanismeSchema), asyncHandler((req, res) => controller.create(req, res)));
+  router.put('/urbanisme/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(resourceIdParamsSchema, 'params'), validate(updateUrbanismeSchema), asyncHandler((req, res) => controller.update(req, res)));
   router.delete('/urbanisme/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.delete(req, res)));
 
   return router;

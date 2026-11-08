@@ -6,7 +6,7 @@ export default {
     await login('admin', 'admin@kafountine.gouv.sn', P);
     await login('super', 'superadmin@kafountine.gouv.sn', P);
     await login('agent', 'agent@kafountine.gouv.sn', P);
-    await login('compta', 'comptable@kafountine.gouv.sn', P);
+    await login('finances', 'finances@kafountine.gouv.sn', P);
   },
   steps: [
     { path: `${S}/backups` },
@@ -19,7 +19,7 @@ export default {
     { path: `${S}/backups/nope.json/download`, as: 'super' },
     { path: `${S}/tarifs`, save: 'tarifs' },
     { path: `${S}/tarifs`, as: 'agent' },
-    { path: `${S}/penalites`, as: 'compta', save: 'pen' },
+    { path: `${S}/penalites`, as: 'finances', save: 'pen' },
     { path: '/api/v1/public/penalites', as: null },
     { path: `${S}/permissions` },
     { method: 'POST', path: `${S}/tarifs`, as: 'super', body: {} },

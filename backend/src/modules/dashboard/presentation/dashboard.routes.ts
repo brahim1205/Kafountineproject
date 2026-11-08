@@ -44,8 +44,8 @@ export function buildDashboardRoutes(controller: DashboardController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
 
-  router.get('/statistiques', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES', 'AGENT'), validate(dashboardStatisticsQuerySchema, 'query'), asyncHandler((req, res) => controller.statistiques(req, res)));
-  router.get('/top-contribuables', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES', 'AGENT'), validate(dashboardStatisticsQuerySchema, 'query'), asyncHandler((req, res) => controller.topContribuables(req, res)));
+  router.get('/statistiques', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'SERVICE_FINANCES', 'AGENT', 'REGISSEUR'), validate(dashboardStatisticsQuerySchema, 'query'), asyncHandler((req, res) => controller.statistiques(req, res)));
+  router.get('/top-contribuables', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'SERVICE_FINANCES', 'AGENT', 'REGISSEUR'), validate(dashboardStatisticsQuerySchema, 'query'), asyncHandler((req, res) => controller.topContribuables(req, res)));
 
   return router;
 }

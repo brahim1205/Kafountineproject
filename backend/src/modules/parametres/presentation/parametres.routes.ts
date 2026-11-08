@@ -161,8 +161,8 @@ export function buildParametresRoutes(controller: ParametresController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
   const adminOnly = authorize('ADMIN', 'SUPER_ADMIN');
-  // Les agents et comptables consultent les pénalités actives pour les appliquer (page Pénalités) ; la gestion reste aux admins.
-  const penaltyReaders = authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE');
+  // Les agents consultent les pénalités actives pour les appliquer (page Pénalités) ; la gestion reste aux admins.
+  const penaltyReaders = authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR');
 
   router.get('/settings/tarifs', authenticate, adminOnly, asyncHandler((req, res) => controller.listTariffs(req, res)));
   router.post('/settings/tarifs', authenticate, adminOnly, validate(createTarifSchema), asyncHandler((req, res) => controller.createTariff(req, res)));

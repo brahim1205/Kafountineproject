@@ -117,7 +117,7 @@ Tous les endpoints peuvent retourner:
             email: { type: 'string', format: 'email', description: 'Email de l\'utilisateur' },
             nom: { type: 'string', description: 'Nom de l\'utilisateur' },
             prenom: { type: 'string', description: 'Prénom de l\'utilisateur' },
-            role: { type: 'string', enum: ['ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES', 'QUAI_PECHE'], description: 'Rôle de l\'utilisateur' },
+            role: { type: 'string', enum: ['ADMIN', 'SUPER_ADMIN', 'AGENT', 'SERVICE_FINANCES', 'QUAI_PECHE', 'ETAT_CIVIL', 'REGISSEUR'], description: 'Rôle de l\'utilisateur' },
             isActive: { type: 'boolean', description: 'Statut actif' },
           },
           required: ['id', 'email', 'nom', 'prenom', 'role', 'isActive'],

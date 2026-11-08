@@ -143,8 +143,8 @@ export class PrismaMotoRepository implements MotoRepository {
   }
 
   listForStats(year: number) {
-    return db().$queryRawUnsafe<Array<Pick<MotoRegistration, 'enRetard' | 'statut'>>>(
-      'SELECT "enRetard", "statut" FROM "MotoRegistration" WHERE "year" = $1',
+    return db().$queryRawUnsafe<Array<Pick<MotoRegistration, 'enRetard' | 'statut' | 'prochainPaiement'>>>(
+      'SELECT "enRetard", "statut", "prochainPaiement" FROM "MotoRegistration" WHERE "year" = $1',
       year
     );
   }
@@ -193,13 +193,16 @@ export class PrismaMotoRepository implements MotoRepository {
   }
 
   recordPayment(values: MotoPaymentValues, moto: MotoRegistration) {
+    // Seule la cotisation fait avancer l'échéance : adhésion et amende sont des paiements à part.
+    const cotisation = values.type === 'COTISATION';
     return inTransaction(async (tx) => {
       const [row] = await tx.$queryRawUnsafe<MotoPayment[]>(
-      `INSERT INTO "MotoPayment" ("id", "motoId", "montant", "reference", "statut", "datePaiement", "mois", "numeroRecu", "agent", "year", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, 'PAYE', $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `INSERT INTO "MotoPayment" ("id", "motoId", "type", "montant", "reference", "statut", "datePaiement", "mois", "numeroRecu", "agent", "year", "createdAt", "updatedAt")
+       VALUES ($1, $2, $31, $3, $4, 'PAYE', $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING
         "id",
         "motoId",
+        "type",
         "montant",
         "reference",
         "statut",
@@ -220,7 +223,7 @@ export class PrismaMotoRepository implements MotoRepository {
         $17::text AS "permis",
         $18::text AS "motoStatut",
         $19::text AS "photo",
-        false AS "enRetard",
+        $32::boolean AS "enRetard",
         $20::double precision AS "montantPenalite",
         $21::timestamp AS "prochainPaiement",
         $22::timestamp AS "dernierPaiement",
@@ -253,7 +256,7 @@ export class PrismaMotoRepository implements MotoRepository {
       moto.photo,
       moto.montantPenalite,
       values.prochainPaiement,
-      values.datePaiement,
+      cotisation ? values.datePaiement : moto.dernierPaiement,
       moto.proprietaireNom,
       moto.proprietairePrenom,
       moto.proprietaireNin,
@@ -261,10 +264,12 @@ export class PrismaMotoRepository implements MotoRepository {
       moto.conducteurNom,
       moto.conducteurPrenom,
       moto.conducteurNin,
-      moto.conducteurTelephone
+      moto.conducteurTelephone,
+      values.type,
+      cotisation ? false : moto.enRetard
       );
 
-      await tx.$executeRaw`
+      if (cotisation) await tx.$executeRaw`
         UPDATE "MotoRegistration"
         SET "enRetard" = false, "dernierPaiement" = ${values.datePaiement}, "prochainPaiement" = ${values.prochainPaiement}, "updatedAt" = CURRENT_TIMESTAMP
         WHERE "id" = ${values.motoId}

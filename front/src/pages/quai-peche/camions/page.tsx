@@ -23,7 +23,7 @@ export default function CamionsPage() {
   const isCurrentYear = selectedYear === new Date().getFullYear();
   const role = getStoredUserRole();
   // Mêmes règles que l'API : création/modification par le quai de pêche et les admins, suppression par les admins.
-  const canManage = isCurrentYear && (role === 'admin' || role === 'super_admin' || role === 'quai_peche');
+  const canManage = isCurrentYear && (role === 'admin' || role === 'super_admin' || role === 'quai_peche' || role === 'regisseur');
   const canDelete = isCurrentYear && (role === 'admin' || role === 'super_admin');
 
   const [camions, setCamions] = useState<CamionFrigorifique[]>([]);

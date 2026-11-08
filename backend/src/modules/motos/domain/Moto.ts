@@ -27,9 +27,12 @@ export type MotoRegistration = {
   conducteurTelephone: string | null;
 };
 
+export type MotoPaymentType = 'ADHESION' | 'COTISATION' | 'AMENDE_POLICE';
+
 export type MotoPayment = {
   id: string;
   motoId: string;
+  type: MotoPaymentType;
   montant: number;
   reference: string | null;
   statut: string;
@@ -95,9 +98,9 @@ export type MotoPeopleDisplay = Pick<
   | 'conducteurTelephone'
 >;
 
-export type MotoPaymentValues = Pick<MotoPayment, 'motoId' | 'montant' | 'reference' | 'mois' | 'numeroRecu' | 'agent' | 'year'> & {
+export type MotoPaymentValues = Pick<MotoPayment, 'motoId' | 'type' | 'montant' | 'reference' | 'mois' | 'numeroRecu' | 'agent' | 'year'> & {
   datePaiement: Date;
-  prochainPaiement: Date;
+  prochainPaiement: Date | null;
 };
 
 export interface MotoRepository {
@@ -107,7 +110,7 @@ export interface MotoRepository {
   findIdByPermis(permis: string): Promise<string | null>;
   create(values: MotoValues, people: MotoPeopleDisplay): Promise<MotoRegistration>;
   update(id: string, values: MotoValues, people: MotoPeopleDisplay): Promise<MotoRegistration>;
-  listForStats(year: number): Promise<Array<Pick<MotoRegistration, 'enRetard' | 'statut'>>>;
+  listForStats(year: number): Promise<Array<Pick<MotoRegistration, 'enRetard' | 'statut' | 'prochainPaiement'>>>;
   listPaymentAmounts(year: number): Promise<Array<Pick<MotoPayment, 'montant'>>>;
   listPayments(year: number): Promise<MotoPayment[]>;
   /** Enregistre le paiement et remet la moto à jour (échéance, retard) de façon atomique. */

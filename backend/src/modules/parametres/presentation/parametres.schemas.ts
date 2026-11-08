@@ -45,7 +45,7 @@ export const updatePenaltySchema = z.object({
 
 export const updatePermissionSchema = z.object({
   module: trimmedString(1, 120, 'Module requis'),
-  role: z.enum(['AGENT', 'SUPERVISEUR', 'COMPTABLE', 'ADMIN', 'SUPER_ADMIN']),
+  role: z.enum(['AGENT', 'SUPERVISEUR', 'ADMIN', 'SUPER_ADMIN']),
   enabled: z.boolean(),
 }).strict();
 

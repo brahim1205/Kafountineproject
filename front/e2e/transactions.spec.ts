@@ -30,27 +30,6 @@ test.describe('Transactions', () => {
   });
 });
 
-test.describe('Contribuables', () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-  });
-
-  test('should display contribuables list', async ({ page }) => {
-    await page.goto('/contribuables');
-    await expect(page.getByRole('heading', { name: /contribuables/i })).toBeVisible();
-    await expect(page.locator('table')).toBeVisible();
-  });
-
-  test('should search contribuables', async ({ page }) => {
-    await page.goto('/contribuables');
-
-    const searchInput = page.getByPlaceholder('Rechercher par nom, téléphone, NIN...');
-    await searchInput.fill('Diallo');
-    await expect(searchInput).toHaveValue('Diallo');
-    await expect(page.locator('tbody')).toContainText('Diallo');
-  });
-});
-
 test.describe('Motos', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);

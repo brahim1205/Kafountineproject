@@ -23,7 +23,6 @@ export interface Permission {
   module: string;
   agent: boolean;
   superviseur: boolean;
-  comptable: boolean;
   admin: boolean;
 }
 

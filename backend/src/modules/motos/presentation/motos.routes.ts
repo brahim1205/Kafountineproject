@@ -93,13 +93,13 @@ export function buildMotosRoutes(controller: MotosController) {
   const authenticate = buildAuthenticate(new JwtTokenService());
 
   router.get('/motos', authenticate, validate(yearSearchLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.list(req, res)));
-  router.post('/motos', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(createMotoSchema), asyncHandler((req, res) => controller.create(req, res)));
-  router.put('/motos/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(resourceIdParamsSchema, 'params'), validate(updateMotoSchema), asyncHandler((req, res) => controller.update(req, res)));
-  router.post('/motos/:id/changement-conducteur', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(resourceIdParamsSchema, 'params'), validate(changeMotoDriverSchema), asyncHandler((req, res) => controller.update(req, res)));
+  router.post('/motos', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(createMotoSchema), asyncHandler((req, res) => controller.create(req, res)));
+  router.put('/motos/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(resourceIdParamsSchema, 'params'), validate(updateMotoSchema), asyncHandler((req, res) => controller.update(req, res)));
+  router.post('/motos/:id/changement-conducteur', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(resourceIdParamsSchema, 'params'), validate(changeMotoDriverSchema), asyncHandler((req, res) => controller.update(req, res)));
   router.get('/motos/statistiques', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.stats(req, res)));
   router.get('/motos/configuration', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.configuration(req, res)));
   router.get('/motos/paiements', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.listPayments(req, res)));
-  router.post('/motos/paiements', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES'), validate(createMotoPaymentSchema), asyncHandler((req, res) => controller.createPayment(req, res)));
+  router.post('/motos/paiements', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR', 'SERVICE_FINANCES'), validate(createMotoPaymentSchema), asyncHandler((req, res) => controller.createPayment(req, res)));
 
   return router;
 }

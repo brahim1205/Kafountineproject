@@ -196,7 +196,6 @@ public class DashboardService {
     long totalUsers = orElse(() -> count("SELECT COUNT(*) FROM \"User\""), 0L);
     long totalAdmins = orElse(() -> count("SELECT COUNT(*) FROM \"User\" WHERE \"role\" = 'ADMIN'"), 0L);
     long totalAgents = orElse(() -> count("SELECT COUNT(*) FROM \"User\" WHERE \"role\" = 'AGENT'"), 0L);
-    long totalComptables = orElse(() -> count("SELECT COUNT(*) FROM \"User\" WHERE \"role\" = 'COMPTABLE'"), 0L);
     Map<String, Object> formations = orElse(() -> formationsStats(year), null);
     Map<String, Object> motos = orElse(() -> motosStats(year), null);
     Map<String, Object> marche = orElse(() -> marcheStats(year), null);
@@ -271,7 +270,6 @@ public class DashboardService {
     result.put("totalUsers", totalUsers);
     result.put("totalAdmins", totalAdmins);
     result.put("totalAgents", totalAgents);
-    result.put("totalComptables", totalComptables);
     result.put("alertes", alertes);
     result.put("stats", stats);
     result.put("recettesParSource", recettesParSource);

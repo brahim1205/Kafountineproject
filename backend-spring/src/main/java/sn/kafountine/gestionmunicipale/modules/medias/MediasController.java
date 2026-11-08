@@ -79,7 +79,7 @@ public class MediasController {
   }
 
   @DeleteMapping("/api/v1/upload/image/{publicId}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "ETAT_CIVIL", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String publicId) throws IOException {
     Input params = Input.params(Map.of("publicId", publicId));
     String id = params.str("publicId").trimmed(1, 120, "Identifiant image invalide").required();

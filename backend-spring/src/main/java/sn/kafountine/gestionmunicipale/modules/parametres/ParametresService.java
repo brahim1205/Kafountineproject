@@ -29,12 +29,11 @@ public class ParametresService {
   private static final List<String> PERMISSION_MODULES = List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "Utilisateurs", "Audit", "Budget",
       "État civil", "Urbanisme", "Marché", "Motos", "Formations", "Quai de pêche", "Paramètres");
   private static final Map<String, List<String>> ROLE_MODULES = new LinkedHashMap<>();
-  private static final List<String> ASSIGNABLE_ROLES = List.of("AGENT", "SUPERVISEUR", "COMPTABLE", "ADMIN", "SUPER_ADMIN");
+  private static final List<String> ASSIGNABLE_ROLES = List.of("AGENT", "SUPERVISEUR", "ADMIN", "SUPER_ADMIN");
 
   static {
     ROLE_MODULES.put("AGENT", List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "État civil", "Urbanisme", "Marché", "Motos", "Formations", "Quai de pêche"));
     ROLE_MODULES.put("SUPERVISEUR", List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "État civil", "Urbanisme"));
-    ROLE_MODULES.put("COMPTABLE", List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "Budget", "Marché"));
     ROLE_MODULES.put("ADMIN", null);
     ROLE_MODULES.put("SUPER_ADMIN", null);
   }
@@ -203,11 +202,10 @@ public class ParametresService {
     Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
     for (Map<String, Object> row : db.list("SELECT * FROM \"AppSettingPermission\" ORDER BY \"module\" ASC, \"role\" ASC")) {
       String module = Db.str(row, "module");
-      Map<String, Object> current = grouped.computeIfAbsent(module, m -> Api.map("module", m, "agent", false, "superviseur", false, "comptable", false, "admin", false));
+      Map<String, Object> current = grouped.computeIfAbsent(module, m -> Api.map("module", m, "agent", false, "superviseur", false, "admin", false));
       switch (Db.str(row, "role")) {
         case "AGENT" -> current.put("agent", row.get("enabled"));
         case "SUPERVISEUR" -> current.put("superviseur", row.get("enabled"));
-        case "COMPTABLE" -> current.put("comptable", row.get("enabled"));
         case "ADMIN" -> current.put("admin", row.get("enabled"));
         default -> { }
       }
@@ -252,7 +250,7 @@ public class ParametresService {
       String[][] penalties = {
           {"Retard paiement marché", "Majoration appliquée après échéance mensuelle", "1500", "5 jours après échéance"},
           {"Retard dossier urbanisme", "Frais complémentaires en cas de dossier incomplet prolongé", "5000", "10 jours après notification"},
-          {"Retard moto-taxi", "Pénalité standard de régularisation", "250", "Immédiatement après échéance"}};
+          {"Retard moto-taxi", "Pénalité standard de régularisation", "10000", "Immédiatement après échéance"}};
       insertDefaults("AppSettingPenalty", "\"type\", \"description\", \"montant\", \"delai\"", penalties);
     }
     if (db.count("SELECT COUNT(*)::bigint AS count FROM \"AppSettingPermission\"", Db.params()) == 0) {

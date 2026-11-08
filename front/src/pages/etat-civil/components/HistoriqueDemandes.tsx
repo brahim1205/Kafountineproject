@@ -21,7 +21,7 @@ type UiEtatCivilDemande = EtatCivilDemande & {
   agent: string;
 };
 
-export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: number }) {
+export default function HistoriqueDemandes({ refreshKey = 0, onChanged, statut }: { refreshKey?: number; onChanged?: () => void; statut?: string }) {
   const { selectedYear } = useYear();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('tous');
@@ -75,12 +75,13 @@ export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: nu
   );
 
   const filteredDemandes = useMemo(() => demandes.filter(demande => {
+    if (statut && demande.statut !== statut) return false;
     const matchSearch = demande.demandeur.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        demande.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        demande.cni.includes(searchTerm);
     const matchType = filterType === 'tous' || demande.typeDocument === filterType;
     return matchSearch && matchType;
-  }), [demandes, searchTerm, filterType]);
+  }), [demandes, searchTerm, filterType, statut]);
 
   const handleVoir = (demande: UiEtatCivilDemande) => {
     setSelectedDemande(demande);
@@ -123,6 +124,7 @@ export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: nu
       setShowEditModal(false);
       setSelectedEditDemande(null);
       loadDemandes();
+      onChanged?.();
     } catch (error) {
       showToast(getErrorMessage(error, 'Erreur lors de la mise à jour.'), 'error');
     }
@@ -138,6 +140,7 @@ export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: nu
       setShowEditModal(false);
       setSelectedEditDemande(null);
       loadDemandes();
+      onChanged?.();
     } catch (error) {
       showToast(getErrorMessage(error, 'Erreur lors de la suppression.'), 'error');
     }
@@ -222,7 +225,7 @@ export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: nu
                       >
                         <i className="ri-eye-line"></i>
                       </button>
-                      {userRole === 'super_admin' ? (
+                      {(userRole === 'super_admin' || userRole === 'etat_civil') && (
                         <button 
                           onClick={() => handleEdit(demande)}
                           className="w-8 h-8 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
@@ -230,7 +233,8 @@ export default function HistoriqueDemandes({ refreshKey = 0 }: { refreshKey?: nu
                         >
                           <i className="ri-edit-line"></i>
                         </button>
-                      ) : (
+                      )}
+                      {userRole !== 'super_admin' && (
                         <button 
                           onClick={() => handleImprimer(demande)}
                           className="w-8 h-8 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

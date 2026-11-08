@@ -3,47 +3,39 @@ import { useState } from 'react';
 import { createMotoPayment } from '../../../services/motos';
 import { useToast } from '../../../components/feature/Toast';
 import { getErrorMessage } from '../../../utils/formValidation';
-import { FULL_DATE, SHORT_TIME, montantDu, type MotoConfig, type ReceiptData, type UiMoto } from '../types';
+import { FULL_DATE, SHORT_TIME, libellePaiement, montantDu, type MotoConfig, type ReceiptData, type UiMoto } from '../types';
 import { INPUT_CLASS } from './Field';
 
 type PaiementMotoModalProps = {
   moto: UiMoto;
   motoConfig: MotoConfig;
-  selectedYear: number;
   onClose: () => void;
   onPaid: (receipt: ReceiptData) => Promise<void>;
 };
 
-function moisDeLAnnee(year: number) {
-  return Array.from({ length: 12 }, (_, month) => {
-    const label = new Date(year, month, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    return label.charAt(0).toUpperCase() + label.slice(1);
-  });
-}
-
-export default function PaiementMotoModal({ moto, motoConfig, selectedYear, onClose, onPaid }: PaiementMotoModalProps) {
+export default function PaiementMotoModal({ moto, motoConfig, onClose, onPaid }: PaiementMotoModalProps) {
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const mois = moisDeLAnnee(selectedYear);
+  const [type, setType] = useState<'COTISATION' | 'AMENDE_POLICE'>('COTISATION');
   const now = new Date();
-  const moisParDefaut = mois[now.getFullYear() === selectedYear ? now.getMonth() : 0];
+  const amende = type === 'AMENDE_POLICE';
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const moisPaiement = new FormData(e.currentTarget).get('mois') as string;
+    const reference = String(new FormData(e.currentTarget).get('reference') || '').trim();
 
     try {
-      // Le montant est calculé par le serveur (tarif mensuel + pénalité éventuelle).
-      const payment = await createMotoPayment({ motoId: moto.id, mois: moisPaiement });
+      // Le montant est calculé par le serveur selon le type de paiement.
+      const payment = await createMotoPayment({ motoId: moto.id, type, reference: reference || undefined });
       await onPaid({
         // Numéro de reçu attribué par le serveur, à la suite des précédents.
         numero: payment.numeroRecu || '',
         date: now.toLocaleDateString('fr-FR', FULL_DATE),
         heure: now.toLocaleTimeString('fr-FR', SHORT_TIME),
         contribuable: moto.proprietaire.nom,
-        type: `Taxe moto Jakarta ${moto.matricule} - ${moisPaiement}${moto.enRetard ? ' (avec pénalité)' : ''}`,
+        type: libellePaiement({ type, mois: payment.mois, matricule: moto.matricule }) + (!amende && moto.enRetard ? ' (avec pénalité)' : ''),
         montant: payment.montant,
         agent: payment.agent || 'Agent Municipal',
       });
@@ -72,7 +64,15 @@ export default function PaiementMotoModal({ moto, motoConfig, selectedYear, onCl
               </div>
             </div>
 
-            {moto.enRetard ? (
+            {amende ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-amber-800">
+                  <i className="ri-police-car-line mr-1"></i>
+                  Moto arrêtée par la police
+                </p>
+                <p className="text-sm font-bold text-amber-800 mt-1">Amende : {motoConfig.amendePolice.toLocaleString()} FCFA</p>
+              </div>
+            ) : moto.enRetard ? (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                 <p className="text-sm font-medium text-red-800 mb-1">
                   <i className="ri-error-warning-line mr-1"></i>
@@ -96,13 +96,24 @@ export default function PaiementMotoModal({ moto, motoConfig, selectedYear, onCl
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mois de paiement</label>
-            <select name="mois" defaultValue={moisParDefaut} className={`${INPUT_CLASS} cursor-pointer`}>
-              {mois.map((label) => (
-                <option key={label}>{label}</option>
-              ))}
+            <label htmlFor="type-paiement" className="block text-sm font-medium text-gray-700 mb-1">Type de paiement</label>
+            <select
+              id="type-paiement"
+              value={type}
+              onChange={(e) => setType(e.target.value as 'COTISATION' | 'AMENDE_POLICE')}
+              className={`${INPUT_CLASS} cursor-pointer`}
+            >
+              <option value="COTISATION">Cotisation mensuelle</option>
+              <option value="AMENDE_POLICE">Amende police</option>
             </select>
           </div>
+
+          {amende && (
+            <div>
+              <label htmlFor="reference-amende" className="block text-sm font-medium text-gray-700 mb-1">N° du procès-verbal (facultatif)</label>
+              <input id="reference-amende" name="reference" maxLength={120} className={INPUT_CLASS} />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Mode de paiement</label>

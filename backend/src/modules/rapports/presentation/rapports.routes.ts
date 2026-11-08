@@ -35,9 +35,9 @@ export function buildRapportsRoutes(controller: RapportsController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
 
-  router.post('/exports/receipt.pdf', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES', 'QUAI_PECHE'), validate(exportReceiptPdfSchema), asyncHandler((req, res) => controller.exportReceiptPdf(req, res)));
-  router.post('/exports/report.pdf', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), validate(exportReportPdfSchema), asyncHandler((req, res) => controller.exportReportPdf(req, res)));
-  router.get('/exports/report-data', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES'), asyncHandler((req, res) => controller.reportData(req, res)));
+  router.post('/exports/receipt.pdf', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'SERVICE_FINANCES', 'QUAI_PECHE', 'REGISSEUR'), validate(exportReceiptPdfSchema), asyncHandler((req, res) => controller.exportReceiptPdf(req, res)));
+  router.post('/exports/report.pdf', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'SERVICE_FINANCES', 'REGISSEUR'), validate(exportReportPdfSchema), asyncHandler((req, res) => controller.exportReportPdf(req, res)));
+  router.get('/exports/report-data', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'SERVICE_FINANCES', 'REGISSEUR'), asyncHandler((req, res) => controller.reportData(req, res)));
 
   return router;
 }

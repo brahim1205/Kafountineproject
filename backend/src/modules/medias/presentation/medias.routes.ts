@@ -41,7 +41,7 @@ export function buildMediasRoutes(controller: MediasController) {
   const authenticate = buildAuthenticate(new JwtTokenService());
 
   router.post('/upload/image', authenticate, controller.upload.single('image'), asyncHandler((req, res) => controller.uploadImage(req, res)));
-  router.delete('/upload/image/:publicId', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(publicIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteImage(req, res)));
+  router.delete('/upload/image/:publicId', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'ETAT_CIVIL', 'REGISSEUR'), validate(publicIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteImage(req, res)));
 
   return router;
 }

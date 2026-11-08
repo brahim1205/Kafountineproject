@@ -83,7 +83,7 @@ public class UrbanismeController {
   }
 
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode json) {
     Actor actor = RequestContext.actor();
     Map<String, Object> created = new LinkedHashMap<>(service.create(actor, body(Input.body(json), true)));
@@ -92,14 +92,14 @@ public class UrbanismeController {
   }
 
   @PutMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode json) {
     String dossierId = Common.id(id);
     return Api.ok(service.update(RequestContext.actor(), dossierId, body(Input.body(json), false)));
   }
 
   @DeleteMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
     service.delete(RequestContext.actor(), Common.id(id));
     return Api.message("Suppression effectuée");

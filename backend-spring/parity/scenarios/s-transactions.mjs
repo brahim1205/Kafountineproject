@@ -7,7 +7,8 @@ export default {
     await login('admin', 'admin@kafountine.gouv.sn', P);
     await login('super', 'superadmin@kafountine.gouv.sn', P);
     await login('agent', 'agent@kafountine.gouv.sn', P);
-    await login('compta', 'comptable@kafountine.gouv.sn', P);
+    await login('finances', 'finances@kafountine.gouv.sn', P);
+    await login('etatcivil', 'etatcivil@kafountine.gouv.sn', P);
   },
   steps: [
     { path: `${T}/categories` },
@@ -39,7 +40,7 @@ export default {
     { path: `${T}/statistiques` },
     { path: `${T}/statistiques?year=2025` },
     { path: `${T}/statistiques`, as: 'agent' },
-    { path: `${T}/export`, as: 'compta', raw: true, headers: ['content-type', 'content-disposition'] },
+    { path: `${T}/export`, as: 'finances', raw: true, headers: ['content-type', 'content-disposition'] },
     { path: `${T}/export?categorie=etat-civil&statut=PAYE`, raw: true, headers: ['content-type', 'content-disposition'] },
     { path: `${T}/export?year=2025`, raw: true, headers: ['content-disposition'] },
     { path: `${T}/export?page=1` },
@@ -51,7 +52,8 @@ export default {
     { method: 'POST', path: T, as: 'admin', body: ticket, note: 'admin lecture seule' },
     { method: 'POST', path: T, as: 'agent', save: 't1', body: ticket },
     { method: 'POST', path: T, as: 'agent', save: 't2', body: { ...ticket, categorie: 'MARCHE', service: 'Place', quantite: '3', montant: '1500.5', modePaiement: 'MOBILE_MONEY', statut: 'EN_ATTENTE', date: '2026-03-04', reference: 'ref' } },
-    { method: 'POST', path: T, as: 'compta', save: 't3', body: { ...ticket, categorie: '', service: '', date: '2026-05-06T10:20:30.000Z', montant: 0 } },
+    { method: 'POST', path: T, as: 'finances', save: 't3', body: { ...ticket, categorie: '', service: '', date: '2026-05-06T10:20:30.000Z', montant: 0 } },
+    { method: 'POST', path: T, as: 'etatcivil', body: { ...ticket, categorie: '', service: '', date: '2026-05-06T10:20:30.000Z', montant: 0 } },
     { method: 'POST', path: T, as: 'agent', body: { ...ticket, contribuableId: '00000000-0000-4000-8000-000000000000' }, note: 'contribuable inexistant' },
     { method: 'POST', path: T, as: 'agent', body: { ...ticket, date: 'pas une date' } },
     { path: `${T}?search=Diff` },

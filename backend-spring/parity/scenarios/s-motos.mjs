@@ -7,6 +7,7 @@ export default {
     await login('admin', 'admin@kafountine.gouv.sn', P);
     await login('super', 'superadmin@kafountine.gouv.sn', P);
     await login('agent', 'agent@kafountine.gouv.sn', P);
+    await login('regi', 'regisseur@kafountine.gouv.sn', P);
     await login('fin', 'finances@kafountine.gouv.sn', P);
   },
   steps: [
@@ -42,6 +43,11 @@ export default {
     { method: 'POST', path: `${M}/paiements`, as: 'fin', body: { motoId: '{{m1.data.id}}' }, note: 'à jour : tarif' },
     { method: 'POST', path: `${M}/paiements`, as: 'agent', body: { motoId: '{{m2.data.id}}', montant: '1250.5', reference: ' R1 ', mois: ' Octobre 2026 ', year: 2025 } },
     { method: 'POST', path: `${M}/paiements`, as: 'agent', body: { motoId: '{{motos.data.0.id}}', mois: '' } },
+    { method: 'POST', path: `${M}/paiements`, as: 'regi', body: { motoId: '{{m2.data.id}}', reference: ' R1 ', mois: ' juin 2026 ' } },
+    { method: 'POST', path: `${M}/paiements`, as: 'regi', body: { motoId: '{{m2.data.id}}', type: 'AMENDE_POLICE', reference: 'PV-1' }, note: 'amende police' },
+    { method: 'POST', path: `${M}/paiements`, as: 'regi', body: { motoId: '{{m2.data.id}}', type: 'ADHESION' }, note: 'type refusé' },
+    { path: `${M}/statistiques` },
+    { path: `${M}/configuration` },
     { path: M },
     { path: `${M}/paiements` },
     { path: `${M}/paiements?year=2025` },

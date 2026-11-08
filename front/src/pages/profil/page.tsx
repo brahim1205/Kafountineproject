@@ -8,9 +8,10 @@ const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super administrateur',
   ADMIN: 'Administrateur',
   AGENT: 'Agent',
-  COMPTABLE: 'Comptable',
   SERVICE_FINANCES: 'Service des finances',
   QUAI_PECHE: 'Quai de pêche',
+  ETAT_CIVIL: 'État civil',
+  REGISSEUR: 'Régisseur',
 };
 
 export default function ProfilPage() {

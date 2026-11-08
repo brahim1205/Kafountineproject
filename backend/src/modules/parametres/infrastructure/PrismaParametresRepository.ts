@@ -37,7 +37,6 @@ const DEFAULT_PERMISSION_MODULES = [
 const DEFAULT_ROLE_MODULES: Record<string, string[] | 'all'> = {
   AGENT: ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'État civil', 'Urbanisme', 'Marché', 'Motos', 'Formations', 'Quai de pêche'],
   SUPERVISEUR: ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'État civil', 'Urbanisme'],
-  COMPTABLE: ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'Budget', 'Marché'],
   ADMIN: 'all',
   SUPER_ADMIN: 'all',
 };
@@ -72,7 +71,7 @@ export class PrismaParametresRepository implements ParametresRepository {
         VALUES
         (${randomUUID()}, ${'Retard paiement marché'}, ${'Majoration appliquée après échéance mensuelle'}, ${1500}, ${'5 jours après échéance'}, ${true}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
         (${randomUUID()}, ${'Retard dossier urbanisme'}, ${'Frais complémentaires en cas de dossier incomplet prolongé'}, ${5000}, ${'10 jours après notification'}, ${true}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (${randomUUID()}, ${'Retard moto-taxi'}, ${'Pénalité standard de régularisation'}, ${250}, ${'Immédiatement après échéance'}, ${true}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        (${randomUUID()}, ${'Retard moto-taxi'}, ${'Pénalité standard de régularisation'}, ${10000}, ${'Immédiatement après échéance'}, ${true}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `;
     }
 

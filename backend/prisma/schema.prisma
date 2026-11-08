@@ -259,7 +259,7 @@ model MotoRegistration {
   statut           String    @default("ACTIVE")
   photo            String?
   enRetard         Boolean   @default(false)
-  montantPenalite  Decimal   @default(250) @db.Decimal(14, 2)
+  montantPenalite  Decimal   @default(10000) @db.Decimal(14, 2)
   prochainPaiement DateTime?
   dernierPaiement  DateTime?
   year             Int
@@ -279,6 +279,7 @@ model MotoRegistration {
 model MotoPayment {
   id           String    @id @default(uuid())
   motoId       String
+  type         String    @default("COTISATION")
   montant      Decimal   @db.Decimal(14, 2)
   reference    String?
   statut       String    @default("PAYE")

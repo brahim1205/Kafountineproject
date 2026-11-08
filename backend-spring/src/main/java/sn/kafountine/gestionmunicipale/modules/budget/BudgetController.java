@@ -29,7 +29,7 @@ public class BudgetController {
   }
 
   @GetMapping("/lignes")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES"})
   public ResponseEntity<Map<String, Object>> listLines(HttpServletRequest request) {
     return Api.ok(service.listLines(Common.yearQuery(request.getParameterMap())));
   }
@@ -49,13 +49,13 @@ public class BudgetController {
   }
 
   @PostMapping("/lignes")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES"})
   public ResponseEntity<Map<String, Object>> createLine(@Body JsonNode body) {
     return Api.created(service.createLine(RequestContext.actor(), line(Input.body(body), true)));
   }
 
   @PutMapping("/lignes/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES"})
   public ResponseEntity<Map<String, Object>> updateLine(@PathVariable String id, @Body JsonNode body) {
     String lineId = Common.id(id);
     return Api.ok(service.updateLine(RequestContext.actor(), lineId, line(Input.body(body), false)));
@@ -69,19 +69,19 @@ public class BudgetController {
   }
 
   @GetMapping("/stats")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES"})
   public ResponseEntity<Map<String, Object>> stats(HttpServletRequest request) {
     return Api.ok(service.stats(Common.yearQuery(request.getParameterMap())));
   }
 
   @GetMapping("/demandes")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES"})
   public ResponseEntity<Map<String, Object>> listRequests(HttpServletRequest request) {
     return Api.ok(service.listRequests(Common.yearQuery(request.getParameterMap())));
   }
 
   @PostMapping("/demandes")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES", "AGENT"})
   public ResponseEntity<Map<String, Object>> createRequest(@Body JsonNode body) {
     Input input = Input.body(body);
     String serviceName = input.str("service").trimmed(1, 120, "Service requis").required();
@@ -93,7 +93,7 @@ public class BudgetController {
   }
 
   @PutMapping("/demandes/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES"})
   public ResponseEntity<Map<String, Object>> updateRequest(@PathVariable String id, @Body JsonNode body) {
     String requestId = Common.id(id);
     Input input = Input.body(body);

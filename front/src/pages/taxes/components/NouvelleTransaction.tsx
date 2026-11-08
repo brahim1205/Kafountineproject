@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
+import { getStoredUserRole } from '../../../services/auth';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { ensureContribuableByIdentity } from '../../../services/contribuables';
 import { createTransaction, getTaxCategories, getTaxServices, type TaxCategory, type TaxService } from '../../../services/taxes';
@@ -39,6 +40,8 @@ export default function NouvelleTransaction() {
     typeof (location.state as { categorieId?: unknown } | null)?.categorieId === 'string'
       ? ((location.state as { categorieId: string }).categorieId)
       : '';
+  const isEtatCivil = getStoredUserRole() === 'etat_civil';
+  const isRegisseur = getStoredUserRole() === 'regisseur';
   const [etape, setEtape] = useState(1);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showRecuModal, setShowRecuModal] = useState(false);
@@ -48,7 +51,7 @@ export default function NouvelleTransaction() {
   const [services, setServices] = useState<TaxService[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    categorie: preselectedCategoryId,
+    categorie: isEtatCivil ? 'etat-civil' : preselectedCategoryId,
     service: '',
     contribuable: '',
     cni: '',
@@ -61,7 +64,7 @@ export default function NouvelleTransaction() {
   useEffect(() => {
     getTaxCategories()
       .then((data) => {
-        const nextCategories = data || [];
+        const nextCategories = (data || []).filter((category) => (isEtatCivil ? category.id === 'etat-civil' : !isRegisseur || category.id !== 'etat-civil'));
         setCategories(nextCategories);
         if (preselectedCategoryId && !nextCategories.some((category) => category.id === preselectedCategoryId)) {
           setFormData((current) => ({ ...current, categorie: '' }));
@@ -71,7 +74,7 @@ export default function NouvelleTransaction() {
         setCategories([]);
         showToast('Impossible de charger les catégories de taxe.', 'error');
       });
-  }, [preselectedCategoryId, showToast]);
+  }, [preselectedCategoryId, showToast, isEtatCivil, isRegisseur]);
 
   useEffect(() => {
     if (!formData.categorie) {
@@ -172,7 +175,7 @@ export default function NouvelleTransaction() {
     if (etape > 1) {
       setEtape(etape - 1);
     } else {
-      navigate('/taxes');
+      navigate(isEtatCivil ? '/taxes/etat-civil' : '/taxes');
     }
   };
 

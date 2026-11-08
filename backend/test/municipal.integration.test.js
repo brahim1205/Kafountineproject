@@ -409,7 +409,7 @@ describeIntegration('services municipaux (intégration)', () => {
 
       const payment = await admin.post('/motos/paiements', { motoId, year });
       expect(payment.status).toBe(201);
-      expect(payment.body.data.montant).toBe(1250);
+      expect(payment.body.data.montant).toBe(12000);
 
       const [moto] = (await admin.get(`/motos?year=${year}&search=it-${suffix.toLowerCase()}`)).body.data;
       expect(moto.enRetard).toBe(false);

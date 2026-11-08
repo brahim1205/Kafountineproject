@@ -25,7 +25,7 @@ export type PermissionInput = {
   enabled?: boolean;
 };
 
-const ASSIGNABLE_PERMISSION_ROLES = ['AGENT', 'SUPERVISEUR', 'COMPTABLE', 'ADMIN', 'SUPER_ADMIN'];
+const ASSIGNABLE_PERMISSION_ROLES = ['AGENT', 'SUPERVISEUR', 'ADMIN', 'SUPER_ADMIN'];
 
 export class ParametresService {
   constructor(
@@ -288,7 +288,7 @@ export class ParametresService {
   private groupPermissions(rows: Permission[]) {
     const grouped = new Map<
       string,
-      { module: string; agent: boolean; superviseur: boolean; comptable: boolean; admin: boolean }
+      { module: string; agent: boolean; superviseur: boolean; admin: boolean }
     >();
 
     for (const row of rows) {
@@ -296,13 +296,11 @@ export class ParametresService {
         module: row.module,
         agent: false,
         superviseur: false,
-        comptable: false,
         admin: false,
       };
 
       if (row.role === 'AGENT') current.agent = row.enabled;
       if (row.role === 'SUPERVISEUR') current.superviseur = row.enabled;
-      if (row.role === 'COMPTABLE') current.comptable = row.enabled;
       if (row.role === 'ADMIN') current.admin = row.enabled;
       grouped.set(row.module, current);
     }

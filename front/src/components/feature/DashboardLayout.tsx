@@ -3,33 +3,38 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useYear, AVAILABLE_YEARS } from '../../contexts/YearContext';
 import NotificationPanel from './NotificationPanel';
 import { canWriteData, logoutRequest, clearSession, getStoredUserInitials, getStoredUserName, getStoredUserRole } from '../../services/auth';
-import { listContribuables, type Contribuable } from '../../services/contribuables';
 import { getTransactions, type TransactionItem } from '../../services/taxes';
 import { listNotifications } from '../../services/notifications';
 import { FEATURES } from '../../config/features';
 
-type UserRole = 'admin' | 'super_admin' | 'agent' | 'comptable' | 'service_finances' | 'quai_peche';
+type UserRole = 'admin' | 'super_admin' | 'agent' | 'service_finances' | 'quai_peche' | 'etat_civil' | 'regisseur';
 
 const allMenuItems = [
-  { path: '/dashboard', icon: 'ri-dashboard-line', label: 'Tableau de bord', roles: ['admin', 'super_admin', 'agent', 'comptable', 'service_finances', 'quai_peche'] },
-  { path: '/quai-peche', icon: 'ri-ship-line', label: 'Quai de Pêche', roles: ['quai_peche'] },
-  { path: '/quai-peche/commissions', icon: 'ri-snowy-line', label: 'Commissions Frigorifiques', roles: ['quai_peche'] },
-  { path: '/quai-peche/pecheurs', icon: 'ri-user-line', label: 'Pêcheurs', roles: ['quai_peche'] },
-  { path: '/quai-peche/embarcations', icon: 'ri-ship-2-line', label: 'Embarcations', roles: ['quai_peche'] },
-  { path: '/quai-peche/camions', icon: 'ri-truck-line', label: 'Camions Frigorifiques', roles: ['quai_peche'] },
+  { path: '/dashboard', icon: 'ri-dashboard-line', label: 'Tableau de bord', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'quai_peche', 'etat_civil', 'regisseur'] },
+  { path: '/utilisateurs', icon: 'ri-team-line', label: 'Équipes et rôles', roles: ['regisseur'] },
+  { path: '/etat-civil/nouvelle', icon: 'ri-file-add-line', label: 'Nouvelle demande', roles: ['etat_civil'] },
+  { path: '/etat-civil/a-traiter', icon: 'ri-time-line', label: 'À traiter', roles: ['etat_civil'] },
+  { path: '/etat-civil/historique', icon: 'ri-history-line', label: 'Historique', roles: ['etat_civil'] },
+  { path: '/taxes/etat-civil', icon: 'ri-file-list-3-line', label: 'Taxes état civil', roles: ['etat_civil'] },
+  { path: '/taxes/nouvelle-transaction', icon: 'ri-coupon-3-line', label: 'Nouveau ticket', roles: ['etat_civil'] },
+  { path: '/etat-civil/statistiques', icon: 'ri-bar-chart-box-line', label: 'Statistiques', roles: ['etat_civil'] },
+  { path: '/quai-peche', icon: 'ri-ship-line', label: 'Quai de Pêche', roles: ['quai_peche', 'regisseur'] },
+  { path: '/quai-peche/commissions', icon: 'ri-snowy-line', label: 'Commissions Frigorifiques', roles: ['quai_peche', 'regisseur'] },
+  { path: '/quai-peche/pecheurs', icon: 'ri-user-line', label: 'Pêcheurs', roles: ['quai_peche', 'regisseur'] },
+  { path: '/quai-peche/embarcations', icon: 'ri-ship-2-line', label: 'Embarcations', roles: ['quai_peche', 'regisseur'] },
+  { path: '/quai-peche/camions', icon: 'ri-truck-line', label: 'Camions Frigorifiques', roles: ['quai_peche', 'regisseur'] },
   { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos Jakarta', roles: ['quai_peche'] },
   { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['quai_peche'] },
-  { path: '/contribuables', icon: 'ri-user-line', label: 'Contribuables', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
-  { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'comptable', 'service_finances'] },
-  { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
-  ...(FEATURES.formations ? [{ path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent'] }] : []),
-  { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
-  { path: '/etat-civil', icon: 'ri-file-text-line', label: 'État Civil', roles: ['admin', 'super_admin', 'agent'] },
-  { path: '/urbanisme', icon: 'ri-building-line', label: 'Urbanisme', roles: ['admin', 'super_admin', 'agent'] },
-  { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
-  { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos', roles: ['admin', 'super_admin', 'agent', 'comptable'] },
+  { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'regisseur'] },
+  { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
+  ...(FEATURES.formations ? [{ path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent', 'regisseur'] }] : []),
+  { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
+  { path: '/etat-civil', icon: 'ri-file-text-line', label: 'État Civil', roles: ['admin'] },
+  { path: '/urbanisme', icon: 'ri-building-line', label: 'Urbanisme', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
+  { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
+  { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
   { path: '/utilisateurs', icon: 'ri-team-line', label: 'Utilisateurs', roles: ['admin', 'super_admin'] },
-  { path: '/budget-suivi', icon: 'ri-wallet-3-line', label: 'Suivi Budgétaire', roles: ['comptable', 'service_finances'] },
+  { path: '/budget-suivi', icon: 'ri-wallet-3-line', label: 'Suivi Budgétaire', roles: ['service_finances'] },
   { path: '/gestion-budget', icon: 'ri-money-dollar-circle-line', label: 'Gestion Budget', roles: ['service_finances'] },
   { path: '/service-finances', icon: 'ri-bank-card-line', label: 'Budget & dépenses', roles: ['admin', 'super_admin'] },
   { path: '/audit', icon: 'ri-file-list-3-line', label: 'Journal Audit', roles: ['super_admin'] },
@@ -39,14 +44,15 @@ const roleLabels: Record<UserRole, string> = {
   admin: 'Administrateur',
   super_admin: 'Super Administrateur',
   agent: 'Agent municipal',
-  comptable: 'Comptable',
   service_finances: 'Service des Finances',
-  quai_peche: 'Quai de Pêche'
+  quai_peche: 'Quai de Pêche',
+  etat_civil: 'État civil',
+  regisseur: 'Régisseur'
 };
 
 interface SearchResult {
   id: string;
-  type: 'contribuable' | 'recette' | 'taxe';
+  type: 'recette' | 'taxe';
   title: string;
   subtitle: string;
   icon: string;
@@ -196,23 +202,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     let active = true;
     const timer = window.setTimeout(async () => {
-      const [contribuables, transactions] = await Promise.all([
-        listContribuables({ search: query, limit: 5 }).catch(() => [] as Contribuable[]),
-        getTransactions({ page: 1, limit: 5, search: query }).then((r) => r.data || []).catch(() => [] as TransactionItem[]),
-      ]);
+      const transactions = await getTransactions({ page: 1, limit: 5, search: query }).then((r) => r.data || []).catch(() => [] as TransactionItem[]);
       if (!active) return;
       const results: SearchResult[] = [
-        ...contribuables.map((contrib): SearchResult => {
-          const fullName = `${contrib.prenom || ''} ${contrib.nom || ''}`.trim();
-          return {
-            id: contrib.id,
-            type: 'contribuable',
-            title: fullName || contrib.id,
-            subtitle: `${contrib.nin || contrib.id} • ${contrib.zone || '-'}`,
-            icon: 'ri-user-line',
-            link: '/contribuables',
-          };
-        }),
         ...transactions.map((taxe): SearchResult => {
           const contribuable = `${taxe.contribuable?.prenom || ''} ${taxe.contribuable?.nom || ''}`.trim();
           return {
@@ -268,7 +260,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const getResultTypeLabel = (type: string) => {
     switch (type) {
-      case 'contribuable': return 'Contribuable';
       case 'recette': return 'Recette';
       case 'taxe': return 'Transaction Taxe';
       default: return '';
@@ -277,7 +268,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const getResultTypeColor = (type: string) => {
     switch (type) {
-      case 'contribuable': return 'bg-teal-100 text-teal-700';
       case 'recette': return 'bg-cyan-100 text-cyan-700';
       case 'taxe': return 'bg-emerald-100 text-emerald-700';
       default: return 'bg-gray-100 text-gray-700';
@@ -390,7 +380,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 <input
                   type="text"
-                  placeholder="Rechercher un contribuable, une transaction..."
+                  placeholder="Rechercher une transaction..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchResults.length > 0 && setShowSearchDropdown(true)}
@@ -481,7 +471,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   userRole === 'admin' ? 'bg-teal-100 text-teal-700' :
                   userRole === 'agent' ? 'bg-amber-100 text-amber-700' :
                   userRole === 'service_finances' ? 'bg-emerald-100 text-emerald-700' :
-                  userRole === 'comptable' ? 'bg-cyan-100 text-cyan-700' :
                   'bg-sky-100 text-sky-700'
                 }`}>
                   {userInitials}

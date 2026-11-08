@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { useYear } from '../../../contexts/YearContext';
 import { getMotosStats } from '../../../services/motos';
-import { getEtatCivilStats } from '../../../services/etatCivil';
 import { getUrbanismeStats } from '../../../services/urbanisme';
 import { getMarcheStats } from '../../../services/marche';
 import { getStoredUserId, getStoredUserName } from '../../../services/auth';
@@ -54,7 +53,6 @@ export default function AgentDashboard() {
   const [resumeLabel, setResumeLabel] = useState("Voici le résumé de votre journée de collecte");
   const [tachesCounts, setTachesCounts] = useState({
     motos: 0,
-    etatCivil: 0,
     urbanisme: 0,
     marche: 0,
   });
@@ -75,10 +73,9 @@ export default function AgentDashboard() {
           getTransactions({ agentId: agentId || undefined, year: selectedYear, startDate: day, endDate: day, limit: DAY_LIST_LIMIT });
 
         try {
-          const [todayResult, motosStats, etatCivilStats, urbanismeStats, marcheStats] = await Promise.all([
+          const [todayResult, motosStats, urbanismeStats, marcheStats] = await Promise.all([
             agentId ? dayOf(todayKey) : Promise.resolve(null),
             getMotosStats(selectedYear).catch(() => null),
-            getEtatCivilStats(selectedYear).catch(() => null),
             getUrbanismeStats(selectedYear).catch(() => null),
             getMarcheStats(selectedYear).catch(() => null),
           ]);
@@ -113,7 +110,6 @@ export default function AgentDashboard() {
 
           setTachesCounts({
             motos: Number(motosStats?.enRetard || 0),
-            etatCivil: Number(etatCivilStats?.enAttente || etatCivilStats?.data?.enAttente || 0),
             urbanisme: Number(urbanismeStats?.enAttente || urbanismeStats?.data?.enAttente || 0),
             marche: Number(marcheStats?.recettesEnRetard ? 1 : 0),
           });
@@ -121,13 +117,13 @@ export default function AgentDashboard() {
           setMesCollectes([]);
           setTotalJour(0);
           setResumeLabel("Impossible de charger les collectes");
-          setTachesCounts({ motos: 0, etatCivil: 0, urbanisme: 0, marche: 0 });
+          setTachesCounts({ motos: 0, urbanisme: 0, marche: 0 });
         }
       } catch {
         setMesCollectes([]);
         setTotalJour(0);
         setResumeLabel("Impossible de charger les collectes");
-        setTachesCounts({ motos: 0, etatCivil: 0, urbanisme: 0, marche: 0 });
+        setTachesCounts({ motos: 0, urbanisme: 0, marche: 0 });
       } finally {
         setLoading(false);
       }
@@ -137,7 +133,6 @@ export default function AgentDashboard() {
 
   const tachesEnCours = [
     { icon: 'ri-motorbike-line', label: 'Motos en retard de paiement', count: tachesCounts.motos, color: 'text-red-600 bg-red-50', link: '/motos' },
-    { icon: 'ri-file-text-line', label: 'Demandes état civil à traiter', count: tachesCounts.etatCivil, color: 'text-amber-600 bg-amber-50', link: '/etat-civil' },
     { icon: 'ri-building-line', label: 'Dossiers urbanisme en attente', count: tachesCounts.urbanisme, color: 'text-sky-600 bg-sky-50', link: '/urbanisme' },
     { icon: 'ri-store-2-line', label: 'Paiements marché à encaisser', count: tachesCounts.marche, color: 'text-teal-600 bg-teal-50', link: '/marche' },
   ];

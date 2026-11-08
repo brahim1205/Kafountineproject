@@ -1,4 +1,4 @@
-import { formatDate, type UiMotoPayment } from '../types';
+import { LIBELLES_PAIEMENT, formatDate, type UiMotoPayment } from '../types';
 
 type MotoPaymentsTableProps = {
   paiements: UiMotoPayment[];
@@ -6,7 +6,7 @@ type MotoPaymentsTableProps = {
   onImprimerRecu: (paiement: UiMotoPayment) => void;
 };
 
-const COLUMNS = ['N° Reçu', 'Matricule', 'Propriétaire', 'Mois', 'Montant', 'Date', 'Agent'];
+const COLUMNS = ['N° Reçu', 'Type', 'Matricule', 'Propriétaire', 'Mois', 'Montant', 'Date', 'Agent'];
 
 export default function MotoPaymentsTable({ paiements, canManage, onImprimerRecu }: MotoPaymentsTableProps) {
   return (
@@ -24,6 +24,7 @@ export default function MotoPaymentsTable({ paiements, canManage, onImprimerRecu
           {paiements.map((paiement) => (
             <tr key={paiement.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="py-3 px-4 text-sm text-gray-900 font-medium">{paiement.numeroRecu}</td>
+              <td className="py-3 px-4 text-sm text-gray-700">{LIBELLES_PAIEMENT[paiement.type || 'COTISATION']}</td>
               <td className="py-3 px-4 text-sm text-gray-900">{paiement.matricule}</td>
               <td className="py-3 px-4 text-sm text-gray-700">{paiement.proprietaire}</td>
               <td className="py-3 px-4 text-sm text-gray-700">{paiement.mois}</td>

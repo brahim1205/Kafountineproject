@@ -21,7 +21,7 @@ public class UtilisateurService {
   public record UserInput(String email, String nom, String prenom, String role, String telephone, boolean telephoneProvided,
                           String password, Boolean isActive) {}
 
-  private static final Set<String> ASSIGNABLE_ROLES = Set.of("ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES", "QUAI_PECHE");
+  private static final Set<String> ASSIGNABLE_ROLES = Set.of("ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "ETAT_CIVIL", "REGISSEUR");
 
   private final Db db;
   private final AuditTrail auditTrail;
@@ -31,9 +31,21 @@ public class UtilisateurService {
     this.auditTrail = auditTrail;
   }
 
+  /** Le régisseur ne gère que les comptes de terrain, jamais l'encadrement ni l'état civil. */
+  private static final Set<String> ROLES_GERES_PAR_REGISSEUR = Set.of("AGENT", "QUAI_PECHE", "SERVICE_FINANCES");
+
+  private static void assertPeutGerer(Actor actor, Map<String, Object> cible) {
+    if ("REGISSEUR".equals(actor.role()) && !ROLES_GERES_PAR_REGISSEUR.contains(Db.str(cible, "role"))) {
+      throw AppException.forbidden("Permissions insuffisantes pour cette action");
+    }
+  }
+
   static String normalizeAssignableRole(String input, String actorRole) {
     String role = (input == null || input.isBlank() ? "AGENT" : input).trim().toUpperCase(Locale.ROOT);
     if (!ASSIGNABLE_ROLES.contains(role)) throw AppException.validation("Rôle utilisateur invalide.");
+    if ("REGISSEUR".equals(actorRole) && !ROLES_GERES_PAR_REGISSEUR.contains(role)) {
+      throw AppException.validation("Le régisseur ne peut attribuer que les rôles agent, quai de pêche et finances.");
+    }
     if (role.equals("SUPER_ADMIN") && !"SUPER_ADMIN".equals(actorRole)) {
       throw AppException.validation("Seul un SUPER_ADMIN peut attribuer le rôle SUPER_ADMIN.");
     }
@@ -54,13 +66,15 @@ public class UtilisateurService {
     return db.one("SELECT * FROM \"User\" WHERE \"email\" = :email", Db.params("email", email));
   }
 
-  public List<Map<String, Object>> list(String search) {
+  public List<Map<String, Object>> list(String search, String actorRole) {
     String term = search == null ? "" : search.trim();
     String where = term.isEmpty() ? "" : """
         WHERE "email" ILIKE :like OR "nom" ILIKE :like OR "prenom" ILIKE :like OR "telephone" ILIKE :like
         """;
     return db.list("SELECT * FROM \"User\" " + where + " ORDER BY \"role\" ASC, \"nom\" ASC, \"prenom\" ASC",
-        Db.params("like", "%" + Sql.escapeLike(term) + "%")).stream().map(UtilisateurService::view).toList();
+        Db.params("like", "%" + Sql.escapeLike(term) + "%")).stream()
+        .filter(user -> !"REGISSEUR".equals(actorRole) || ROLES_GERES_PAR_REGISSEUR.contains(Db.str(user, "role")))
+        .map(UtilisateurService::view).toList();
   }
 
   @Transactional
@@ -91,6 +105,7 @@ public class UtilisateurService {
   public Map<String, Object> update(Actor actor, String userId, UserInput input) {
     Map<String, Object> existing = findById(userId);
     if (existing == null) throw AppException.notFound("Utilisateur introuvable.");
+    assertPeutGerer(actor, existing);
     String nextEmail = input.email() != null && !input.email().isEmpty() ? input.email().trim().toLowerCase(Locale.ROOT) : Db.str(existing, "email");
     if (!nextEmail.equals(Db.str(existing, "email"))) {
       Map<String, Object> duplicate = findByEmail(nextEmail);
@@ -123,6 +138,7 @@ public class UtilisateurService {
     if (userId.equals(actor.userId())) throw AppException.validation("Vous ne pouvez pas supprimer votre propre compte.");
     Map<String, Object> existing = findById(userId);
     if (existing == null) throw AppException.notFound("Utilisateur introuvable.");
+    assertPeutGerer(actor, existing);
     long transactions = db.count("SELECT COUNT(*) FROM \"Transaction\" WHERE \"agentId\" = :id", Db.params("id", userId));
     if (transactions > 0) {
       db.update("UPDATE \"User\" SET \"isActive\" = false, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id", Db.params("id", userId));

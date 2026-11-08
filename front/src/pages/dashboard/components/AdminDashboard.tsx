@@ -236,7 +236,6 @@ export default function AdminDashboard() {
       ];
 
   const raccourcis = [
-    { label: 'Contribuables', icon: 'ri-user-line', link: '/contribuables', color: 'bg-teal-50 text-teal-600 hover:bg-teal-100' },
     { label: 'Recettes', icon: 'ri-money-dollar-circle-line', link: '/recettes', color: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' },
     { label: 'Taxes', icon: 'ri-file-list-3-line', link: '/taxes', color: 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100' },
     { label: 'État Civil', icon: 'ri-file-text-line', link: '/etat-civil', color: 'bg-amber-50 text-amber-600 hover:bg-amber-100' },

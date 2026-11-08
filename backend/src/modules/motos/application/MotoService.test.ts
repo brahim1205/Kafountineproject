@@ -1,7 +1,7 @@
 import { ConflictError, NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import { agent, contribuable, fakeActorDirectory, fakeAuditTrail, fakeContribuables, fakeNumeroSequence } from '../../../shared/testing/ports';
 import type { MotoPayment, MotoRegistration, MotoRepository } from '../domain/Moto';
-import { MOTO_PENALITE_RETARD, MOTO_TARIF_MENSUEL, MotoService } from './MotoService';
+import { MOTO_AMENDE_POLICE, MOTO_DROIT_ADHESION, MOTO_PENALITE_RETARD, MOTO_TARIF_MENSUEL, MotoService } from './MotoService';
 
 function moto(overrides: Partial<MotoRegistration> = {}): MotoRegistration {
   return {
@@ -35,12 +35,13 @@ function moto(overrides: Partial<MotoRegistration> = {}): MotoRegistration {
   };
 }
 
-function paymentFrom(values: { montant: number; reference: string | null }, row: MotoRegistration): MotoPayment {
+function paymentFrom(values: { type: MotoPayment['type']; montant: number; reference: string | null }, row: MotoRegistration): MotoPayment {
   const { statut, ...rest } = row;
   return {
     ...rest,
     id: 'paiement-1',
     motoId: row.id,
+    type: values.type,
     montant: values.montant,
     reference: values.reference,
     statut: 'PAYE',
@@ -87,31 +88,41 @@ describe('MotoService', () => {
       );
     });
 
-    it('ajoute la pénalité de la moto quand elle est en retard', async () => {
+    it('ajoute la pénalité réglementaire quand la moto est en retard, même avec un ancien montant enregistré', async () => {
       repository.findById.mockResolvedValue(moto({ enRetard: true, montantPenalite: 500 }));
 
       const paiement = await service.createPayment(agent, { motoId: 'moto-1' });
 
-      expect(paiement.montant).toBe(MOTO_TARIF_MENSUEL + 500);
+      expect(paiement.montant).toBe(MOTO_TARIF_MENSUEL + MOTO_PENALITE_RETARD);
+      expect(paiement.moto.montantPenalite).toBe(MOTO_PENALITE_RETARD);
     });
 
-    it('respecte un montant saisi explicitement', async () => {
-      repository.findById.mockResolvedValue(moto({ enRetard: true }));
+    it('facture la pénalité dès que la date limite du 10 est dépassée', async () => {
+      repository.findById.mockResolvedValue(moto({ enRetard: false, prochainPaiement: new Date('2020-02-10T23:59:59.999Z') }));
 
-      const paiement = await service.createPayment(agent, { motoId: 'moto-1', montant: 3000 });
+      const paiement = await service.createPayment(agent, { motoId: 'moto-1' });
 
-      expect(paiement.montant).toBe(3000);
+      expect(paiement.montant).toBe(MOTO_TARIF_MENSUEL + MOTO_PENALITE_RETARD);
     });
 
-    it('fixe la prochaine échéance environ un mois plus tard', async () => {
-      repository.findById.mockResolvedValue(moto());
+    it('avance l’échéance d’un seul mois, au 10 du mois suivant, et indique le mois couvert', async () => {
+      repository.findById.mockResolvedValue(moto({ prochainPaiement: new Date('2099-12-10T23:59:59.999Z') }));
 
       await service.createPayment(agent, { motoId: 'moto-1' });
 
-      const { prochainPaiement, datePaiement } = repository.recordPayment.mock.calls[0][0];
-      const jours = (prochainPaiement.getTime() - datePaiement.getTime()) / 86_400_000;
-      expect(jours).toBeGreaterThanOrEqual(27);
-      expect(jours).toBeLessThanOrEqual(32);
+      const values = repository.recordPayment.mock.calls[0][0];
+      expect(values.prochainPaiement?.toISOString()).toBe('2100-01-10T23:59:59.999Z');
+      expect(values.mois).toBe('novembre 2099');
+    });
+
+    it('encaisse l’amende police au tarif fixe sans toucher à l’échéance', async () => {
+      const echeance = new Date('2099-12-10T23:59:59.999Z');
+      repository.findById.mockResolvedValue(moto({ prochainPaiement: echeance }));
+
+      const paiement = await service.createPayment(agent, { motoId: 'moto-1', type: 'AMENDE_POLICE', reference: 'PV-12' });
+
+      expect(paiement.montant).toBe(MOTO_AMENDE_POLICE);
+      expect(repository.recordPayment.mock.calls[0][0]).toMatchObject({ type: 'AMENDE_POLICE', prochainPaiement: echeance, reference: 'PV-12' });
     });
 
     it('attribue lui-même le numéro de reçu, à la suite, et garde la référence fournie', async () => {
@@ -122,13 +133,6 @@ describe('MotoService', () => {
 
       expect(repository.recordPayment.mock.calls[0][0]).toMatchObject({ reference: 'REC-42', numeroRecu: 'MOTO-2026-00001' });
       expect(repository.recordPayment.mock.calls[1][0]).toMatchObject({ reference: null, numeroRecu: 'MOTO-2026-00002' });
-    });
-
-    it('refuse un montant négatif', async () => {
-      repository.findById.mockResolvedValue(moto());
-
-      await expect(service.createPayment(agent, { motoId: 'moto-1', montant: -10 })).rejects.toBeInstanceOf(ValidationError);
-      expect(repository.recordPayment).not.toHaveBeenCalled();
     });
 
     it('exige une moto existante', async () => {
@@ -163,7 +167,14 @@ describe('MotoService', () => {
       expect(created.conducteurId).toBe('contrib-1');
       expect(created.enRetard).toBe(false);
       expect(created.montantPenalite).toBe(MOTO_PENALITE_RETARD);
-      expect(auditTrail.record).toHaveBeenCalledTimes(1);
+      expect(auditTrail.record).toHaveBeenCalledTimes(2);
+    });
+
+    it('encaisse le droit d’adhésion à l’enregistrement, avec son reçu', async () => {
+      const created = await service.create(agent, input);
+
+      expect(created.adhesion).toMatchObject({ type: 'ADHESION', montant: MOTO_DROIT_ADHESION });
+      expect(repository.recordPayment.mock.calls[0][0].numeroRecu).toMatch(/MOTO|\d/);
     });
 
     it('refuse un matricule déjà enregistré', async () => {
@@ -225,10 +236,10 @@ describe('MotoService', () => {
   describe('stats', () => {
     it('calcule recettes, taux de paiement et montants en retard', async () => {
       repository.listForStats.mockResolvedValue([
-        { enRetard: true, statut: 'ACTIVE' },
-        { enRetard: false, statut: 'ACTIVE' },
-        { enRetard: false, statut: 'ACTIVE' },
-        { enRetard: true, statut: 'ACTIVE' },
+        { enRetard: true, statut: 'ACTIVE', prochainPaiement: null },
+        { enRetard: false, statut: 'ACTIVE', prochainPaiement: null },
+        { enRetard: false, statut: 'ACTIVE', prochainPaiement: null },
+        { enRetard: true, statut: 'ACTIVE', prochainPaiement: null },
       ]);
       repository.listPaymentAmounts.mockResolvedValue([{ montant: 1000 }, { montant: 1250 }, { montant: 1000 }]);
 

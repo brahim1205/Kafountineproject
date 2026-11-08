@@ -53,7 +53,7 @@ import {
 export function buildUtilisateursRoutes(controller: UtilisateursController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
-  const adminOnly = authorize('ADMIN', 'SUPER_ADMIN');
+  const adminOnly = authorize('ADMIN', 'SUPER_ADMIN', 'REGISSEUR');
 
   router.get('/users', authenticate, adminOnly, asyncHandler((req, res) => controller.list(req, res)));
   router.post('/users', authenticate, adminOnly, validate(createUserSchema), asyncHandler((req, res) => controller.create(req, res)));

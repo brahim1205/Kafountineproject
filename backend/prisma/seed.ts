@@ -109,12 +109,6 @@ async function main() {
     create: { email: 'agent@kafountine.gouv.sn', password, nom: 'Sarr', prenom: 'Fatou', role: 'AGENT', isActive: true },
   });
 
-  const comptable = await prisma.user.upsert({
-    where: { email: 'comptable@kafountine.gouv.sn' },
-    update: {},
-    create: { email: 'comptable@kafountine.gouv.sn', password, nom: 'Ba', prenom: 'Ibrahima', role: 'COMPTABLE', isActive: true },
-  });
-
   const finances = await prisma.user.upsert({
     where: { email: 'finances@kafountine.gouv.sn' },
     update: {},
@@ -127,7 +121,19 @@ async function main() {
     create: { email: 'quaipeche@kafountine.gouv.sn', password, nom: 'Fall', prenom: 'Moussa', role: 'QUAI_PECHE', isActive: true },
   });
 
-  const agents = [admin, superAdmin, agent, comptable, finances, quaiPeche];
+  await prisma.user.upsert({
+    where: { email: 'etatcivil@kafountine.gouv.sn' },
+    update: {},
+    create: { email: 'etatcivil@kafountine.gouv.sn', password, nom: 'Sarr', prenom: 'Awa', role: 'ETAT_CIVIL', isActive: true },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'regisseur@kafountine.gouv.sn' },
+    update: {},
+    create: { email: 'regisseur@kafountine.gouv.sn', password, nom: 'Coly', prenom: 'Lamine', role: 'REGISSEUR', isActive: true },
+  });
+
+  const agents = [admin, superAdmin, agent, finances, quaiPeche];
 
   // ─── CONTRIBUTABLES ──────────────────────────────────────
   const contribuablesData = [
@@ -255,7 +261,7 @@ async function main() {
     await prisma.$executeRawUnsafe(
       'INSERT INTO "AuditLog" ("id", "userId", "userName", "role", "action", "module", "details", "status", "ipAddress", "year", "timestamp") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11), ($12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22), ($23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)',
       randomUUID(), superAdmin.id, `${superAdmin.prenom} ${superAdmin.nom}`, superAdmin.role, 'Initialisation plateforme', 'Audit', 'Initialisation des journaux et paramètres techniques', 'success', null, 2026, new Date('2026-01-02T08:30:00.000Z'),
-      randomUUID(), admin.id, `${admin.prenom} ${admin.nom}`, admin.role, 'Création utilisateur', 'Utilisateurs', 'Création du compte comptable@kafountine.gouv.sn', 'success', null, 2026, new Date('2026-01-05T10:15:00.000Z'),
+      randomUUID(), admin.id, `${admin.prenom} ${admin.nom}`, admin.role, 'Création utilisateur', 'Utilisateurs', 'Création du compte finances@kafountine.gouv.sn', 'success', null, 2026, new Date('2026-01-05T10:15:00.000Z'),
       randomUUID(), finances.id, `${finances.prenom} ${finances.nom}`, finances.role, 'Création demande budgétaire', 'Budget', 'Demande de réhabilitation de la voirie principale', 'warning', null, 2026, new Date('2026-02-14T11:45:00.000Z')
     );
     console.log('  Created audit logs');
@@ -616,7 +622,7 @@ async function main() {
       permis: 'PRM-0007',
       photo: 'https://images.unsplash.com/photo-1517846693594-1567da72af75?w=400&h=300&fit=crop',
       enRetard: false,
-      prochainPaiement: new Date('2026-05-18T00:00:00.000Z'),
+      prochainPaiement: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 10, 23, 59, 59, 999)),
       dernierPaiement: new Date('2026-04-18T09:00:00.000Z'),
       createdAt: new Date('2026-04-06T08:00:00.000Z'),
       updatedAt: new Date('2026-04-18T09:00:00.000Z'),
@@ -933,7 +939,7 @@ async function main() {
       'INSERT INTO "AppSettingPenalty" ("id", "type", "description", "montant", "delai", "actif", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($7,$8,$9,$10,$11,$12,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP), ($13,$14,$15,$16,$17,$18,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)',
       randomUUID(), 'Retard paiement marché', 'Majoration appliquée après échéance mensuelle', 1500, '5 jours après échéance', true,
       randomUUID(), 'Retard dossier urbanisme', 'Frais complémentaires en cas de dossier incomplet prolongé', 5000, '10 jours après notification', true,
-      randomUUID(), 'Retard moto-taxi', 'Pénalité standard de régularisation', 250, 'Immédiatement après échéance', true
+      randomUUID(), 'Retard moto-taxi', 'Pénalité standard de régularisation', 10000, 'Immédiatement après échéance', true
     );
     console.log('  Created app setting penalties');
   }
@@ -956,7 +962,7 @@ async function main() {
       'Quai de pêche',
       'Paramètres',
     ];
-    const roles = ['AGENT', 'SUPERVISEUR', 'COMPTABLE', 'ADMIN', 'SUPER_ADMIN'];
+    const roles = ['AGENT', 'SUPERVISEUR', 'ADMIN', 'SUPER_ADMIN'];
 
     for (const moduleName of modules) {
       for (const role of roles) {
@@ -965,8 +971,6 @@ async function main() {
             ? true
             : role === 'ADMIN'
               ? true
-              : role === 'COMPTABLE'
-                ? ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'Budget', 'Marché'].includes(moduleName)
                 : role === 'SUPERVISEUR'
                   ? ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'État civil', 'Urbanisme'].includes(moduleName)
                   : ['Dashboard', 'Contribuables', 'Recettes', 'Taxes', 'État civil', 'Urbanisme', 'Marché', 'Motos', 'Formations', 'Quai de pêche'].includes(moduleName);

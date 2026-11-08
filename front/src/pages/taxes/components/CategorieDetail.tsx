@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useYear } from '../../../contexts/YearContext';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
 import Pagination from '../../../components/feature/Pagination';
 import { getTaxCategories, getTransactions, getTaxServices, type TaxCategory, type TransactionItem, type TaxService } from '../../../services/taxes';
@@ -98,6 +98,14 @@ export default function CategorieDetail() {
   }, [categorieId, selectedYear, search, dateDebut, dateFin, page]);
 
   const categorie = categories.find(c => c.id === categorieId);
+
+  // Le service de l'état civil ne voit que ses propres tickets.
+  if (userRole === 'regisseur' && categorieId === 'etat-civil') {
+    return <Navigate to="/taxes" replace />;
+  }
+  if (userRole === 'etat_civil' && categorieId !== 'etat-civil') {
+    return <Navigate to="/taxes/etat-civil" replace />;
+  }
   
   if (loading) {
     return (
@@ -142,11 +150,11 @@ export default function CategorieDetail() {
         {/* En-tête */}
         <div>
           <button
-            onClick={() => navigate('/taxes')}
+            onClick={() => navigate(userRole === 'etat_civil' ? '/dashboard' : '/taxes')}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <i className="ri-arrow-left-line"></i>
-            <span className="text-sm font-medium">Retour aux taxes</span>
+            <span className="text-sm font-medium">{userRole === 'etat_civil' ? 'Retour au tableau de bord' : 'Retour aux taxes'}</span>
           </button>
           
           <div className="flex items-center gap-4 mb-4">

@@ -32,32 +32,32 @@ public class QuaiPecheController {
   }
 
   @GetMapping("/statistiques")
-  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> stats(HttpServletRequest request) {
     return Api.ok(service.stats(Common.yearQuery(request.getParameterMap())));
   }
 
   @GetMapping("/" + COLLECTIONS)
-  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> list(@PathVariable String collection, HttpServletRequest request) {
     return Api.ok(service.list(Collection.valueOf(collection), Common.yearLimitQuery(request.getParameterMap())));
   }
 
   @GetMapping("/" + COLLECTIONS + "/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> get(@PathVariable String collection, @PathVariable String id) {
     return Api.ok(service.get(Collection.valueOf(collection), Common.id(id)));
   }
 
   @PostMapping("/" + COLLECTIONS)
-  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@PathVariable String collection, @Body JsonNode body) {
     Collection c = Collection.valueOf(collection);
     return Api.created(service.create(RequestContext.actor(), c, fields(c, Input.body(body), true)));
   }
 
   @PutMapping("/" + COLLECTIONS + "/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String collection, @PathVariable String id, @Body JsonNode body) {
     Collection c = Collection.valueOf(collection);
     String resourceId = Common.id(id);
@@ -65,7 +65,7 @@ public class QuaiPecheController {
   }
 
   @DeleteMapping("/" + COLLECTIONS + "/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String collection, @PathVariable String id) {
     service.delete(RequestContext.actor(), Collection.valueOf(collection), Common.id(id));
     return Api.message("Suppression effectuée");

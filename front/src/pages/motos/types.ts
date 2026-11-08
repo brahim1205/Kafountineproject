@@ -32,7 +32,19 @@ export type ReceiptData = {
   agent: string;
 };
 
-export type MotoConfig = { tarifMensuel: number; penaliteRetard: number };
+export type MotoConfig = { droitAdhesion: number; tarifMensuel: number; penaliteRetard: number; amendePolice: number };
+
+export const LIBELLES_PAIEMENT: Record<string, string> = {
+  ADHESION: "Droit d'adhésion",
+  COTISATION: 'Cotisation mensuelle',
+  AMENDE_POLICE: 'Amende police',
+};
+
+export function libellePaiement(paiement: { type?: string; mois?: string; matricule?: string }) {
+  const libelle = LIBELLES_PAIEMENT[paiement.type || 'COTISATION'] || LIBELLES_PAIEMENT.COTISATION;
+  const details = [paiement.matricule, paiement.type === 'AMENDE_POLICE' ? '' : paiement.mois].filter(Boolean).join(' - ');
+  return details ? `Moto Jakarta : ${libelle} - ${details}` : `Moto Jakarta : ${libelle}`;
+}
 
 export const FULL_DATE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
 export const SHORT_TIME: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { canWriteData } from '../../services/auth';
+import { getStoredUserRole } from '../../services/auth';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import { createUser, deleteUser, listUsers, updateUser } from '../../services/users';
 import { useYear } from '../../contexts/YearContext';
@@ -20,7 +21,10 @@ type UiUser = {
   lastLogin: string;
 };
 
-const ROLE_OPTIONS = ['SUPER_ADMIN', 'ADMIN', 'SUPERVISEUR', 'SERVICE_FINANCES', 'COMPTABLE', 'QUAI_PECHE', 'AGENT'];
+const ROLE_OPTIONS = ['SUPER_ADMIN', 'ADMIN', 'SUPERVISEUR', 'SERVICE_FINANCES', 'QUAI_PECHE', 'ETAT_CIVIL', 'REGISSEUR', 'AGENT'];
+
+const REGISSEUR_ROLE_OPTIONS = ['AGENT', 'QUAI_PECHE', 'SERVICE_FINANCES'];
+const roleOptions = () => (getStoredUserRole() === 'regisseur' ? REGISSEUR_ROLE_OPTIONS : ROLE_OPTIONS);
 
 export default function Utilisateurs() {
   const { selectedYear } = useYear();
@@ -143,7 +147,6 @@ export default function Utilisateurs() {
 
   const statAdmin = rows.filter((u) => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN').length;
   const statAgent = rows.filter((u) => u.role === 'AGENT').length;
-  const statComptable = rows.filter((u) => u.role === 'COMPTABLE').length;
 
   return (
     <DashboardLayout>
@@ -164,11 +167,10 @@ export default function Utilisateurs() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <Stat title="Total" value={rows.length} icon="ri-user-line" />
           <Stat title="Administrateurs" value={statAdmin} icon="ri-shield-user-line" />
           <Stat title="Agents" value={statAgent} icon="ri-user-settings-line" />
-          <Stat title="Comptables" value={statComptable} icon="ri-bank-card-line" />
         </div>
 
         <div className="bg-white rounded-xl p-6 border border-gray-200">
@@ -189,7 +191,7 @@ export default function Utilisateurs() {
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
             >
               <option value="all">Tous les rôles</option>
-              {ROLE_OPTIONS.map((role) => (
+              {roleOptions().map((role) => (
                 <option key={role} value={role}>
                   {role}
                 </option>
@@ -382,7 +384,7 @@ function UserForm({
             defaultValue={defaultValues?.role || 'AGENT'}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
           >
-            {ROLE_OPTIONS.map((role) => (
+            {roleOptions().map((role) => (
               <option key={role} value={role}>
                 {role}
               </option>

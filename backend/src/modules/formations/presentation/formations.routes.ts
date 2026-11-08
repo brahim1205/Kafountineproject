@@ -116,17 +116,17 @@ import {
 export function buildFormationsRoutes(controller: FormationsController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
-  const adminOnly = authorize('ADMIN', 'SUPER_ADMIN');
+  const adminOnly = authorize('ADMIN', 'SUPER_ADMIN', 'REGISSEUR');
 
   router.get('/formations', authenticate, validate(yearLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listFormations(req, res)));
-  router.post('/formations', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(createFormationSchema), asyncHandler((req, res) => controller.createFormation(req, res)));
-  router.put('/formations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(resourceIdParamsSchema, 'params'), validate(updateFormationSchema), asyncHandler((req, res) => controller.updateFormation(req, res)));
+  router.post('/formations', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(createFormationSchema), asyncHandler((req, res) => controller.createFormation(req, res)));
+  router.put('/formations/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(resourceIdParamsSchema, 'params'), validate(updateFormationSchema), asyncHandler((req, res) => controller.updateFormation(req, res)));
   router.delete('/formations/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteFormation(req, res)));
   router.get('/formations/statistiques', authenticate, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.getStats(req, res)));
   router.get('/jeunes', authenticate, validate(yearSearchLimitQuerySchema, 'query'), asyncHandler((req, res) => controller.listJeunes(req, res)));
-  router.post('/jeunes', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(createYouthSchema), asyncHandler((req, res) => controller.createJeune(req, res)));
+  router.post('/jeunes', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(createYouthSchema), asyncHandler((req, res) => controller.createJeune(req, res)));
   router.delete('/jeunes/:id', authenticate, adminOnly, validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteJeune(req, res)));
-  router.post('/jeunes/:id/formations/:formationId', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT'), validate(youthEnrollmentParamsSchema, 'params'), asyncHandler((req, res) => controller.inscrireJeune(req, res)));
+  router.post('/jeunes/:id/formations/:formationId', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'AGENT', 'REGISSEUR'), validate(youthEnrollmentParamsSchema, 'params'), asyncHandler((req, res) => controller.inscrireJeune(req, res)));
 
   return router;
 }

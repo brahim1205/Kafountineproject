@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError, ValidationError } from '../../../shared/errors/AppError';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../shared/errors/AppError';
 import { validateStrongPassword } from '../../../shared/security/passwordPolicy';
 import type { Actor, AuditTrail } from '../../../shared/audit/AuditTrail';
 import type { PasswordHasher, Utilisateur, UtilisateurRepository, UtilisateurValues } from '../domain/Utilisateur';
@@ -13,12 +13,24 @@ export type UtilisateurInput = {
   isActive?: boolean;
 };
 
-const ASSIGNABLE_ROLES = new Set(['ADMIN', 'SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES', 'QUAI_PECHE']);
+const ASSIGNABLE_ROLES = new Set(['ADMIN', 'SUPER_ADMIN', 'AGENT', 'SERVICE_FINANCES', 'QUAI_PECHE', 'ETAT_CIVIL', 'REGISSEUR']);
+
+/** Le régisseur ne gère que les comptes de terrain, jamais l'encadrement ni l'état civil. */
+const ROLES_GERES_PAR_REGISSEUR = new Set(['AGENT', 'QUAI_PECHE', 'SERVICE_FINANCES']);
+
+function assertPeutGerer(actor: Actor, cible: Utilisateur) {
+  if (actor.role === 'REGISSEUR' && !ROLES_GERES_PAR_REGISSEUR.has(cible.role)) {
+    throw new ForbiddenError('Permissions insuffisantes pour cette action');
+  }
+}
 
 export function normalizeAssignableUserRole(input: unknown, actorRole?: string | null) {
   const role = String(input || 'AGENT').trim().toUpperCase();
   if (!ASSIGNABLE_ROLES.has(role)) {
     throw new ValidationError('Rôle utilisateur invalide.');
+  }
+  if (actorRole === 'REGISSEUR' && !ROLES_GERES_PAR_REGISSEUR.has(role)) {
+    throw new ValidationError('Le régisseur ne peut attribuer que les rôles agent, quai de pêche et finances.');
   }
   if (role === 'SUPER_ADMIN' && actorRole !== 'SUPER_ADMIN') {
     throw new ValidationError('Seul un SUPER_ADMIN peut attribuer le rôle SUPER_ADMIN.');
@@ -47,9 +59,9 @@ export class UtilisateurService {
     private readonly auditTrail: AuditTrail
   ) {}
 
-  async list(search: string) {
+  async list(search: string, actorRole?: string | null) {
     const users = await this.repository.search(search.trim());
-    return users.map(toView);
+    return users.filter((user) => actorRole !== 'REGISSEUR' || ROLES_GERES_PAR_REGISSEUR.has(user.role)).map(toView);
   }
 
   async create(actor: Actor, input: UtilisateurInput) {
@@ -96,6 +108,7 @@ export class UtilisateurService {
     if (!existing) {
       throw new NotFoundError('Utilisateur introuvable.');
     }
+    assertPeutGerer(actor, existing);
 
     const nextEmail = input.email ? String(input.email).trim().toLowerCase() : existing.email;
     if (nextEmail !== existing.email) {
@@ -141,6 +154,7 @@ export class UtilisateurService {
     if (!existing || transactionCount === null) {
       throw new NotFoundError('Utilisateur introuvable.');
     }
+    assertPeutGerer(actor, existing);
 
     if (transactionCount > 0) {
       await this.repository.deactivate(userId);

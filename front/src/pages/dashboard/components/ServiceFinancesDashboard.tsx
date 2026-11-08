@@ -525,7 +525,6 @@ export default function ServiceFinancesDashboard() {
                   >
                     <option value="">Sélectionner un service</option>
                     <option value="Urbanisme">Urbanisme</option>
-                    <option value="État Civil">État Civil</option>
                     <option value="Motos">Motos</option>
                     <option value="Marché">Marché</option>
                     <option value="Formations">Formations</option>

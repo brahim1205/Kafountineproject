@@ -20,7 +20,7 @@ describe('isWriteForbiddenForRole', () => {
   });
 
   it('ne change rien pour les autres rôles', () => {
-    for (const role of ['SUPER_ADMIN', 'AGENT', 'COMPTABLE', 'SERVICE_FINANCES', 'QUAI_PECHE']) {
+    for (const role of ['SUPER_ADMIN', 'AGENT', 'SERVICE_FINANCES', 'QUAI_PECHE']) {
       expect(isWriteForbiddenForRole(role, req('POST', '/api/v1/transactions', '/'))).toBe(false);
     }
   });

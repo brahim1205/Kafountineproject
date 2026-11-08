@@ -17,9 +17,9 @@ export default function TaxesPage() {
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole();
   // L'administrateur est en consultation seule.
-  const canManage = userRole === 'agent' && isCurrentYear;
+  const canManage = (userRole === 'agent' || userRole === 'regisseur') && isCurrentYear;
   // Même règle que l'API : les statistiques globales sont réservées à l'encadrement et aux finances.
-  const canSeeStats = userRole === 'admin' || userRole === 'super_admin' || userRole === 'comptable' || userRole === 'service_finances';
+  const canSeeStats = userRole === 'admin' || userRole === 'super_admin' || userRole === 'service_finances' || userRole === 'regisseur';
   const [periode, setPeriode] = useState<'aujourdhui' | 'mois' | 'annee'>('annee');
   const [categories, setCategories] = useState<TaxCategory[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
@@ -38,7 +38,8 @@ export default function TaxesPage() {
       .then((cats) => {
         if (!mounted) return;
         setErrorMsg('');
-        setCategories(cats || []);
+        // L'état civil n'est pas du ressort du régisseur.
+        setCategories((cats || []).filter((cat) => userRole !== 'regisseur' || cat.id !== 'etat-civil'));
       })
       .catch(() => {
         if (!mounted) return;

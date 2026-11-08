@@ -7,7 +7,7 @@ export class UtilisateursController {
   constructor(private readonly utilisateurService: UtilisateurService) {}
 
   async list(req: Request, res: Response) {
-    return ok(res, await this.utilisateurService.list(String(req.query.search || '')));
+    return ok(res, await this.utilisateurService.list(String(req.query.search || ''), req.user?.role));
   }
 
   async create(req: Request, res: Response) {

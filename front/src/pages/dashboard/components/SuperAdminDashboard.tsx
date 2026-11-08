@@ -172,10 +172,8 @@ export default function SuperAdminDashboard() {
     { label: 'Total utilisateurs', value: String(stats?.totalUsers || 0), icon: 'ri-team-line', color: 'text-indigo-600' },
     { label: 'Administrateurs', value: String(stats?.totalAdmins || 0), icon: 'ri-admin-line', color: 'text-red-600' },
     { label: 'Agents', value: String(stats?.totalAgents || 0), icon: 'ri-user-line', color: 'text-blue-600' },
-    { label: 'Comptables', value: String(stats?.totalComptables || 0), icon: 'ri-calculator-line', color: 'text-green-600' },
   ];
   const validations = [
-    { label: 'État civil', value: stats?.stats?.etatCivil?.enAttente || 0, icon: 'ri-file-text-line', link: '/etat-civil', color: 'bg-amber-50 text-amber-700 border-amber-200' },
     { label: 'Urbanisme', value: stats?.stats?.urbanisme?.enAttente || 0, icon: 'ri-building-line', link: '/urbanisme', color: 'bg-rose-50 text-rose-700 border-rose-200' },
     { label: 'Budget', value: stats?.stats?.budget?.enAttente || 0, icon: 'ri-bank-card-line', link: '/service-finances', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
     { label: 'Quai de pêche', value: stats?.stats?.quaiPeche?.enAttente || 0, icon: 'ri-ship-line', link: '/quai-peche/commissions', color: 'bg-sky-50 text-sky-700 border-sky-200' },

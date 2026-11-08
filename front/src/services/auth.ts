@@ -32,7 +32,7 @@ type StoredSession = {
 type AuthStateListener = (session: StoredSession | null) => void;
 
 export type CurrentUser = ApiAuthUser;
-export type UiRole = 'admin' | 'super_admin' | 'agent' | 'comptable' | 'service_finances' | 'quai_peche';
+export type UiRole = 'admin' | 'super_admin' | 'agent' | 'service_finances' | 'quai_peche' | 'etat_civil' | 'regisseur';
 
 const SESSION_STORAGE_KEY = 'auth_session';
 const API_BASE_URL = resolveApiBaseUrl();
@@ -48,10 +48,12 @@ function roleToUiRole(role: string): UiRole {
       return 'admin';
     case 'SUPER_ADMIN':
       return 'super_admin';
-    case 'COMPTABLE':
-      return 'comptable';
     case 'SERVICE_FINANCES':
       return 'service_finances';
+    case 'REGISSEUR':
+      return 'regisseur';
+    case 'ETAT_CIVIL':
+      return 'etat_civil';
     case 'QUAI_PECHE':
       return 'quai_peche';
     default:

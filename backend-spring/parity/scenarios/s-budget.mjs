@@ -6,7 +6,7 @@ export default {
     await login('super', 'superadmin@kafountine.gouv.sn', P);
     await login('agent', 'agent@kafountine.gouv.sn', P);
     await login('fin', 'finances@kafountine.gouv.sn', P);
-    await login('compta', 'comptable@kafountine.gouv.sn', P);
+    await login('finances', 'finances@kafountine.gouv.sn', P);
   },
   steps: [
     { path: `${B}/lignes` },

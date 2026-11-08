@@ -90,7 +90,7 @@ public class TransactionsController {
   }
 
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String contribuableId = input.str("contribuableId").noTrim().uuid("ID contribuable invalide").required();
@@ -109,13 +109,13 @@ public class TransactionsController {
   }
 
   @GetMapping("/statistiques")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> statistics(HttpServletRequest request) {
     return Api.ok(service.statistics(Common.yearQuery(request.getParameterMap())));
   }
 
   @GetMapping("/export")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES", "REGISSEUR"})
   public void export(HttpServletRequest request, HttpServletResponse response) throws IOException {
     Input query = Input.query(request.getParameterMap());
     TransactionService.Criteria parsed = criteria(query);
@@ -132,7 +132,7 @@ public class TransactionsController {
   }
 
   @PutMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String transactionId = uuid(id);
     Input input = Input.body(body);
@@ -149,7 +149,7 @@ public class TransactionsController {
   }
 
   @DeleteMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
     service.delete(RequestContext.actor(), uuid(id));
     return Api.ok(Api.map("success", true));

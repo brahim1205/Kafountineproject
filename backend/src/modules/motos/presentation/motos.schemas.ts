@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { optionalTrimmedString, trimmedString } from '../../../shared/validation/sanitizers';
-import { nonNegativeNumberSchema, optionalDateStringSchema, positiveNumberSchema, uuidSchema, yearSchema } from '../../../shared/validation/commonSchemas';
+import { nonNegativeNumberSchema, optionalDateStringSchema, uuidSchema, yearSchema } from '../../../shared/validation/commonSchemas';
 
 export const createMotoSchema = z.object({
   matricule: trimmedString(1, 50, 'Matricule requis'),
@@ -44,8 +44,8 @@ export const changeMotoDriverSchema = z.object({
 
 export const createMotoPaymentSchema = z.object({
   motoId: uuidSchema,
-  // Sans montant, le serveur facture le tarif mensuel (+ pénalité si la moto est en retard).
-  montant: positiveNumberSchema.optional(),
+  // Le montant est calculé par le serveur selon le type de paiement.
+  type: z.enum(['COTISATION', 'AMENDE_POLICE']).optional(),
   reference: optionalTrimmedString(120),
   mois: optionalTrimmedString(80),
   year: yearSchema.optional(),

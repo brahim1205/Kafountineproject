@@ -35,7 +35,6 @@ test.describe('Authentication Flow', () => {
 
   test('should protect all protected routes', async ({ page }) => {
     const protectedRoutes = [
-      '/contribuables',
       '/taxes',
       '/motos',
       '/marche',

@@ -7,7 +7,8 @@ export default {
     await login('admin', 'admin@kafountine.gouv.sn', P);
     await login('super', 'superadmin@kafountine.gouv.sn', P);
     await login('agent', 'agent@kafountine.gouv.sn', P);
-    await login('compta', 'comptable@kafountine.gouv.sn', P);
+    await login('finances', 'finances@kafountine.gouv.sn', P);
+    await login('etatcivil', 'etatcivil@kafountine.gouv.sn', P);
   },
   steps: [
     { path: E },
@@ -18,7 +19,8 @@ export default {
     { path: `${E}/statistiques?year=2025` },
     { method: 'POST', path: E, as: 'agent', body: {} },
     { method: 'POST', path: E, as: 'agent', body: { contribuableId: C, typeDocument: 'x', exemplaires: 0, montant: -1, statut: 'NOPE', year: 1990 } },
-    { method: 'POST', path: E, as: 'compta', body: { contribuableId: C, typeDocument: 'x', exemplaires: 1, montant: 1 } },
+    { method: 'POST', path: E, as: 'finances', body: { contribuableId: C, typeDocument: 'x', exemplaires: 1, montant: 1 } },
+    { method: 'POST', path: E, as: 'etatcivil', body: { contribuableId: C, typeDocument: 'Extrait de naissance', exemplaires: 1, montant: 500 } },
     { method: 'POST', path: E, as: 'agent', body: { contribuableId: '00000000-0000-4000-8000-000000000000', typeDocument: 'x', exemplaires: 1, montant: 1 } },
     { method: 'POST', path: E, as: 'agent', save: 'e1', body: { contribuableId: C, typeDocument: 'etat-civil-deces-extrait-de-deces', exemplaires: 2, montant: 1000, observations: ' note ' } },
     { method: 'POST', path: E, as: 'agent', save: 'e2', body: { contribuableId: C, typeDocument: 'Extrait de naissance', exemplaires: '3', montant: '0', statut: 'VALIDE', year: 2025 } },

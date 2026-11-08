@@ -2,10 +2,12 @@ import { ConflictError, NotFoundError, ValidationError } from '../../../shared/e
 import type { NumeroSequence } from '../../../shared/domain/NumeroSequence';
 import type { Actor, ActorDirectory, AuditTrail } from '../../../shared/audit/AuditTrail';
 import type { ContribuableLookup, ContribuableSummary } from '../../../shared/domain/ContribuableLookup';
-import type { MotoPayment, MotoPeopleDisplay, MotoRegistration, MotoRepository } from '../domain/Moto';
+import type { MotoPayment, MotoPaymentType, MotoPeopleDisplay, MotoRegistration, MotoRepository } from '../domain/Moto';
 
-export const MOTO_TARIF_MENSUEL = 1000;
-export const MOTO_PENALITE_RETARD = 250;
+export const MOTO_DROIT_ADHESION = 5000;
+export const MOTO_TARIF_MENSUEL = 2000;
+export const MOTO_PENALITE_RETARD = 10000;
+export const MOTO_AMENDE_POLICE = 25000;
 
 export type MotoInput = {
   matricule?: string;
@@ -27,16 +29,28 @@ export type MotoInput = {
 
 export type MotoPaymentInput = {
   motoId?: string;
-  montant?: number;
+  type?: MotoPaymentType;
   reference?: string;
   mois?: string;
   year?: number;
 };
 
-function nextMonthDueDate() {
-  const next = new Date();
-  next.setMonth(next.getMonth() + 1);
-  return next;
+/** La cotisation d'un mois est due en fin de mois ; le retard commence après le 10 du mois suivant. */
+function limiteApres(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 10, 23, 59, 59, 999));
+}
+
+function libelleMois(date: Date) {
+  return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+/** Le mois couvert par une échéance est celui qui précède sa date limite. */
+function moisCouvert(limite: Date) {
+  return libelleMois(new Date(Date.UTC(limite.getUTCFullYear(), limite.getUTCMonth() - 1, 1)));
+}
+
+function estEnRetard(row: Pick<MotoRegistration, 'enRetard' | 'prochainPaiement'>, now = new Date()) {
+  return row.enRetard || (row.prochainPaiement !== null && new Date(row.prochainPaiement).getTime() < now.getTime());
 }
 
 function peopleDisplay(proprietaire: ContribuableSummary, conducteur: ContribuableSummary | null): MotoPeopleDisplay {
@@ -117,7 +131,7 @@ export class MotoService {
         photo: input.photo ? String(input.photo) : null,
         enRetard: false,
         montantPenalite: MOTO_PENALITE_RETARD,
-        prochainPaiement: nextMonthDueDate(),
+        prochainPaiement: limiteApres(new Date()),
         dernierPaiement: null,
         year: input.year ? Number(input.year) : new Date().getFullYear(),
       },
@@ -130,7 +144,30 @@ export class MotoService {
       details: `Moto ${created.matricule} enregistrée`,
     });
 
-    return this.toMotoView(created);
+    // Le droit d'adhésion est encaissé à l'enregistrement, avec son propre reçu.
+    const paiementDate = new Date();
+    const adhesion = await this.repository.recordPayment(
+      {
+        motoId: created.id,
+        type: 'ADHESION',
+        montant: MOTO_DROIT_ADHESION,
+        reference: null,
+        datePaiement: paiementDate,
+        mois: libelleMois(paiementDate),
+        numeroRecu: await this.numeros.next('recuMoto', created.year),
+        agent: await this.actors.displayName(actor.userId),
+        year: created.year,
+        prochainPaiement: created.prochainPaiement,
+      },
+      created
+    );
+    await this.auditTrail.record(actor, {
+      action: 'Paiement moto',
+      module: 'Motos',
+      details: `Droit d'adhésion encaissé pour la moto ${created.matricule} (${MOTO_DROIT_ADHESION} FCFA)`,
+    });
+
+    return { ...this.toMotoView(created), adhesion: this.toPaymentView(adhesion) };
   }
 
   async update(actor: Actor, motoId: string, input: MotoInput) {
@@ -209,7 +246,7 @@ export class MotoService {
       this.repository.listPaymentAmounts(year),
     ]);
     const totalMotos = motos.length;
-    const enRetard = motos.filter((moto) => moto.enRetard).length;
+    const enRetard = motos.filter((moto) => estEnRetard(moto)).length;
     const recettesMois = paiements.reduce((sum, item) => sum + Number(item.montant || 0), 0);
     const paiementsMois = paiements.length;
     return {
@@ -226,7 +263,12 @@ export class MotoService {
   }
 
   configuration() {
-    return { tarifMensuel: MOTO_TARIF_MENSUEL, penaliteRetard: MOTO_PENALITE_RETARD };
+    return {
+      droitAdhesion: MOTO_DROIT_ADHESION,
+      tarifMensuel: MOTO_TARIF_MENSUEL,
+      penaliteRetard: MOTO_PENALITE_RETARD,
+      amendePolice: MOTO_AMENDE_POLICE,
+    };
   }
 
   async listPayments(year: number) {
@@ -246,17 +288,15 @@ export class MotoService {
       throw new NotFoundError('Moto introuvable.');
     }
 
-    const montant = input.montant
-      ? Number(input.montant)
-      : moto.enRetard
-        ? MOTO_TARIF_MENSUEL + Number(moto.montantPenalite || MOTO_PENALITE_RETARD)
-        : MOTO_TARIF_MENSUEL;
-    if (Number.isNaN(montant) || montant <= 0) {
-      throw new ValidationError('Le montant du paiement moto est invalide.');
-    }
-
+    const type = input.type || 'COTISATION';
+    const cotisation = type === 'COTISATION';
     const paiementDate = new Date();
-    const nextDueDate = nextMonthDueDate();
+    // Montant fixé par le règlement : jamais fourni par le navigateur.
+    const montant = !cotisation
+      ? MOTO_AMENDE_POLICE
+      : MOTO_TARIF_MENSUEL + (estEnRetard(moto, paiementDate) ? MOTO_PENALITE_RETARD : 0);
+
+    const echeance = moto.prochainPaiement ? new Date(moto.prochainPaiement) : null;
     const reference = input.reference ? String(input.reference).trim() : null;
     const year = input.year ? Number(input.year) : new Date().getFullYear();
     // Le numéro du reçu officiel est attribué ici, jamais par le navigateur.
@@ -264,14 +304,19 @@ export class MotoService {
     const created = await this.repository.recordPayment(
       {
         motoId,
+        type,
         montant,
         reference,
         datePaiement: paiementDate,
-        mois: input.mois ? String(input.mois).trim() : paiementDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+        mois: input.mois
+          ? String(input.mois).trim()
+          : cotisation && echeance
+            ? moisCouvert(echeance)
+            : libelleMois(paiementDate),
         numeroRecu,
         agent: actorName,
         year,
-        prochainPaiement: nextDueDate,
+        prochainPaiement: cotisation ? limiteApres(echeance || paiementDate) : echeance,
       },
       moto
     );
@@ -279,7 +324,7 @@ export class MotoService {
     await this.auditTrail.record(actor, {
       action: 'Paiement moto',
       module: 'Motos',
-      details: `Paiement enregistré pour la moto ${moto.matricule} (${montant} FCFA)`,
+      details: `${cotisation ? 'Paiement' : 'Amende police'} enregistré${cotisation ? '' : 'e'} pour la moto ${moto.matricule} (${montant} FCFA)`,
     });
 
     return this.toPaymentView(created);
@@ -302,9 +347,10 @@ export class MotoService {
   private toMotoView(row: MotoRegistration) {
     const dernierPaiement = row.dernierPaiement ? row.dernierPaiement.toISOString() : null;
     const prochainPaiement = row.prochainPaiement ? row.prochainPaiement.toISOString() : null;
+    const enRetard = estEnRetard(row);
     const joursRetard =
-      row.enRetard && row.prochainPaiement
-        ? Math.max(0, Math.floor((Date.now() - row.prochainPaiement.getTime()) / (1000 * 60 * 60 * 24)))
+      enRetard && row.prochainPaiement
+        ? Math.max(0, Math.floor((Date.now() - new Date(row.prochainPaiement).getTime()) / (1000 * 60 * 60 * 24)))
         : 0;
     return {
       id: row.id,
@@ -336,8 +382,9 @@ export class MotoService {
             cni: row.conducteurNin || row.proprietaireNin,
           }
         : null,
-      enRetard: row.enRetard,
-      montantPenalite: Number(row.montantPenalite || 0),
+      enRetard,
+      // Montant fixé par le règlement, quelle que soit la valeur enregistrée sur la moto.
+      montantPenalite: MOTO_PENALITE_RETARD,
       prochainPaiement,
       dernierPaiement,
       joursRetard,
@@ -348,6 +395,7 @@ export class MotoService {
     return {
       id: row.id,
       motoId: row.motoId,
+      type: row.type,
       montant: Number(row.montant || 0),
       reference: row.reference || undefined,
       statut: row.statut,

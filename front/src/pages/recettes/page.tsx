@@ -37,10 +37,10 @@ export default function Recettes() {
   const isCurrentYear = selectedYear === new Date().getFullYear();
   const role = getStoredUserRole();
   // L'administrateur est en consultation seule : saisie par les agents, correction par le super admin.
-  const canCreate = isCurrentYear && role === 'agent';
-  const canEdit = role === 'super_admin';
+  const canCreate = isCurrentYear && (role === 'agent' || role === 'regisseur');
+  const canEdit = role === 'super_admin' || role === 'regisseur';
   // Statistiques de l'année et export complet : réservés par l'API à l'encadrement et aux finances.
-  const canSeeYearStats = role === 'admin' || role === 'super_admin' || role === 'comptable' || role === 'service_finances';
+  const canSeeYearStats = role === 'admin' || role === 'super_admin' || role === 'service_finances' || role === 'regisseur';
 
   const [rows, setRows] = useState<RecetteRow[]>([]);
   const [total, setTotal] = useState(0);

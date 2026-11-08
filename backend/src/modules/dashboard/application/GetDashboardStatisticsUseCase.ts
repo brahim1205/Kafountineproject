@@ -24,7 +24,6 @@ export class GetDashboardStatisticsUseCase {
       totalUsers,
       totalAdmins,
       totalAgents,
-      totalComptables,
       formationsStats,
       motosStats,
       marcheStats,
@@ -55,7 +54,6 @@ export class GetDashboardStatisticsUseCase {
       prisma.user.count().catch(() => 0),
       prisma.user.count({ where: { role: 'ADMIN' } }).catch(() => 0),
       prisma.user.count({ where: { role: 'AGENT' } }).catch(() => 0),
-      prisma.user.count({ where: { role: 'COMPTABLE' } }).catch(() => 0),
       this.getFormationsStats(year).catch(() => null),
       this.getMotosStats(year).catch(() => null),
       this.getMarcheStats(year).catch(() => null),
@@ -101,7 +99,6 @@ export class GetDashboardStatisticsUseCase {
       totalUsers,
       totalAdmins,
       totalAgents,
-      totalComptables,
       alertes: [
         ...(motosStats?.enRetard ? [{ message: `${motosStats.enRetard} motos en retard de paiement`, type: 'retard', timestamp: new Date().toISOString() }] : []),
         ...(budgetStats?.demandesEnAttente ? [{ message: `${budgetStats.demandesEnAttente} demandes budgétaires en attente`, type: 'info', timestamp: new Date().toISOString() }] : []),

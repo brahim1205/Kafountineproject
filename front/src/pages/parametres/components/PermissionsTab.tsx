@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { updatePermission, type Permission } from '../../../services/settings';
 import { PRIMARY_BUTTON, SectionHeader } from './ui';
 
-type Role = 'agent' | 'superviseur' | 'comptable' | 'admin';
+type Role = 'agent' | 'superviseur' | 'admin';
 
 const ROLES: Array<{ key: Role; api: string; label: string }> = [
   { key: 'agent', api: 'AGENT', label: 'Agent' },
   { key: 'superviseur', api: 'SUPERVISEUR', label: 'Superviseur' },
-  { key: 'comptable', api: 'COMPTABLE', label: 'Comptable' },
   { key: 'admin', api: 'ADMIN', label: 'Administrateur' },
 ];
 

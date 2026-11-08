@@ -42,7 +42,7 @@ public class MarcheController {
   }
 
   @PostMapping("/places")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> createPlace(@Body JsonNode body) {
     Input input = Input.body(body);
     String numeroPlace = input.str("numeroPlace").trimmed(1, 50, "Numéro requis").optionalPlain();
@@ -63,7 +63,7 @@ public class MarcheController {
   }
 
   @PutMapping("/places/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> updatePlace(@PathVariable String id, @Body JsonNode body) {
     String placeId = Common.id(id);
     Input input = Input.body(body);
@@ -104,7 +104,7 @@ public class MarcheController {
   }
 
   @PostMapping("/paiements")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> createPayment(@Body JsonNode body) {
     Input input = Input.body(body);
     String placeId = input.str("placeId").noTrim().uuid("Identifiant invalide").required();

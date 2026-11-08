@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createMoto, validateMotoDuplicates } from '../../../services/motos';
+import type { MotoPayment } from '../../../services/motos';
 import { ensureContribuableByIdentity } from '../../../services/contribuables';
 import { uploadImage } from '../../../services/upload';
 import { clearFieldValidationError, validateFormElement } from '../../../utils/formValidation';
@@ -8,7 +9,8 @@ import Field, { FormError, INPUT_CLASS } from './Field';
 type EnregistrementMotoModalProps = {
   selectedYear: number;
   onClose: () => void;
-  onSaved: () => Promise<void>;
+  droitAdhesion: number;
+  onSaved: (adhesion?: MotoPayment) => Promise<void>;
 };
 
 const MATRICULE_DUPLIQUE = 'Ce numéro de matricule est déjà utilisé par une autre moto.';
@@ -21,7 +23,7 @@ function toErrorMessage(err: unknown) {
   return message || "Impossible d'enregistrer la moto";
 }
 
-export default function EnregistrementMotoModal({ selectedYear, onClose, onSaved }: EnregistrementMotoModalProps) {
+export default function EnregistrementMotoModal({ selectedYear, droitAdhesion, onClose, onSaved }: EnregistrementMotoModalProps) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -79,7 +81,7 @@ export default function EnregistrementMotoModal({ selectedYear, onClose, onSaved
         }
       }
 
-      await createMoto({
+      const moto = await createMoto({
         matricule: field('matricule'),
         marque: field('marque'),
         modele: field('modele'),
@@ -92,7 +94,7 @@ export default function EnregistrementMotoModal({ selectedYear, onClose, onSaved
         year: selectedYear,
       });
 
-      await onSaved();
+      await onSaved(moto.adhesion);
     } catch (err) {
       setError(toErrorMessage(err));
     } finally {
@@ -172,6 +174,11 @@ export default function EnregistrementMotoModal({ selectedYear, onClose, onSaved
             </section>
           </div>
 
+          <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <i className="ri-money-dollar-circle-line mr-1"></i>
+            Droit d’adhésion à encaisser : <strong>{droitAdhesion.toLocaleString()} FCFA</strong>. Le reçu s’affiche après l’enregistrement.
+          </p>
+
           <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
             <button
               type="button"
@@ -189,7 +196,7 @@ export default function EnregistrementMotoModal({ selectedYear, onClose, onSaved
               }`}
             >
               <i className={`ri-${isSubmitting ? 'loader-4-line animate-spin' : 'check-line'} mr-2`}></i>
-              {isSubmitting ? 'Enregistrement...' : 'Enregistrer la moto'}
+              {isSubmitting ? 'Enregistrement...' : 'Enregistrer et encaisser'}
             </button>
           </div>
 

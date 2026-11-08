@@ -91,7 +91,7 @@ import {
 export function buildBudgetRoutes(controller: BudgetController) {
   const router = Router();
   const authenticate = buildAuthenticate(new JwtTokenService());
-  const budgetRoles = authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES');
+  const budgetRoles = authorize('ADMIN', 'SUPER_ADMIN', 'SERVICE_FINANCES');
 
   router.get('/budget/lignes', authenticate, budgetRoles, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.listLines(req, res)));
   router.post('/budget/lignes', authenticate, budgetRoles, validate(createBudgetLineSchema), asyncHandler((req, res) => controller.createLine(req, res)));
@@ -99,7 +99,7 @@ export function buildBudgetRoutes(controller: BudgetController) {
   router.delete('/budget/lignes/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), validate(resourceIdParamsSchema, 'params'), asyncHandler((req, res) => controller.deleteLine(req, res)));
   router.get('/budget/stats', authenticate, budgetRoles, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.getStats(req, res)));
   router.get('/budget/demandes', authenticate, budgetRoles, validate(yearQuerySchema, 'query'), asyncHandler((req, res) => controller.listRequests(req, res)));
-  router.post('/budget/demandes', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'COMPTABLE', 'SERVICE_FINANCES', 'AGENT'), validate(createBudgetRequestSchema), asyncHandler((req, res) => controller.createRequest(req, res)));
+  router.post('/budget/demandes', authenticate, authorize('ADMIN', 'SUPER_ADMIN', 'SERVICE_FINANCES', 'AGENT'), validate(createBudgetRequestSchema), asyncHandler((req, res) => controller.createRequest(req, res)));
   router.put('/budget/demandes/:id', authenticate, budgetRoles, validate(resourceIdParamsSchema, 'params'), validate(updateBudgetRequestSchema), asyncHandler((req, res) => controller.updateRequest(req, res)));
 
   return router;

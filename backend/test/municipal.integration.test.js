@@ -5,6 +5,10 @@
 const request = require('supertest');
 
 const describeIntegration = process.env.RUN_INTEGRATION_TESTS === 'true' ? describe : describe.skip;
+// API_BASE_URL : exécute les mêmes scénarios contre un serveur déjà lancé (backend Spring Boot, par exemple).
+const API_BASE_URL = process.env.API_BASE_URL || '';
+// Tests qui manipulent directement les classes du backend Node : sans objet contre un autre serveur.
+const describeNodeInternals = API_BASE_URL ? describe.skip : describe;
 
 describeIntegration('services municipaux (intégration)', () => {
   const origin = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',')[0].trim();
@@ -17,7 +21,7 @@ describeIntegration('services municipaux (intégration)', () => {
   let contribuableId;
 
   async function login(email) {
-    const session = request.agent(app);
+    const session = request.agent(API_BASE_URL || app);
     const res = await session.post('/api/v1/auth/login').set('Origin', origin).send({ email, password });
     expect(res.status).toBe(200);
     return {
@@ -30,8 +34,10 @@ describeIntegration('services municipaux (intégration)', () => {
   }
 
   beforeAll(async () => {
-    const { createApp } = require('../dist/src/app');
-    app = createApp();
+    if (!API_BASE_URL) {
+      const { createApp } = require('../dist/src/app');
+      app = createApp();
+    }
     admin = await login('superadmin@kafountine.gouv.sn');
     agent = await login('agent@kafountine.gouv.sn');
     const contribuables = await admin.get('/contribuables?limit=1');
@@ -370,9 +376,9 @@ describeIntegration('services municipaux (intégration)', () => {
       const changed = await user.post('/auth/change-password', { currentPassword: password, newPassword: nouveau });
       expect(changed.status).toBe(200);
 
-      const oldLogin = await request(app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password });
+      const oldLogin = await request(API_BASE_URL || app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password });
       expect(oldLogin.status).toBe(401);
-      const relogged = await request.agent(app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password: nouveau });
+      const relogged = await request.agent(API_BASE_URL || app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password: nouveau });
       expect(relogged.status).toBe(200);
 
       const restored = await user.post('/auth/change-password', { currentPassword: nouveau, newPassword: password });
@@ -528,7 +534,7 @@ describeIntegration('services municipaux (intégration)', () => {
     });
   });
 
-  describe('unité de travail', () => {
+  describeNodeInternals('unité de travail', () => {
     const load = (path) => require(`../dist/src/${path}`);
     const { transactional } = load('shared/application/UnitOfWork');
     const { PrismaUnitOfWork } = load('shared/infrastructure/prisma/transactionContext');

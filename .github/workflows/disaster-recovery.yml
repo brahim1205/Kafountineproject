@@ -110,7 +110,8 @@ jobs:
             echo "::error::Sauvegarde chiffrée : ajoutez le secret BACKUP_AGE_IDENTITY (clé privée age) ou restaurez à la main (RUNBOOK_PRODUCTION.md)."
             exit 1
           fi
-          sudo apt-get install -y -qq age >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
           umask 077
           printf '%s\n' "$AGE_IDENTITY" > "$RUNNER_TEMP/age.key"
           for file in "${encrypted[@]}"; do

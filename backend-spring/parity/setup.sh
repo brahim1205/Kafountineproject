@@ -11,7 +11,9 @@ redis-cli -p 56379 ping >/dev/null 2>&1 || redis-server --port 56379 --daemonize
 if ! psql -qAt -d postgres -c "SELECT 1 FROM pg_database WHERE datname='kaf_seeded'" | grep -q 1; then
   psql -q -d postgres -c 'CREATE DATABASE kaf_seeded'
   cd "$ROOT/backend"
-  export DATABASE_URL="postgresql://postgres@127.0.0.1:55432/kaf_seeded?schema=public" REDIS_URL=redis://127.0.0.1:56379/9
+  seed_db=$(pg_url kaf_seeded)
+  export DATABASE_URL=${seed_db}
+  export REDIS_URL="$(redis_url 9)"
   npx prisma migrate deploy >/dev/null
   npx tsx prisma/seed.ts >/dev/null
 fi

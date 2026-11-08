@@ -10,9 +10,9 @@ ENV NODE_ENV=production
 # Serveur partagé : mémoire de la JVM bornée ; arrêt franc en cas d'épuisement (Docker redémarre le service).
 ENV JAVA_TOOL_OPTIONS="-Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Duser.timezone=UTC"
 WORKDIR /app
-# Même utilisateur (uid 1000) que l'image Node : le volume uploads existant reste accessible.
-RUN groupadd --gid 1000 app && useradd --uid 1000 --gid 1000 --no-create-home app && mkdir -p /app/uploads && chown -R app:app /app
-COPY --chown=app:app --from=build /workspace/target/gestion-municipale-spring-1.0.0.jar app.jar
-USER app
+# Même uid numérique (1000, déjà défini dans l'image de base) que l'image Node : le volume uploads existant reste accessible.
+RUN mkdir -p /app/uploads && chown -R 1000:1000 /app
+COPY --chown=1000:1000 --from=build /workspace/target/gestion-municipale-spring-1.0.0.jar app.jar
+USER 1000:1000
 EXPOSE 3000
 ENTRYPOINT ["java", "-jar", "app.jar"]

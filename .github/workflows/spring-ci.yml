@@ -1,10 +1,10 @@
 name: Spring CI
 on:
   pull_request:
-    paths: ['backend-spring/**', '.github/workflows/spring-ci.yml']
+    paths: ['backend/**', 'backend-spring/**', '.github/workflows/spring-ci.yml']
   push:
     branches: [main]
-    paths: ['backend-spring/**', '.github/workflows/spring-ci.yml']
+    paths: ['backend/**', 'backend-spring/**', '.github/workflows/spring-ci.yml']
 
 permissions:
   contents: read
@@ -20,3 +20,36 @@ jobs:
       - name: Check the runtime user and the uploads directory
         run: |
           docker run --rm --entrypoint sh kafontine-spring-ci -c 'test "$(id -u)" = 1000 && test -w /app/uploads && test -r /app/app.jar'
+
+  parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Install Redis
+        run: sudo apt-get update && sudo apt-get install -y redis-server && sudo systemctl stop redis-server
+      - name: Install Node backend
+        run: npm ci && npx prisma generate
+        working-directory: backend
+      - name: Build Spring backend
+        run: mvn -q -Dmaven.test.skip=true package
+        working-directory: backend-spring
+      - name: Compare Node and Spring
+        env:
+          KAF_PARITY_DATA: ${{ runner.temp }}/parity
+        run: |
+          bash backend-spring/parity/setup.sh
+          bash backend-spring/parity/run-all.sh
+      - name: Show server logs
+        if: failure()
+        run: tail -n 80 "$RUNNER_TEMP/parity/node.log" "$RUNNER_TEMP/parity/spring.log" || true

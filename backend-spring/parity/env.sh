@@ -14,3 +14,5 @@ export JWT_REFRESH_SECRET=${jwt_refresh}
 pg_url() { printf '%s://%s@127.0.0.1:55432/%s?schema=public' postgresql postgres "$1"; }
 redis_url() { printf '%s://127.0.0.1:56379/%s' redis "$1"; }
 export NODE_ENV=development CORS_ORIGIN=http://127.0.0.1:5173 PORTAL_URL=http://127.0.0.1:5173 SEED_DEFAULT_PASSWORD='TestPassword123!'
+JAVA_BIN=${JAVA_HOME_17_X64:+$JAVA_HOME_17_X64/bin/java}
+JAVA_BIN=${JAVA_BIN:-/usr/lib/jvm/java-17-openjdk-amd64/bin/java}

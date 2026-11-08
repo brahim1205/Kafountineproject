@@ -5,6 +5,8 @@ set -e
 mkdir -p "$DATA"
 [ -d "$DATA/pg" ] || initdb -D "$DATA/pg" -U postgres -A trust -E UTF8 >/dev/null
 pg_ctl -D "$DATA/pg" status >/dev/null 2>&1 || pg_ctl -D "$DATA/pg" -o "-p 55432 -c listen_addresses=127.0.0.1 -k $DATA" -l "$DATA/pg.log" -w start >/dev/null
+# Sans autovacuum : deux copies gardent le même plan, donc le même ordre entre lignes de même date.
+psql -q -d postgres -c "ALTER SYSTEM SET autovacuum = off" -c "SELECT pg_reload_conf()" >/dev/null
 redis-cli -p 56379 ping >/dev/null 2>&1 || redis-server --port 56379 --daemonize yes --save '' --dir "$DATA" >/dev/null
 if ! psql -qAt -d postgres -c "SELECT 1 FROM pg_database WHERE datname='kaf_seeded'" | grep -q 1; then
   psql -q -d postgres -c 'CREATE DATABASE kaf_seeded'

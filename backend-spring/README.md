@@ -1,94 +1,28 @@
-# Backend Spring Boot - Kafountine Gestion Municipale
+# Backend Spring Boot - Kafountine Gestion municipale
 
-Ce dossier contient une reproduction Spring Boot du backend Node/Express existant.
+Backend en production. Il expose la même API que `backend/` (Node/Express), sur la même base PostgreSQL et le même Redis.
+Le schéma reste géré par les migrations Prisma de `backend/prisma` : au déploiement, l'image `migrator` les applique.
 
-La correspondance des routes est résumée dans `ROUTE_PARITY.md`.
+Stack : Java 17, Spring Boot 3.3, JDBC (`NamedParameterJdbcTemplate`), filtres et intercepteur reproduisant l'ordre des middlewares Express.
+Configuration : mêmes variables d'environnement que Node (`DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CORS_ORIGIN`, `PORTAL_URL`, etc.).
+Port par défaut : `3000` (`PORT`).
 
-## Démarrage
-
-Le projet utilise les mêmes services de développement que le backend Node:
-
-```bash
-cd ..
-make spring-local
-```
-
-Par défaut:
-
-- API Spring: `http://127.0.0.1:3001`
-- PostgreSQL: `127.0.0.1:5434`
-- Redis: `127.0.0.1:6380`
-- Swagger UI: `http://127.0.0.1:3001/api-docs`
-
-Le backend Node peut rester sur `3000`; Spring utilise `3001` pour éviter le conflit.
-
-## Endpoints principaux
-
-- `GET /health`
-- `GET /ready`
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/logout`
-- `GET /api/v1/auth/me`
-- `POST /api/v1/auth/refresh`
-- `POST /api/v1/auth/forgot-password`
-- `GET|POST /api/v1/contribuables`
-- `PUT|DELETE /api/v1/contribuables/{id}`
-- `GET /api/v1/transactions`
-- `POST /api/v1/transactions`
-- `GET /api/v1/transactions/categories`
-- `GET /api/v1/transactions/categories/{id}/services`
-- `GET /api/v1/transactions/statistiques`
-- `GET /api/v1/dashboard/statistiques`
-- `POST /api/v1/portal/auth/contribuable`
-- `POST /api/v1/portal/auth/register`
-
-Les réponses suivent le contrat Node: `{ "success": true, "data": ... }` ou `{ "success": true, "data": ..., "meta": ... }`.
-
-## Build
-
-Si Maven n'est pas installé localement, compilez avec Docker:
+## Construire et lancer
 
 ```bash
-cd ..
-make spring-build
+mvn -Dmaven.test.skip=true package
+java -jar target/gestion-municipale-spring-1.0.0.jar
 ```
 
-Si Docker n'est pas disponible mais Maven est installé localement:
+L'image de production se construit avec `Dockerfile.prod`.
 
-```bash
-cd ..
-make spring-build-local
-```
+## Vérifier
 
-`run-dev.sh` désactive la variable d'environnement `DEBUG` avant de lancer Spring. Certaines sessions Linux exportent `DEBUG`; Spring Boot l'interprète comme une demande de logs détaillés.
+- `parity/` : rejoue les mêmes requêtes sur Node et Spring et compare réponses et tables (voir `parity/README.md`). Ce contrôle tourne en CI.
+- `smoke-test.sh` : parcours rapide sur un serveur de développement (`SMOKE_PASSWORD` requis, jamais en production).
+- Les tests d'intégration de `backend/test` s’exécutent contre un serveur lancé grâce à `API_BASE_URL`.
 
-## Smoke test
+## Faire évoluer l'API
 
-Une fois le serveur lancé:
-
-```bash
-cd ..
-make spring-smoke
-```
-
-Le script vérifie `/ready`, le login admin, une route protégée, le CRUD formations, le CRUD utilisateurs et un flux portail contribuable complet avec paiement/reçu temporaires.
-
-## Frontend avec Spring
-
-Pour pointer le frontend Vite vers le backend Spring:
-
-```bash
-cd ..
-make front-spring-local
-```
-
-Un exemple d'environnement est disponible dans `front/.env.spring.example`.
-
-## Docker Compose
-
-Pour lancer PostgreSQL, Redis et le backend Spring ensemble:
-
-```bash
-cd ..
-make spring-compose
-```
+Toute évolution d'une route, d'une validation ou d'une règle métier doit être faite dans `backend-spring`. Tant que `backend/` sert de référence,
+reportez-la aussi côté Node et complétez un scénario de `parity/scenarios`, sinon la CI signalera l'écart.

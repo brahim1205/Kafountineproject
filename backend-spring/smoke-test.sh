@@ -1,100 +1,50 @@
 #!/usr/bin/env bash
+# Parcours rapide sur un serveur de développement : crée puis supprime ses propres données.
+# À ne pas lancer en production (le portail y envoie de vrais SMS et ne renvoie pas de code).
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-http://127.0.0.1:3001}"
-EMAIL="${SMOKE_EMAIL:-admin@kafountine.gouv.sn}"
-PASSWORD="${SMOKE_PASSWORD:-password123}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:3000}"
+ORIGIN="${SMOKE_ORIGIN:-http://127.0.0.1:5173}"
+EMAIL="${SMOKE_EMAIL:-superadmin@kafountine.gouv.sn}"
+PASSWORD="${SMOKE_PASSWORD:?Définir SMOKE_PASSWORD}"
+JAR="$(mktemp)"; PORTAL_JAR="$(mktemp)"
+trap 'rm -f "$JAR" "$PORTAL_JAR"' EXIT
+API="$BASE_URL/api/v1"
+STAMP="$(date +%s)"
+
+field() { node -pe "JSON.parse(require('fs').readFileSync(0,'utf8')).$1"; }
+call() { # méthode chemin [corps]
+  curl -fsS -b "$JAR" -c "$JAR" -X "$1" "$API$2" -H "Origin: $ORIGIN" -H 'Content-Type: application/json' ${3:+-d "$3"}
+}
+portal() {
+  curl -fsS -b "$PORTAL_JAR" -c "$PORTAL_JAR" -X "$1" "$API/portal$2" -H "Origin: $ORIGIN" -H 'Content-Type: application/json' ${3:+-d "$3"}
+}
 
 curl -fsS "$BASE_URL/ready" >/dev/null
+call POST /auth/login "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" >/dev/null
+call GET /auth/me >/dev/null
+call GET /transactions/categories >/dev/null
 
-TOKEN="$(
-  curl -fsS -X POST "$BASE_URL/api/v1/auth/login" \
-    -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" \
-  | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).data.accessToken'
-)"
+FORMATION="$(call POST /formations '{"nom":"SMOKE","domaine":"Test","duree":"1 jour","responsable":"Smoke","budget":1,"dateDebut":"2026-10-06","dateFin":"2026-10-07"}' | field data.id)"
+call DELETE "/formations/$FORMATION" >/dev/null
 
-curl -fsS "$BASE_URL/api/v1/transactions/categories" \
-  -H "Authorization: Bearer $TOKEN" >/dev/null
+USER_ID="$(call POST /users "{\"email\":\"smoke-$STAMP@example.local\",\"password\":\"Smoke-Passe-$STAMP!\",\"nom\":\"Smoke\",\"prenom\":\"Spring\",\"role\":\"AGENT\"}" | field data.id)"
+call DELETE "/users/$USER_ID" >/dev/null
 
-CREATED="$(
-  curl -fsS -X POST "$BASE_URL/api/v1/formations" \
-    -H "Authorization: Bearer $TOKEN" \
-    -H 'Content-Type: application/json' \
-    -d '{"nom":"SMOKE SPRING TEMP","domaine":"Test","duree":"1 jour","responsable":"Codex","budget":1,"dateDebut":"2026-10-06","dateFin":"2026-10-07","statut":"PLANIFIEE","year":2026}'
-)"
+NIN="SMOKE-$STAMP"; PHONE="+22177$STAMP"
+CONTRIBUABLE="$(call POST /contribuables "{\"nin\":\"$NIN\",\"nom\":\"Smoke\",\"prenom\":\"Portail\",\"dateNaiss\":\"1990-01-01\",\"lieuNaiss\":\"Kafountine\",\"adresse\":\"Test\",\"telephone\":\"$PHONE\"}" | field data.id)"
+TICKET="$(call POST /transactions "{\"contribuableId\":\"$CONTRIBUABLE\",\"type\":\"test\",\"service\":\"Smoke\",\"montant\":25,\"statut\":\"EN_ATTENTE\"}" | field data.id)"
 
-ID="$(printf '%s' "$CREATED" | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).data.id')"
+CHALLENGE="$(portal POST /auth/request-otp "{\"nin\":\"$NIN\",\"telephone\":\"$PHONE\"}")"
+REQUEST_ID="$(printf '%s' "$CHALLENGE" | field data.requestId)"
+CODE="$(printf '%s' "$CHALLENGE" | field data.devCode)"
+portal POST /auth/verify-otp "{\"requestId\":\"$REQUEST_ID\",\"code\":\"$CODE\"}" >/dev/null
+portal GET /auth/me >/dev/null
+portal GET "/contribuable/$CONTRIBUABLE/taxes" >/dev/null
+PAYMENT="$(portal POST /payment/initiate "{\"amount\":25,\"taxes\":[\"$TICKET\"],\"method\":\"wave\",\"phone\":\"$PHONE\"}" | field paymentId)"
+portal POST /payment/confirm "{\"transactionId\":\"$PAYMENT\",\"reference\":\"SMOKE\"}" >/dev/null
+portal GET "/recu/$TICKET" >/dev/null
 
-curl -fsS -X DELETE "$BASE_URL/api/v1/formations/$ID" \
-  -H "Authorization: Bearer $TOKEN" >/dev/null
-
-USER_EMAIL="spring-smoke-$(date +%s)@example.local"
-CREATED_USER="$(
-  curl -fsS -X POST "$BASE_URL/api/v1/users" \
-    -H "Authorization: Bearer $TOKEN" \
-    -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$USER_EMAIL\",\"password\":\"password123\",\"nom\":\"Smoke\",\"prenom\":\"Spring\",\"role\":\"AGENT\",\"isActive\":true}"
-)"
-
-USER_ID="$(printf '%s' "$CREATED_USER" | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).data.id')"
-
-curl -fsS "$BASE_URL/api/v1/users?search=$USER_EMAIL" \
-  -H "Authorization: Bearer $TOKEN" >/dev/null
-
-curl -fsS -X DELETE "$BASE_URL/api/v1/users/$USER_ID" \
-  -H "Authorization: Bearer $TOKEN" >/dev/null
-
-PORTAL_NIN="SMOKE-NIN-$(date +%s)"
-PORTAL_PHONE="77$(date +%s | tail -c 8)"
-CREATED_CONTRIBUABLE="$(
-  curl -fsS -X POST "$BASE_URL/api/v1/contribuables" \
-    -H "Authorization: Bearer $TOKEN" \
-    -H 'Content-Type: application/json' \
-    -d "{\"nin\":\"$PORTAL_NIN\",\"nom\":\"Smoke\",\"prenom\":\"Portal\",\"dateNaiss\":\"1990-01-01\",\"lieuNaiss\":\"Kafountine\",\"adresse\":\"Test\",\"telephone\":\"$PORTAL_PHONE\",\"typeContribuable\":\"PARTICULIER\",\"montantImpot\":0,\"isActive\":true}"
-)"
-
-CONTRIBUABLE_ID="$(printf '%s' "$CREATED_CONTRIBUABLE" | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).data.id')"
-
-CREATED_TX="$(
-  curl -fsS -X POST "$BASE_URL/api/v1/transactions" \
-    -H "Authorization: Bearer $TOKEN" \
-    -H 'Content-Type: application/json' \
-    -d "{\"contribuableId\":\"$CONTRIBUABLE_ID\",\"categorie\":\"test\",\"service\":\"Smoke portal\",\"quantite\":1,\"montant\":25,\"tarifUnitaire\":25,\"modePaiement\":\"ESPECE\",\"statut\":\"EN_ATTENTE\",\"date\":\"2026-10-07\"}"
-)"
-
-TX_ID="$(printf '%s' "$CREATED_TX" | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).data.id')"
-
-PORTAL_TOKEN="$(
-  curl -fsS -X POST "$BASE_URL/api/v1/portal/auth/contribuable" \
-    -H 'Content-Type: application/json' \
-    -d "{\"nin\":\"$PORTAL_NIN\"}" \
-  | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).token'
-)"
-
-curl -fsS "$BASE_URL/api/v1/portal/auth/me" \
-  -H "Authorization: Bearer $PORTAL_TOKEN" >/dev/null
-
-curl -fsS "$BASE_URL/api/v1/portal/contribuable/$CONTRIBUABLE_ID/taxes" \
-  -H "Authorization: Bearer $PORTAL_TOKEN" >/dev/null
-
-PAYMENT_ID="$(
-  curl -fsS -X POST "$BASE_URL/api/v1/portal/payment/initiate" \
-    -H "Authorization: Bearer $PORTAL_TOKEN" \
-    -H 'Content-Type: application/json' \
-    -d "{\"taxes\":[\"$TX_ID\"],\"method\":\"wave\",\"phone\":\"$PORTAL_PHONE\"}" \
-  | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).paymentId'
-)"
-
-curl -fsS -X POST "$BASE_URL/api/v1/portal/payment/confirm" \
-  -H "Authorization: Bearer $PORTAL_TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d "{\"transactionId\":\"$PAYMENT_ID\",\"reference\":\"SMOKE\"}" >/dev/null
-
-curl -fsS "$BASE_URL/api/v1/portal/recu/$TX_ID" \
-  -H "Authorization: Bearer $PORTAL_TOKEN" >/dev/null
-
-curl -fsS -X DELETE "$BASE_URL/api/v1/contribuables/$CONTRIBUABLE_ID" \
-  -H "Authorization: Bearer $TOKEN" >/dev/null
-
+call DELETE "/transactions/$TICKET" >/dev/null
+call DELETE "/contribuables/$CONTRIBUABLE" >/dev/null
 echo "SPRING_SMOKE=ok"

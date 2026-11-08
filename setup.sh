@@ -70,7 +70,7 @@ done
 
 # Configuration du backend
 log_info "Configuration du backend..."
-cd backend
+cd database
 
 # Installer les dépendances si nécessaire
 if [ ! -d "node_modules" ]; then
@@ -110,7 +110,7 @@ log_info "  Configuration terminée!"
 log_info "========================================"
 log_info ""
 log_info "Pour démarrer l'application:"
-log_info "  Backend:  cd backend && npm run dev"
+log_info "  Backend:  cd backend-spring && mvn spring-boot:run"
 log_info "  Frontend: cd front && npm run dev"
 log_info ""
 log_info "Ou avec Docker:"

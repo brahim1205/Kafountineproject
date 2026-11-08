@@ -60,11 +60,11 @@ export default function ProfilPage() {
           {!loading && !errorMsg && (
             <>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="h-32 bg-gradient-to-r from-teal-500 to-emerald-500"></div>
+                <div className="h-32 bg-gradient-to-r from-emerald-500 to-emerald-500"></div>
                 <div className="px-6 pb-6">
                   <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16">
                     <div className="w-32 h-32 rounded-full bg-white border-4 border-white shadow-lg flex items-center justify-center">
-                      <span className="text-4xl font-bold text-teal-600">{initials}</span>
+                      <span className="text-4xl font-bold text-emerald-600">{initials}</span>
                     </div>
                     <div className="flex-1 text-center sm:text-left sm:mt-12">
                       <h1 className="text-3xl font-bold text-gray-900">{`${me?.prenom || ''} ${me?.nom || ''}`.trim()}</h1>

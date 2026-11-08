@@ -42,7 +42,7 @@ public class WebFilters {
     }
   }
 
-  private static final Set<String> ALLOWED_ORIGINS = Stream.concat(Env.CORS_ORIGIN.stream(), Stream.of(Env.PORTAL_URL))
+  private static final Set<String> ALLOWED_ORIGINS = Env.CORS_ORIGIN.stream()
       .filter(value -> value != null && !value.isBlank())
       .map(WebFilters::normalizeOrigin)
       .collect(Collectors.toSet());
@@ -139,8 +139,7 @@ public class WebFilters {
           String authorization = request.getHeader("authorization");
           boolean bearer = authorization != null && authorization.startsWith("Bearer ");
           boolean hasSessionCookie = Cookies.read(request, Cookies.AUTH_TOKEN) != null
-              || Cookies.read(request, Cookies.REFRESH_TOKEN) != null
-              || Cookies.read(request, Cookies.PORTAL_TOKEN) != null;
+              || Cookies.read(request, Cookies.REFRESH_TOKEN) != null;
           if (!bearer && hasSessionCookie) {
             String origin = request.getHeader("origin");
             String referer = request.getHeader("referer");

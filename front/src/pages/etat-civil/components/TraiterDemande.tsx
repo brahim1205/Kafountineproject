@@ -296,7 +296,7 @@ export default function TraiterDemande({ onSuccess }: { onSuccess?: () => void }
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`flex-1 px-6 py-3 text-white text-sm font-medium rounded-lg whitespace-nowrap ${
+            className={`flex-1 px-6 py-3 text-white text-sm font-medium rounded-lg ${
               isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 transition-colors'
             }`}
           >

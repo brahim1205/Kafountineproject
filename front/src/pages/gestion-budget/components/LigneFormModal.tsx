@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Modal, { Field, FooterButtons } from '../../../components/feature/Modal';
 import type { LigneBudgetaire, LigneBudgetairePayload } from '../../../services/budget';
 
-const INPUT_CLASS = 'w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500';
+const INPUT_CLASS = 'w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500';
 
 type LigneFormModalProps = {
   /** Absente : création d'une ligne ; présente : modification, avec le montant dépensé. */

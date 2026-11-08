@@ -5,13 +5,15 @@ on:
     branches:
       - main
     paths:
-      - 'backend/**'
+      - 'backend-spring/**'
+      - 'database/**'
       - 'front/**'
       - 'sonar-project.properties'
       - '.github/workflows/sonarqube.yml'
   pull_request:
     paths:
-      - 'backend/**'
+      - 'backend-spring/**'
+      - 'database/**'
       - 'front/**'
       - 'sonar-project.properties'
       - '.github/workflows/sonarqube.yml'
@@ -55,24 +57,24 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: |
-            backend/package-lock.json
-            front/package-lock.json
-
-      - name: Install backend dependencies
-        if: steps.sonar-check.outputs.enabled == 'true'
-        run: npm ci
-        working-directory: backend
+          cache-dependency-path: front/package-lock.json
 
       - name: Install frontend dependencies
         if: steps.sonar-check.outputs.enabled == 'true'
         run: npm ci
         working-directory: front
 
+      - uses: actions/setup-java@v4
+        if: steps.sonar-check.outputs.enabled == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
       - name: Build backend
         if: steps.sonar-check.outputs.enabled == 'true'
-        run: npm run build
-        working-directory: backend
+        run: mvn -q -Dmaven.test.skip=true package
+        working-directory: backend-spring
 
       - name: Lint frontend
         if: steps.sonar-check.outputs.enabled == 'true'

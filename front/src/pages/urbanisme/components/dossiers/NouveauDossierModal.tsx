@@ -12,7 +12,7 @@ type NouveauDossierModalProps = {
 };
 
 const INPUT_CLASS =
-  'w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all';
+  'w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 transition-all';
 
 function Field({ label, icon, required, wide, children }: { label: string; icon: string; required?: boolean; wide?: boolean; children: ReactNode }) {
   return (
@@ -148,19 +148,19 @@ export default function NouveauDossierModal({ types, onClose, onCreated }: Nouve
                 name="description"
                 rows={3}
                 placeholder="Précisez les détails du projet (ex: nombre d'étages, type de clôture...)"
-                className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-teal-500 transition-all resize-none"
+                className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 transition-all resize-none"
               ></textarea>
             </div>
           </div>
 
           {permis && (
-            <div className="bg-gradient-to-br from-teal-600 to-teal-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+            <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-xl"></div>
               <div className="relative flex justify-between items-center text-white">
                 <div>
-                  <p className="text-[10px] font-black text-teal-100 uppercase tracking-widest mb-1">Estimation des droits</p>
+                  <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">Estimation des droits</p>
                   <h4 className="text-sm font-bold mb-2">{permis.nom}</h4>
-                  <p className="text-teal-50/70 text-[10px] font-medium">
+                  <p className="text-emerald-50/70 text-[10px] font-medium">
                     Tarif : {permis.tarif.toLocaleString('fr-FR')} F / {permis.unite}
                     {auMetreCarre && ` · Base de calcul : ${Math.max(1, surfaceSaisie || 1)} m²`}
                   </p>
@@ -191,8 +191,8 @@ export default function NouveauDossierModal({ types, onClose, onCreated }: Nouve
             <button
               type="submit"
               disabled={submitting}
-              className={`flex-[2] px-8 py-4 text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-teal-200 transition-all flex items-center justify-center gap-3 ${
-                submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700 hover:shadow-xl'
+              className={`flex-[2] px-8 py-4 text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-3 ${
+                submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-xl'
               }`}
             >
               <i className={`${submitting ? 'ri-loader-4-line animate-spin' : 'ri-checkbox-circle-line'} text-xl`}></i>

@@ -67,7 +67,6 @@ public class AuthController {
     AuthUser user = RequestContext.user(request);
     auth.logout(user.userId(), user.sessionId());
     Cookies.clearAuthCookies(response);
-    Cookies.clearPortalCookie(response);
     return Api.message("Déconnexion réussie");
   }
 

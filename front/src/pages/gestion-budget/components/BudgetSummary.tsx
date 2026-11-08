@@ -7,7 +7,7 @@ export default function BudgetSummary({ totalPrevu, totalDepenses }: BudgetSumma
   const totalReste = totalPrevu - totalDepenses;
   const positif = totalReste >= 0;
   const cards = [
-    { label: 'Budget Total', value: totalPrevu, valueClass: 'text-gray-900', icon: 'ri-money-dollar-circle-line', tone: 'bg-teal-100 text-teal-600' },
+    { label: 'Budget Total', value: totalPrevu, valueClass: 'text-gray-900', icon: 'ri-money-dollar-circle-line', tone: 'bg-emerald-100 text-emerald-600' },
     { label: 'Total Dépensé', value: totalDepenses, valueClass: 'text-gray-900', icon: 'ri-money-dollar-box-line', tone: 'bg-amber-100 text-amber-600' },
     {
       label: 'Reste à Disposer',

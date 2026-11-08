@@ -96,11 +96,11 @@ export default function SauvegardeTab({ backups, onChanged, onError, readOnly = 
               </div>
               <div className="flex items-center gap-3">
                 <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">Disponible</span>
-                <button onClick={() => download(backup.filename)} className="text-sm text-gray-600 hover:text-teal-700">
+                <button onClick={() => download(backup.filename)} className="text-sm text-gray-600 hover:text-emerald-700">
                   Télécharger
                 </button>
                 {!readOnly && (
-                  <button onClick={() => restore(backup.filename)} disabled={busy} className="text-sm text-teal-600 hover:text-teal-700">
+                  <button onClick={() => restore(backup.filename)} disabled={busy} className="text-sm text-emerald-600 hover:text-emerald-700">
                     Restaurer
                   </button>
                 )}

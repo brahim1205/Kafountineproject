@@ -326,13 +326,24 @@ public class TransactionService {
     return null;
   }
 
+  /** Un service du catalogue est facturé à son tarif officiel, quel que soit le montant envoyé par le navigateur. */
+  private double montantReglementaire(String categorie, String service, int quantite, double montantSaisi) {
+    for (Map<String, Object> item : catalog.listServices(categorie)) {
+      if (service.equals(item.get("nom")) || service.equals(item.get("id"))) return ((Number) item.get("tarif")).doubleValue() * quantite;
+    }
+    return montantSaisi;
+  }
+
   @Transactional
   public Map<String, Object> create(Actor actor, CreateInput input) {
     int year = Year.now().getValue();
     String categorie = firstNonEmpty(input.categorie(), input.type(), "TAXE");
     String service = firstNonEmpty(input.service(), input.categorie(), input.type(), "Taxe");
     int quantite = input.quantite() == null || input.quantite() == 0 ? 1 : input.quantite();
-    double montant = input.montant() == null ? 0 : input.montant();
+    if ("REGISSEUR".equals(actor.role()) && "etat-civil".equals(categorie)) {
+      throw AppException.forbidden("Permissions insuffisantes pour cette action");
+    }
+    double montant = montantReglementaire(categorie, service, quantite, input.montant() == null ? 0 : input.montant());
     Instant date;
     if (input.date() != null && !input.date().isEmpty()) {
       date = Input.parseDate(input.date());
@@ -395,10 +406,11 @@ public class TransactionService {
   public void delete(Actor actor, String id) {
     Map<String, Object> existing = summary(id);
     if (existing == null) throw AppException.notFound("Transaction introuvable.");
-    if (db.update("DELETE FROM \"Transaction\" WHERE \"id\" = :id", Db.params("id", id)) == 0) {
-      throw AppException.notFound("Ressource introuvable");
+    // Une recette n'est jamais effacée : elle est annulée et sort des totaux, sa trace reste.
+    if (db.update("UPDATE \"Transaction\" SET \"statut\" = 'ANNULE', \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id AND \"statut\" <> 'ANNULE'", Db.params("id", id)) == 0) {
+      throw AppException.conflict("Cette recette est déjà annulée.");
     }
-    auditTrail.record(actor, "Suppression transaction", "Recettes",
-        "Transaction " + existing.get("numero") + " supprimée : " + existing.get("service") + " (" + Js.num(Db.num(existing, "montant")) + " FCFA)", "warning");
+    auditTrail.record(actor, "Annulation transaction", "Recettes",
+        "Transaction " + existing.get("numero") + " annulée : " + existing.get("service") + " (" + Js.num(Db.num(existing, "montant")) + " FCFA)", "warning");
   }
 }

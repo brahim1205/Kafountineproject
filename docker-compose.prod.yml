@@ -33,7 +33,7 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ./backend-spring
       dockerfile: Dockerfile.prod
     container_name: kafontine-backend-prod
     restart: always
@@ -48,11 +48,6 @@ services:
       REDIS_URL: ${REDIS_URL}
       CORS_ORIGIN: ${CORS_ORIGIN}
       COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-lax}
-      PORTAL_URL: ${PORTAL_URL}
-      PORTAL_OTP_TTL_SECONDS: ${PORTAL_OTP_TTL_SECONDS:-600}
-      PORTAL_OTP_DELIVERY_MODE: ${PORTAL_OTP_DELIVERY_MODE}
-      PORTAL_OTP_WEBHOOK_URL: ${PORTAL_OTP_WEBHOOK_URL}
-      PORTAL_OTP_WEBHOOK_TOKEN: ${PORTAL_OTP_WEBHOOK_TOKEN}
       ENABLE_API_DOCS: ${ENABLE_API_DOCS:-false}
       ENABLE_METRICS: ${ENABLE_METRICS:-false}
       METRICS_BEARER_TOKEN: ${METRICS_BEARER_TOKEN}

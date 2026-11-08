@@ -111,7 +111,7 @@ export default function CategorieDetail() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </DashboardLayout>
     );
@@ -158,8 +158,8 @@ export default function CategorieDetail() {
           </button>
           
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-xl bg-teal-100 flex items-center justify-center">
-              <i className="ri-file-list-3-line text-3xl text-teal-600"></i>
+            <div className="w-14 h-14 rounded-xl bg-emerald-100 flex items-center justify-center">
+              <i className="ri-file-list-3-line text-3xl text-emerald-600"></i>
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{categorie.nom}</h1>
@@ -188,8 +188,8 @@ export default function CategorieDetail() {
                 <p className="text-sm text-gray-600 mb-1">Transactions</p>
                 <p className="text-2xl font-bold text-gray-900">{total.toLocaleString('fr-FR')}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
-                <i className="ri-file-list-3-line text-xl text-teal-600"></i>
+              <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                <i className="ri-file-list-3-line text-xl text-emerald-600"></i>
               </div>
             </div>
           </div>
@@ -228,10 +228,10 @@ export default function CategorieDetail() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Historique des transactions</h2>
-              {userRole !== 'super_admin' && canWriteData(userRole) && isCurrentYear && (
+              {canWriteData(userRole) && isCurrentYear && (
                 <button
                   onClick={() => navigate('/taxes/nouvelle-transaction', { state: { categorieId } })}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap"
                 >
                   <i className="ri-add-line"></i>
                   Nouvelle transaction

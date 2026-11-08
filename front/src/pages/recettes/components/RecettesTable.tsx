@@ -14,7 +14,7 @@ type RecettesTableProps = {
 };
 
 const HEADERS = ['N° Ticket', 'Type', 'Contribuable', 'Agent', 'Montant', 'Date & Heure'];
-const ACTION_CLASS = 'w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer';
+const ACTION_CLASS = 'w-8 h-8 flex items-center justify-center text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer';
 
 export default function RecettesTable({ rows, loading, canEdit, onEdit, onPrint, onView, footer }: RecettesTableProps) {
   const message = loading ? 'Chargement des recettes...' : rows.length === 0 ? 'Aucune recette pour cette sélection.' : null;

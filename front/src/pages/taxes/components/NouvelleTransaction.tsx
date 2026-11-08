@@ -235,7 +235,7 @@ export default function NouvelleTransaction() {
                       {etape > step.num ? <i className="ri-check-line"></i> : step.num}
                     </div>
                     <span className={`ml-3 text-sm font-medium ${
-                      etape >= step.num ? 'text-gray-900' : 'text-gray-500'
+                      etape >= step.num ? 'text-gray-900' : 'text-gray-500 hidden sm:block'
                     }`}>
                       {step.label}
                     </span>
@@ -401,7 +401,7 @@ export default function NouvelleTransaction() {
               {/* Étape 3 : Confirmation */}
               {etape === 3 && (
                 <div className="space-y-6">
-                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-6 border border-emerald-200">
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-50 rounded-lg p-6 border border-emerald-200">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
                         <i className="ri-file-text-line text-2xl text-emerald-600"></i>
@@ -478,7 +478,7 @@ export default function NouvelleTransaction() {
                     (etape === 1 && !formData.service) ||
                     (etape === 2 && (!formData.contribuable || !formData.cni || !formData.telephone))
                   }
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   {etape === 3 ? (
                     <>
@@ -512,7 +512,7 @@ export default function NouvelleTransaction() {
               <div className="flex items-center justify-center gap-4">
                 <button
                   onClick={handleGenererRecu}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap"
                 >
                   <i className="ri-printer-line"></i>
                   Générer le reçu PDF

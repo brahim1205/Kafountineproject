@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     tags: ['v*']
-    paths: ['backend/**', 'backend-spring/**', 'front/**', '.github/workflows/deploy.yml', 'scripts/deploy-images.sh']
+    paths: ['database/**', 'backend-spring/**', 'front/**', '.github/workflows/deploy.yml', 'scripts/deploy-images.sh']
   workflow_dispatch:
     inputs:
       deploy:
@@ -32,15 +32,22 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: |
-            backend/package-lock.json
+            database/package-lock.json
             front/package-lock.json
       - run: bash ./scripts/security-repo-scan.sh
-      - run: npm ci
-        working-directory: backend
-      - run: npm run check
-        working-directory: backend
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: mvn -q -Dmaven.test.skip=true package
+        working-directory: backend-spring
+      - run: npm ci && npx prisma validate
+        working-directory: database
+        env:
+          DATABASE_URL: postgresql://validate:validate@127.0.0.1:5432/validate?schema=public
       - run: npm audit --omit=dev --audit-level=high
-        working-directory: backend
+        working-directory: database
       - run: npm ci
         working-directory: front
       - run: npm run lint && npm run type-check && npm run test:run && npm run build
@@ -60,9 +67,9 @@ jobs:
         include:
           - component: backend
             context: backend-spring
-          # Image Node conservée uniquement pour appliquer les migrations Prisma.
+          # Image dédiée à l'application des migrations Prisma.
           - component: migrator
-            context: backend
+            context: database
           - component: frontend
             context: front
     steps:

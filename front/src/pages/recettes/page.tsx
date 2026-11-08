@@ -37,7 +37,7 @@ export default function Recettes() {
   const isCurrentYear = selectedYear === new Date().getFullYear();
   const role = getStoredUserRole();
   // L'administrateur est en consultation seule : saisie par les agents, correction par le super admin.
-  const canCreate = isCurrentYear && (role === 'agent' || role === 'regisseur');
+  const canCreate = isCurrentYear && (role === 'agent' || role === 'regisseur' || role === 'super_admin');
   const canEdit = role === 'super_admin' || role === 'regisseur';
   // Statistiques de l'année et export complet : réservés par l'API à l'encadrement et aux finances.
   const canSeeYearStats = role === 'admin' || role === 'super_admin' || role === 'service_finances' || role === 'regisseur';
@@ -156,7 +156,7 @@ export default function Recettes() {
           {canCreate && (
             <button
               onClick={() => setModal({ type: 'nouveau' })}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap"
             >
               <i className="ri-add-line text-lg"></i>
               Nouveau ticket

@@ -41,14 +41,6 @@ public class JwtTokenService {
     return sign(payload, Env.JWT_REFRESH_SECRET, refreshTtlSeconds());
   }
 
-  public String signPortalToken(String contribuableId) {
-    Map<String, Object> payload = new LinkedHashMap<>();
-    payload.put("id", contribuableId);
-    payload.put("role", "CONTRIBUABLE");
-    payload.put("type", "portal");
-    return sign(payload, Env.JWT_SECRET, 7L * 24 * 3600);
-  }
-
   public long refreshTtlSeconds() {
     return Env.durationSeconds(Env.JWT_REFRESH_EXPIRES_IN, 7L * 24 * 3600);
   }
@@ -59,10 +51,6 @@ public class JwtTokenService {
 
   public Map<String, Object> verifyRefreshToken(String token) {
     return verify(token, Env.JWT_REFRESH_SECRET, "Refresh token invalide");
-  }
-
-  public Map<String, Object> verifyPortalToken(String token) {
-    return verify(token, Env.JWT_SECRET, "Token portail invalide");
   }
 
   private String sign(Map<String, Object> payload, String secret, long ttlSeconds) {

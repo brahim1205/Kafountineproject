@@ -259,8 +259,8 @@ export default function StatistiquesMarche() {
 
         <div className="bg-white rounded-lg border border-gray-200 p-5">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
-              <i className="ri-user-add-line text-teal-600 text-xl"></i>
+            <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <i className="ri-user-add-line text-emerald-600 text-xl"></i>
             </div>
           </div>
           <p className="text-2xl font-bold text-gray-900 mb-1">{stats.nouveauxCommercants || 0}</p>

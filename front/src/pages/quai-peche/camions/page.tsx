@@ -86,7 +86,7 @@ export default function CamionsPage() {
   const stats = [
     { label: 'Total camions', value: camions.length, icon: 'ri-truck-line', tone: 'bg-blue-100 text-blue-600' },
     { label: 'Camions actifs', value: camions.filter((c) => c.statut === 'ACTIF').length, icon: 'ri-checkbox-circle-line', tone: 'bg-green-100 text-green-600' },
-    { label: 'Expéditions', value: expeditions.length, icon: 'ri-send-plane-line', tone: 'bg-teal-100 text-teal-600' },
+    { label: 'Expéditions', value: expeditions.length, icon: 'ri-send-plane-line', tone: 'bg-emerald-100 text-emerald-600' },
     {
       label: 'Recettes transport',
       value: `${expeditions.reduce((sum, e) => sum + (e.montant || 0), 0).toLocaleString('fr-FR')} FCFA`,
@@ -170,7 +170,7 @@ export default function CamionsPage() {
                 key={tab}
                 onClick={() => changeTab(tab)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === tab ? 'border-teal-500 text-teal-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  activeTab === tab ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <i className={icon}></i>
@@ -189,14 +189,14 @@ export default function CamionsPage() {
                 placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <select
                 value={statutFilter}
                 onChange={(e) => setStatutFilter(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="all">Tous les statuts</option>
                 {Object.entries(statuts).map(([value, { label }]) => (
@@ -206,7 +206,7 @@ export default function CamionsPage() {
               {canManage && (
                 <button
                   onClick={() => setModal({ type: activeTab === 'camions' ? 'camion' : 'expedition' })}
-                  className="px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+                  className="px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap"
                 >
                   <i className="ri-add-line"></i>
                   {activeTab === 'camions' ? 'Nouveau camion' : 'Nouvelle expédition'}

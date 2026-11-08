@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useYear, AVAILABLE_YEARS } from '../../contexts/YearContext';
 import NotificationPanel from './NotificationPanel';
@@ -89,6 +89,13 @@ const playNotificationSound = () => {
   } catch {
     // Lecture audio bloquée par le navigateur
   }
+};
+
+const SECTIONS_REGISSEUR: Record<string, string> = {
+  '/utilisateurs': 'Équipes',
+  '/quai-peche': 'Quai de pêche',
+  '/recettes': 'Recettes et taxes',
+  '/urbanisme': 'Services',
 };
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -307,16 +314,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
 
+          const section = userRole === 'regisseur' && expanded ? SECTIONS_REGISSEUR[item.path] : undefined;
+
           return (
+            <Fragment key={`${mobile ? 'mobile' : 'desktop'}-${item.path}`}>
+            {section ? <p className="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">{section}</p> : null}
             <Link
-              key={`${mobile ? 'mobile' : 'desktop'}-${item.path}`}
               to={item.path}
               onClick={() => {
                 if (mobile) setIsMobileSidebarOpen(false);
               }}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
                 isActive
-                  ? 'bg-teal-50 text-teal-700'
+                  ? 'bg-emerald-50 text-emerald-700'
                   : 'text-gray-700 hover:bg-gray-100'
               } ${!expanded ? 'justify-center' : ''}`}
               title={!expanded ? item.label : ''}
@@ -324,6 +334,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <i className={`${item.icon} flex-shrink-0 text-xl`}></i>
               {expanded ? <span className="text-sm font-medium">{item.label}</span> : null}
             </Link>
+            </Fragment>
           );
         })}
       </nav>
@@ -384,7 +395,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchResults.length > 0 && setShowSearchDropdown(true)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
               </div>
 
@@ -399,8 +410,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                           onClick={() => handleSearchResultClick(result.link)}
                           className="w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left flex items-start gap-3"
                         >
-                          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <i className={`${result.icon} text-teal-600 text-lg`}></i>
+                          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i className={`${result.icon} text-emerald-600 text-lg`}></i>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -446,7 +457,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             {/* Sélecteur d'année */}
-            <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500">
+            <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
               <i className="ri-calendar-line text-gray-500"></i>
               <select
                 value={selectedYear}
@@ -468,7 +479,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 className="flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-gray-100 cursor-pointer sm:gap-3 sm:px-3"
               >
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm ${
-                  userRole === 'admin' ? 'bg-teal-100 text-teal-700' :
+                  userRole === 'admin' ? 'bg-emerald-100 text-emerald-700' :
                   userRole === 'agent' ? 'bg-amber-100 text-amber-700' :
                   userRole === 'service_finances' ? 'bg-emerald-100 text-emerald-700' :
                   'bg-sky-100 text-sky-700'

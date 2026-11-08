@@ -20,7 +20,7 @@ export default function RevenueChart() {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-teal-500"></div>
+            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
             <span className="text-xs text-gray-600">Recettes</span>
           </div>
         </div>
@@ -32,7 +32,7 @@ export default function RevenueChart() {
             <span className="text-xs font-medium text-gray-600 w-8">{item.day}</span>
             <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
               <div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-teal-500 to-teal-400 rounded-full transition-all duration-500"
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
                 style={{ width: `${Math.min((item.amount / maxAmount) * 100, 100)}%` }}
               ></div>
             </div>

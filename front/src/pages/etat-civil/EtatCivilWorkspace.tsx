@@ -33,7 +33,7 @@ export default function EtatCivilWorkspace() {
         </div>
 
         {/* Onglets */}
-        <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1">
+        <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1 max-w-full overflow-x-auto">
           {showHistorique && (
           <button
             onClick={() => setActiveTab('historique')}

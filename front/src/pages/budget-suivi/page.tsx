@@ -70,7 +70,7 @@ export default function BudgetSuiviPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-gray-600">Chargement des données...</p>
           </div>
         </div>
@@ -97,10 +97,10 @@ export default function BudgetSuiviPage() {
 
       {/* Cartans resume */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-5 text-white">
-          <p className="text-sm text-teal-100 mb-1">Budget Total</p>
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-5 text-white">
+          <p className="text-sm text-emerald-100 mb-1">Budget Total</p>
           <h3 className="text-2xl font-bold">{totalBudget.toLocaleString()} FCFA</h3>
-          <p className="text-xs text-teal-200 mt-1">Allocation annuelle</p>
+          <p className="text-xs text-emerald-200 mt-1">Allocation annuelle</p>
         </div>
         <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white">
           <p className="text-sm text-amber-100 mb-1">Total Dépensé</p>
@@ -118,11 +118,11 @@ export default function BudgetSuiviPage() {
       <div className="bg-white rounded-xl p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-gray-900">Taux d'exécution budgétaire</h3>
-          <span className="text-2xl font-bold text-teal-600">{tauxExecution}%</span>
+          <span className="text-2xl font-bold text-emerald-600">{tauxExecution}%</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-4">
           <div 
-            className={`h-4 rounded-full transition-all duration-500 ${tauxExecution > 100 ? 'bg-red-500' : tauxExecution > 80 ? 'bg-teal-500' : 'bg-amber-500'}`}
+            className={`h-4 rounded-full transition-all duration-500 ${tauxExecution > 100 ? 'bg-red-500' : tauxExecution > 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
             style={{ width: `${Math.min(tauxExecution, 100)}%` }}
           ></div>
         </div>
@@ -165,11 +165,11 @@ export default function BudgetSuiviPage() {
                       <div className="flex items-center justify-center gap-2">
                         <div className="w-16 bg-gray-100 rounded-full h-2">
                           <div 
-                            className={`h-2 rounded-full ${taux > 100 ? 'bg-red-500' : taux > 80 ? 'bg-teal-500' : 'bg-amber-500'}`}
+                            className={`h-2 rounded-full ${taux > 100 ? 'bg-red-500' : taux > 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
                             style={{ width: `${Math.min(taux, 100)}%` }}
                           ></div>
                         </div>
-                        <span className={`text-xs font-medium ${taux > 100 ? 'text-red-600' : taux > 80 ? 'text-teal-600' : 'text-amber-600'}`}>
+                        <span className={`text-xs font-medium ${taux > 100 ? 'text-red-600' : taux > 80 ? 'text-emerald-600' : 'text-amber-600'}`}>
                           {taux}%
                         </span>
                       </div>
@@ -187,7 +187,7 @@ export default function BudgetSuiviPage() {
                   {totalEcarts.toLocaleString()} FCFA
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <span className="text-sm font-bold text-teal-600">{tauxExecution}%</span>
+                  <span className="text-sm font-bold text-emerald-600">{tauxExecution}%</span>
                 </td>
               </tr>
             </tfoot>

@@ -33,7 +33,7 @@ export default function MotosPage() {
   const { selectedYear } = useYear();
   const isCurrentYear = selectedYear === new Date().getFullYear();
   const userRole = getStoredUserRole() || 'admin';
-  const canManage = userRole !== 'super_admin' && canWriteData(userRole) && isCurrentYear;
+  const canManage = canWriteData(userRole) && isCurrentYear;
 
   const [activeTab, setActiveTab] = useState<Tab>(userRole === 'admin' ? 'paiements' : 'liste');
   const [modal, setModal] = useState<Modal>(null);
@@ -157,7 +157,7 @@ export default function MotosPage() {
 
         <div className="bg-white rounded-xl border border-gray-100">
           <div className="border-b border-gray-200 px-6">
-            <div className="flex gap-6">
+            <div className="flex gap-6 overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}

@@ -154,7 +154,7 @@ export default function SuperAdminDashboard() {
   const maxMontant = Math.max(...evolutionSemaine.map(e => e.montant), 1);
   const totalCategories = stats?.categories?.reduce((sum, module) => sum + (module.montant || 0), 0) || 0;
   const modulesRecettes = stats?.categories?.map((module, index: number) => {
-    const colors = ['bg-teal-500', 'bg-cyan-500', 'bg-orange-500', 'bg-amber-500', 'bg-rose-500'];
+    const colors = ['bg-emerald-500', 'bg-cyan-500', 'bg-orange-500', 'bg-amber-500', 'bg-rose-500'];
     return {
       nom: module.categorie,
       montant: module.montant || 0,
@@ -166,7 +166,7 @@ export default function SuperAdminDashboard() {
     { label: 'Formations actives', value: String(stats?.totalFormations || 0), icon: 'ri-book-open-line', color: 'text-emerald-600' },
     { label: 'Transactions année', value: String(stats?.totalTransactions || stats?.transactionsMois || 0), icon: 'ri-file-list-3-line', color: 'text-blue-600' },
     { label: 'Recettes mois', value: `${Math.round((stats?.recettesMois || 0) / 1000)}K`, icon: 'ri-award-line', color: 'text-purple-600' },
-    { label: 'Taux recouvrement', value: `${stats?.tauxRecouvrement || 0}%`, icon: 'ri-percent-line', color: 'text-teal-600' },
+    { label: 'Taux recouvrement', value: `${stats?.tauxRecouvrement || 0}%`, icon: 'ri-percent-line', color: 'text-emerald-600' },
   ];
   const statsUtilisateurs = [
     { label: 'Total utilisateurs', value: String(stats?.totalUsers || 0), icon: 'ri-team-line', color: 'text-indigo-600' },

@@ -50,7 +50,7 @@ export default function TarifsTab({ tarifs, onAdd, onEdit, onDelete, readOnly = 
                 </td>
                 {!readOnly && (
                 <td className="px-4 py-3">
-                  <button onClick={() => onEdit(tarif)} className="text-teal-600 hover:text-teal-700 mr-3" aria-label={`Modifier ${tarif.nom}`}>
+                  <button onClick={() => onEdit(tarif)} className="text-emerald-600 hover:text-emerald-700 mr-3" aria-label={`Modifier ${tarif.nom}`}>
                     <i className="ri-edit-line"></i>
                   </button>
                   <button onClick={() => onDelete(tarif)} className="text-red-600 hover:text-red-700" aria-label={`Supprimer ${tarif.nom}`}>

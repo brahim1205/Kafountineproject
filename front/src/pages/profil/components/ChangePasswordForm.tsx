@@ -3,7 +3,7 @@ import { useToast } from '../../../components/feature/Toast';
 import { changeMyPassword } from '../../../services/profile';
 import { getErrorMessage } from '../../../utils/formValidation';
 
-const INPUT_CLASS = 'w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none';
+const INPUT_CLASS = 'w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none';
 const RULES = '12 caractères minimum, avec une majuscule, une minuscule, un chiffre et un caractère spécial.';
 
 export default function ChangePasswordForm() {
@@ -63,7 +63,7 @@ export default function ChangePasswordForm() {
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-60"
+            className="px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-60"
           >
             {saving ? 'Enregistrement...' : 'Changer le mot de passe'}
           </button>

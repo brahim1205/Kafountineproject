@@ -18,7 +18,6 @@ import sn.kafountine.gestionmunicipale.shared.http.Cookies;
 import sn.kafountine.gestionmunicipale.shared.security.AuthUser;
 import sn.kafountine.gestionmunicipale.shared.security.Authenticated;
 import sn.kafountine.gestionmunicipale.shared.security.JwtTokenService;
-import sn.kafountine.gestionmunicipale.shared.security.PortalAuthenticated;
 import sn.kafountine.gestionmunicipale.shared.security.RateLimit;
 import sn.kafountine.gestionmunicipale.shared.security.Roles;
 
@@ -58,21 +57,10 @@ public class AccessInterceptor implements HandlerInterceptor, WebMvcConfigurer {
     boolean authenticated = roles != null || method.hasMethodAnnotation(Authenticated.class)
         || method.getBeanType().isAnnotationPresent(Authenticated.class);
     if (authenticated) authenticate(request);
-    if (method.hasMethodAnnotation(PortalAuthenticated.class)) authenticatePortal(request);
     if (roles != null) authorize(request, roles.value());
     RateLimit limit = method.getMethodAnnotation(RateLimit.class);
     if (limit != null) rateLimiter.check(request, response, limit.prefix(), limit.windowMs(), limit.max(), limit.key(), null);
     return true;
-  }
-
-  /** authenticatePortal.ts : jeton portail en Bearer, sinon dans son cookie. */
-  private void authenticatePortal(HttpServletRequest request) {
-    String header = request.getHeader("authorization");
-    String bearer = header != null && header.startsWith("Bearer ") && header.length() > 7 ? header.substring(7) : null;
-    String token = bearer != null ? bearer : Cookies.read(request, Cookies.PORTAL_TOKEN);
-    if (token == null || token.isEmpty()) throw AppException.unauthorized("Token requis");
-    Map<String, Object> payload = tokens.verifyPortalToken(token);
-    request.setAttribute(RequestContext.USER, new AuthUser(payload.get("id") == null ? null : payload.get("id").toString(), null, String.valueOf(payload.get("role")), "portal"));
   }
 
   /** authenticate.ts : jeton d'accès (Bearer ou cookie) vérifié, puis règle de consultation seule. */

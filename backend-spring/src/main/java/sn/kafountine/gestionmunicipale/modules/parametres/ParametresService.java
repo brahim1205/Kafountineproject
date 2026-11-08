@@ -196,44 +196,6 @@ public class ParametresService {
     auditTrail.record(actor, "Suppression pénalité", "Paramètres", "Pénalité " + existing.get("type") + " supprimée", "warning");
   }
 
-  // --- Permissions -------------------------------------------------------------------------------
-
-  public List<Map<String, Object>> listPermissions() {
-    Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
-    for (Map<String, Object> row : db.list("SELECT * FROM \"AppSettingPermission\" ORDER BY \"module\" ASC, \"role\" ASC")) {
-      String module = Db.str(row, "module");
-      Map<String, Object> current = grouped.computeIfAbsent(module, m -> Api.map("module", m, "agent", false, "superviseur", false, "admin", false));
-      switch (Db.str(row, "role")) {
-        case "AGENT" -> current.put("agent", row.get("enabled"));
-        case "SUPERVISEUR" -> current.put("superviseur", row.get("enabled"));
-        case "ADMIN" -> current.put("admin", row.get("enabled"));
-        default -> { }
-      }
-    }
-    Collator collator = Collator.getInstance(Locale.FRENCH);
-    List<Map<String, Object>> result = new ArrayList<>(grouped.values());
-    result.sort((a, b) -> collator.compare((String) a.get("module"), (String) b.get("module")));
-    return result;
-  }
-
-  @Transactional
-  public void updatePermission(Actor actor, String module, String role, boolean enabled) {
-    String normalizedRole = role == null ? "" : role.strip().toUpperCase(Locale.ROOT);
-    String moduleName = module == null ? "" : module.strip();
-    if (moduleName.isEmpty() || !ASSIGNABLE_ROLES.contains(normalizedRole)) throw AppException.validation("Le module et le rôle sont requis.");
-    Map<String, Object> existing = db.one("SELECT * FROM \"AppSettingPermission\" WHERE \"module\" = :module AND \"role\" = :role LIMIT 1",
-        Db.params("module", moduleName, "role", normalizedRole));
-    if (existing != null) {
-      db.update("UPDATE \"AppSettingPermission\" SET \"enabled\" = :enabled, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"module\" = :module AND \"role\" = :role",
-          Db.params("enabled", enabled, "module", moduleName, "role", normalizedRole));
-    } else {
-      db.update("INSERT INTO \"AppSettingPermission\" (\"id\", \"module\", \"role\", \"enabled\", \"createdAt\", \"updatedAt\")"
-          + " VALUES (:id, :module, :role, :enabled, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", Db.params("id", Db.uuid(), "module", moduleName, "role", normalizedRole, "enabled", enabled));
-    }
-    auditTrail.record(actor, "Mise à jour permission", "Paramètres",
-        "Permission " + normalizedRole + " / " + moduleName + " définie à " + (enabled ? "activée" : "désactivée"));
-  }
-
   // --- Sauvegardes -------------------------------------------------------------------------------
 
   /** Valeurs par défaut des anciennes tables de paramètres, créées avant la première sauvegarde. */

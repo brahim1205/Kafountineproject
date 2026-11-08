@@ -44,7 +44,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-emerald-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo */}
@@ -128,7 +128,7 @@ export default function Login() {
                       );
                     }
                   }}
-                  className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-3 rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all cursor-pointer"
+                  className="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-600 text-white py-3 rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-700 transition-all cursor-pointer"
                 >
                   Envoyer
                 </button>
@@ -202,7 +202,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-3 rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-600 text-white py-3 rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Connexion...' : 'Se connecter'}
             </button>

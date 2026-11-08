@@ -115,20 +115,6 @@ export default function PaiementMotoModal({ moto, motoConfig, onClose, onPaid }:
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mode de paiement</label>
-            <select name="modePaiement" className={`${INPUT_CLASS} cursor-pointer`}>
-              <option>Espèces</option>
-              <option>Mobile Money</option>
-              <option>Chèque</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Observations</label>
-            <textarea name="observations" rows={3} placeholder="Remarques éventuelles..." className={`${INPUT_CLASS} resize-none`}></textarea>
-          </div>
-
           <div className="flex gap-3 pt-4">
             <button
               type="button"

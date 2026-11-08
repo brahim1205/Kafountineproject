@@ -96,7 +96,7 @@ function normalizeListResult<T>(result: ApiListResult<T>): T[] {
 }
 
 export async function listMotos(year?: number): Promise<Moto[]> {
-  const query = year ? `?year=${year}&limit=300` : '?limit=300';
+  const query = year ? `?year=${year}` : '';
   const result = await apiRequest<ApiListResult<Moto>>(`/motos${query}`);
   return normalizeListResult(result);
 }
@@ -127,7 +127,7 @@ export async function checkMatriculeExists(matricule: string, excludeId?: string
  */
 export async function checkPermisExists(permis: string, excludeId?: string): Promise<boolean> {
   if (!permis) return false;
-  const result = await apiRequest<ApiListResult<Moto>>(`/motos?limit=300`);
+  const result = await apiRequest<ApiListResult<Moto>>(`/motos`);
   const items = normalizeListResult(result);
   const match = items.find((m) => m.permis && String(m.permis).toLowerCase() === String(permis).toLowerCase());
   if (!match) return false;

@@ -174,7 +174,7 @@ export default function RecuPDF({
               </div>
 
               {/* En-tête officiel avec design premium */}
-              <div className="relative text-center border-b-2 border-teal-600/20 pb-4 mb-4">
+              <div className="relative text-center border-b-2 border-emerald-600/20 pb-4 mb-4">
                 <div className="flex justify-between items-start mb-4">
                   <div className="text-left">
                     <p className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-0.5">République du Sénégal</p>
@@ -188,20 +188,20 @@ export default function RecuPDF({
 
                 <div className="flex flex-col items-center gap-2">
                   <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                    <div className="relative w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-teal-50 border-gray-100 shadow-md">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                    <div className="relative w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-emerald-50 border-gray-100 shadow-md">
                       <img src="/logo.jpeg" alt="Logo Commune de Kafountine" className="w-full h-full object-contain p-1.5" />
                     </div>
                   </div>
                   
                   <div>
-                    <h1 className="text-xl font-black text-teal-800 tracking-tight">
+                    <h1 className="text-xl font-black text-emerald-800 tracking-tight">
                       COMMUNE DE KAFOUNTINE
                     </h1>
                     <div className="flex items-center justify-center gap-2 mt-1">
-                      <div className="h-[2px] w-8 bg-teal-500"></div>
-                      <span className="text-[9px] font-bold text-teal-600 uppercase tracking-[0.3em]">Hôtel de Ville</span>
-                      <div className="h-[2px] w-8 bg-teal-500"></div>
+                      <div className="h-[2px] w-8 bg-emerald-500"></div>
+                      <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-[0.3em]">Hôtel de Ville</span>
+                      <div className="h-[2px] w-8 bg-emerald-500"></div>
                     </div>
                   </div>
                 </div>
@@ -226,11 +226,11 @@ export default function RecuPDF({
               <div className="space-y-4 mb-6 relative">
                 <div className="grid grid-cols-1 gap-6">
                   <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl border border-gray-100 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
                     
                     <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-8">
                       <div>
-                        <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-1" style={{ fontFamily: 'sans-serif' }}>Contribuable</p>
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1" style={{ fontFamily: 'sans-serif' }}>Contribuable</p>
                         <p className="text-xl font-bold text-gray-900 leading-normal" style={{ fontFamily: 'sans-serif' }}>{recuData.contributor}</p>
                       </div>
                       
@@ -256,20 +256,20 @@ export default function RecuPDF({
                   )}
 
                   {/* Zone Montant Premium */}
-                  <div className="bg-gradient-to-r from-teal-600 to-emerald-600 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                  <div className="bg-gradient-to-r from-emerald-600 to-emerald-600 p-6 rounded-2xl shadow-lg relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-2xl"></div>
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24 blur-2xl"></div>
                     
                     <div className="relative flex flex-col items-center">
-                      <p className="text-[9px] font-bold text-teal-100 uppercase tracking-[0.4em] mb-1.5">Montant Total Versé</p>
+                      <p className="text-[9px] font-bold text-emerald-100 uppercase tracking-[0.4em] mb-1.5">Montant Total Versé</p>
                       <div className="flex items-center gap-3">
                         <span className="text-4xl font-black text-white tracking-tighter" style={{ color: 'white !important' }}>
                           {recuData.amount.toLocaleString()}
                         </span>
-                        <span className="text-xl font-bold text-teal-100">FCFA</span>
+                        <span className="text-xl font-bold text-emerald-100">FCFA</span>
                       </div>
                       <div className="mt-3 w-full h-[1px] bg-white/20"></div>
-                      <p className="mt-3 text-[10px] text-teal-50 font-medium italic text-center leading-relaxed">
+                      <p className="mt-3 text-[10px] text-emerald-50 font-medium italic text-center leading-relaxed">
                         " Arrêté à la somme de : {amountInWords} francs CFA "
                       </p>
                     </div>
@@ -285,7 +285,7 @@ export default function RecuPDF({
                     <p className="text-xs font-bold text-gray-900 z-10">{recuData.agent}</p>
                     {/* Placeholder pour un cachet numérique simulé */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-20 rotate-[-15deg]">
-                      <div className="w-20 h-20 border-4 border-double border-teal-600 rounded-full flex items-center justify-center text-[8px] font-black text-teal-600 text-center uppercase p-1">
+                      <div className="w-20 h-20 border-4 border-double border-emerald-600 rounded-full flex items-center justify-center text-[8px] font-black text-emerald-600 text-center uppercase p-1">
                         Commune de Kafountine
                       </div>
                     </div>
@@ -303,7 +303,7 @@ export default function RecuPDF({
                       fgColor="#0f766e"
                     />
                   </div>
-                  <p className="text-[9px] font-black text-teal-700 uppercase tracking-widest">Validation Numérique</p>
+                  <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Validation Numérique</p>
                   <p className="text-[8px] text-gray-500 mt-1">Scannez pour vérifier l'authenticité</p>
                 </div>
               </div>
@@ -341,7 +341,7 @@ export default function RecuPDF({
                   className={`px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
                     (recuData.statut?.toLowerCase() === 'en attente' || recuData.statut?.toLowerCase() === 'en_attente')
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-                      : 'bg-teal-600 text-white hover:bg-teal-700 shadow-md hover:shadow-lg'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md hover:shadow-lg'
                   }`}
                 >
                   <i className="ri-printer-line"></i>
@@ -401,8 +401,8 @@ export default function RecuPDF({
           }
           
           /* Garder les couleurs des badges et du montant */
-          #recu-content .bg-teal-600, 
-          #recu-content .bg-teal-50,
+          #recu-content .bg-emerald-600, 
+          #recu-content .bg-emerald-50,
           #recu-content .bg-gradient-to-r {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;

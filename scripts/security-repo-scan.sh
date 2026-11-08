@@ -19,7 +19,7 @@ local_env_files="$(
     -not -name '*.template' \
     -not -path './node_modules/*' \
     -not -path './front/node_modules/*' \
-    -not -path './backend/node_modules/*' \
+    -not -path './database/node_modules/*' \
     -not -path './pg_data/*' |
     sort || true
 )"
@@ -28,7 +28,7 @@ if [[ -n "$local_env_files" ]]; then
   echo "$local_env_files" >&2
 fi
 
-tracked_runtime_data="$(git ls-files | grep -E '(^pg_data/|/pg_data/|backend/prisma/.*\.(db|db-journal|backup)$)' || true)"
+tracked_runtime_data="$(git ls-files | grep -E '(^pg_data/|/pg_data/|database/prisma/.*\.(db|db-journal|backup)$)' || true)"
 if [[ -n "$tracked_runtime_data" ]]; then
   echo "Tracked runtime database artifacts detected:" >&2
   echo "$tracked_runtime_data" >&2
@@ -42,7 +42,7 @@ secret_hits="$(
     ':!*.template' \
     ':!package-lock.json' \
     ':!front/package-lock.json' \
-    ':!backend/package-lock.json' |
+    ':!database/package-lock.json' |
     grep -v -E "(=(__SET_|CHANGE_ME|local-dev|postgres123|redis://:__SET_|postgresql://postgres:__SET_|postgresql://\\.\\.\\.|process\.env|\\$\\{|CHANGE_ME_)|='\\.\\.\\.'|=\\\"\\$\\{[A-Z_]+:\\?)" || true
 )"
 
@@ -75,6 +75,5 @@ if [[ "$failures" -ne 0 ]]; then
   exit 1
 fi
 
-bash "$(dirname "${BASH_SOURCE[0]}")/sql-safety-scan.sh"
 
 echo "Repository security scan passed."

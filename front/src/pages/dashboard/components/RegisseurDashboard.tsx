@@ -6,7 +6,7 @@ import { listUsers, type UserItem } from '../../../services/users';
 
 const EQUIPES = [
   { role: 'AGENT', label: 'Agents de terrain', icon: 'ri-user-location-line', color: 'text-sky-600 bg-sky-50' },
-  { role: 'QUAI_PECHE', label: 'Agents quai de pêche', icon: 'ri-ship-line', color: 'text-teal-600 bg-teal-50' },
+  { role: 'QUAI_PECHE', label: 'Agents quai de pêche', icon: 'ri-ship-line', color: 'text-emerald-600 bg-emerald-50' },
   { role: 'SERVICE_FINANCES', label: 'Service finances', icon: 'ri-bank-card-line', color: 'text-emerald-600 bg-emerald-50' },
 ];
 

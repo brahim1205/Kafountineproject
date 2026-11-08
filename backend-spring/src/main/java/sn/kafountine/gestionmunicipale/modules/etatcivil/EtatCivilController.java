@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
 import sn.kafountine.gestionmunicipale.shared.audit.AuditTrail;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
-import sn.kafountine.gestionmunicipale.shared.security.Authenticated;
-import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.security.Roles;
 import sn.kafountine.gestionmunicipale.shared.validation.Common;
 import sn.kafountine.gestionmunicipale.shared.validation.Input;
@@ -36,34 +34,26 @@ public class EtatCivilController {
     this.auditTrail = auditTrail;
   }
 
-  /** Le régisseur n'a aucun accès à l'état civil. */
-  private static void refuserRegisseur() {
-    if ("REGISSEUR".equals(RequestContext.actor().role())) throw AppException.forbidden("Permissions insuffisantes pour cette action");
-  }
-
   @GetMapping
-  @Authenticated
+  @Roles({"SUPER_ADMIN", "ETAT_CIVIL"})
   public ResponseEntity<Map<String, Object>> list(HttpServletRequest request) {
-    refuserRegisseur();
     return Api.ok(service.list(Common.yearLimitQuery(request.getParameterMap())));
   }
 
   @GetMapping("/types-documents")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "ETAT_CIVIL"})
   public ResponseEntity<Map<String, Object>> documentTypes() {
-    refuserRegisseur();
     return Api.ok(service.documentTypes());
   }
 
   @GetMapping("/statistiques")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "ETAT_CIVIL"})
   public ResponseEntity<Map<String, Object>> stats(HttpServletRequest request) {
-    refuserRegisseur();
     return Api.ok(service.stats(Common.yearQuery(request.getParameterMap())));
   }
 
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "ETAT_CIVIL"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "ETAT_CIVIL"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String contribuableId = input.str("contribuableId").noTrim().uuid("Identifiant invalide").required();
@@ -83,7 +73,7 @@ public class EtatCivilController {
   }
 
   @PutMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "ETAT_CIVIL"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "ETAT_CIVIL"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String requestId = Common.id(id);
     Input input = Input.body(body);

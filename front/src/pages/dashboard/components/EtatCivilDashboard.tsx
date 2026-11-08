@@ -7,7 +7,7 @@ import HistoriqueDemandes from '../../etat-civil/components/HistoriqueDemandes';
 const ACTIONS = [
   { label: 'Nouvelle demande', icon: 'ri-file-add-line', to: '/etat-civil/nouvelle', color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
   { label: 'Nouveau ticket', icon: 'ri-coupon-3-line', to: '/taxes/nouvelle-transaction', color: 'bg-sky-50 text-sky-700 hover:bg-sky-100' },
-  { label: 'Taxes état civil', icon: 'ri-file-list-3-line', to: '/taxes/etat-civil', color: 'bg-teal-50 text-teal-700 hover:bg-teal-100' },
+  { label: 'Taxes état civil', icon: 'ri-file-list-3-line', to: '/taxes/etat-civil', color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
   { label: 'Historique', icon: 'ri-history-line', to: '/etat-civil/historique', color: 'bg-gray-50 text-gray-700 hover:bg-gray-100' },
 ];
 

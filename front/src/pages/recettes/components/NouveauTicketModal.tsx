@@ -15,7 +15,7 @@ type NouveauTicketModalProps = {
 };
 
 const BUTTON_PRIMARY =
-  'px-4 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-60';
+  'px-4 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-60';
 const BUTTON_SECONDARY = 'px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap';
 
 export default function NouveauTicketModal({ onClose, onSaved, onPrint }: NouveauTicketModalProps) {

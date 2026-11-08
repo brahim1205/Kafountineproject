@@ -10,7 +10,7 @@ export default function LigneDetailModal({ ligne, onClose }: { ligne: LigneBudge
     ['Budgétisé', `${ligne.prevu.toLocaleString('fr-FR')} FCFA`, 'text-gray-900'],
     ['Dépensé', `${ligne.depense.toLocaleString('fr-FR')} FCFA`, 'text-gray-900'],
     ['Reste', `${reste.toLocaleString('fr-FR')} FCFA`, reste >= 0 ? 'text-green-600' : 'text-red-600'],
-    ['Réalisation', `${realise}%`, realise > 100 ? 'text-red-600' : 'text-teal-600'],
+    ['Réalisation', `${realise}%`, realise > 100 ? 'text-red-600' : 'text-emerald-600'],
   ];
 
   return (

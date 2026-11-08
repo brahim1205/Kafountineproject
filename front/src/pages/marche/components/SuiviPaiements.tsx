@@ -40,7 +40,7 @@ export default function SuiviPaiements() {
   const { selectedYear } = useYear();
   const { showToast } = useToast();
   const userRole = getStoredUserRole() || 'admin';
-  const canManage = userRole !== 'super_admin' && canWriteData(userRole);
+  const canManage = canWriteData(userRole);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatut, setFilterStatut] = useState('tous');
   const [showPaiementModal, setShowPaiementModal] = useState(false);

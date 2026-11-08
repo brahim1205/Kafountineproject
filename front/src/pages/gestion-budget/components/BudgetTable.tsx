@@ -65,7 +65,7 @@ export default function BudgetTable({ lignes, loading, year, busy, onEdit, onVie
                       <div className="flex items-center justify-center gap-2">
                         <div className="w-16 bg-gray-100 rounded-full h-2">
                           <div
-                            className={`h-2 rounded-full ${realise > 100 ? 'bg-red-500' : 'bg-teal-500'}`}
+                            className={`h-2 rounded-full ${realise > 100 ? 'bg-red-500' : 'bg-emerald-500'}`}
                             style={{ width: `${Math.min(realise, 100)}%` }}
                           ></div>
                         </div>
@@ -75,7 +75,7 @@ export default function BudgetTable({ lignes, loading, year, busy, onEdit, onVie
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          className="p-1.5 text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors cursor-pointer"
                           title="Modifier"
                           aria-label={`Modifier la ligne ${ligne.code}`}
                           onClick={() => onEdit(ligne)}

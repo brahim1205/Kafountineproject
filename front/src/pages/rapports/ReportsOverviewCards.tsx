@@ -9,14 +9,14 @@ interface Props {
 export function ReportsOverviewCards({ total, tauxRecouvrement, overview }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-5 text-white">
+      <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-5 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-teal-100 text-sm">Total annuel</p>
+            <p className="text-emerald-100 text-sm">Total annuel</p>
             <p className="text-3xl font-bold mt-1">{(total / 1000000).toFixed(1)}M</p>
-            <p className="text-teal-100 text-xs mt-1">FCFA</p>
+            <p className="text-emerald-100 text-xs mt-1">FCFA</p>
           </div>
-          <i className="ri-money-dollar-circle-line text-4xl text-teal-200"></i>
+          <i className="ri-money-dollar-circle-line text-4xl text-emerald-200"></i>
         </div>
       </div>
       <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white">

@@ -32,7 +32,7 @@ export default function Rapports() {
             </button>
             <button
               onClick={exportCsv}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap"
             >
               <i className="ri-download-line"></i>
               Export CSV
@@ -59,7 +59,7 @@ export default function Rapports() {
                 {evolutionMensuelle.map((item, index) => (
                   <div key={index} className="flex-1 flex flex-col items-center gap-2">
                     <div 
-                      className="w-full bg-gradient-to-t from-teal-500 to-teal-400 rounded-t-md transition-all duration-300 hover:from-teal-600 hover:to-teal-500"
+                      className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-md transition-all duration-300 hover:from-emerald-600 hover:to-emerald-500"
                       style={{ height: `${(item.montant / maxMontant) * 100}%`, minHeight: item.montant > 0 ? '8px' : '0' }}
                       title={`${item.montant.toLocaleString('fr-FR')} FCFA`}
                     ></div>

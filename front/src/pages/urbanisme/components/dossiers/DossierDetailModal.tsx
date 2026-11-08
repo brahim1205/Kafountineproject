@@ -55,14 +55,14 @@ export default function DossierDetailModal({ dossier, types, onPrint, onClose }:
             </div>
             <div>
               <dt className="text-xs text-gray-500 mb-1">Montant</dt>
-              <dd className="text-sm font-bold text-teal-600">{dossier.montant.toLocaleString('fr-FR')} FCFA</dd>
+              <dd className="text-sm font-bold text-emerald-600">{dossier.montant.toLocaleString('fr-FR')} FCFA</dd>
             </div>
           </dl>
 
           <div className="flex gap-3">
             <button
               onClick={onPrint}
-              className="flex-1 px-4 py-2.5 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors"
             >
               <i className="ri-printer-line mr-2"></i>
               Imprimer le reçu

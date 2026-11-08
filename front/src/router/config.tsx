@@ -1,7 +1,6 @@
 import { lazy, type ReactNode, useEffect, useState } from 'react';
 import { RouteObject, Navigate } from 'react-router-dom';
 import { getStoredUserRole, restoreSession, type UiRole } from '../services/auth';
-import { restorePortalSession } from '../services/portalAuth';
 import { FEATURES } from '../config/features';
 
 const LoginPage = lazy(() => import('../pages/login/page'));
@@ -30,10 +29,6 @@ const AuditPage = lazy(() => import('../pages/audit/page'));
 const ParametresPage = lazy(() => import('../pages/parametres/page'));
 const BudgetSuiviPage = lazy(() => import('../pages/budget-suivi/page'));
 const ProfilPage = lazy(() => import('../pages/profil/page'));
-const PortalLoginPage = lazy(() => import('../pages/portal/login/page'));
-const PortalDashboardPage = lazy(() => import('../pages/portal/dashboard/page'));
-const PortalPayerPage = lazy(() => import('../pages/portal/payer/page'));
-const PortalPenalitesPage = lazy(() => import('../pages/portal/penalites/page'));
 const NotFoundPage = lazy(() => import('../pages/NotFound'));
 
 function protect(children: ReactNode) {
@@ -42,10 +37,6 @@ function protect(children: ReactNode) {
 
 function protectRoles(roles: UiRole[], children: ReactNode) {
   return <RoleGate roles={roles}>{children}</RoleGate>;
-}
-
-function protectPortal(children: ReactNode) {
-  return <PortalGate>{children}</PortalGate>;
 }
 
 function onlyPublic(children: ReactNode) {
@@ -97,28 +88,6 @@ function RoleGate({ roles, children }: { roles: UiRole[]; children: ReactNode })
   if (!ready) return null;
   if (!role) return <Navigate to="/login" replace />;
   return roles.includes(role) ? children : <Navigate to="/dashboard" replace />;
-}
-
-function PortalGate({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    restorePortalSession()
-      .then((session) => {
-        if (mounted) setAuthenticated(Boolean(session));
-      })
-      .finally(() => {
-        if (mounted) setReady(true);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  if (!ready) return null;
-  return authenticated ? children : <Navigate to="/portal/login" replace />;
 }
 
 function PublicOnlyGate({ children }: { children: ReactNode }) {
@@ -265,22 +234,6 @@ const routes: RouteObject[] = [
     element: protect(<ProfilPage />)
   },
   // Routes du portail public (interface contribuant en ligne)
-  {
-    path: '/portal/login',
-    element: <PortalLoginPage />
-  },
-  {
-    path: '/portal/dashboard',
-    element: protectPortal(<PortalDashboardPage />)
-  },
-  {
-    path: '/portal/payer',
-    element: protectPortal(<PortalPayerPage />)
-  },
-  {
-    path: '/portal/penalites',
-    element: <PortalPenalitesPage />
-  },
   {
     path: '*',
     element: <NotFoundPage />

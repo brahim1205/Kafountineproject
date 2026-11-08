@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { getDossiersUrbanisme, type DossierUrbanisme } from '../../../services/urbanisme';
 import { getTaxServices, type TaxService } from '../../../services/taxes';
-import { getStoredUserRole, canWriteData } from '../../../services/auth';
+import { canWriteData } from '../../../services/auth';
 import { useYear } from '../../../contexts/YearContext';
 import DossiersTable from './dossiers/DossiersTable';
 import DossierDetailModal from './dossiers/DossierDetailModal';
@@ -14,7 +14,7 @@ type Modal = { type: 'nouveau' } | { type: 'detail'; dossier: DossierUrbanisme }
 export default function GestionDossiers() {
   const { selectedYear } = useYear();
   const isCurrentYear = selectedYear === new Date().getFullYear();
-  const canCreate = getStoredUserRole() !== 'super_admin' && canWriteData() && isCurrentYear;
+  const canCreate = canWriteData() && isCurrentYear;
 
   const [dossiers, setDossiers] = useState<DossierUrbanisme[]>([]);
   const [types, setTypes] = useState<TaxService[]>([]);
@@ -56,9 +56,9 @@ export default function GestionDossiers() {
   return (
     <div className="space-y-4">
       {created && (
-        <div role="status" className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-teal-200 p-4 flex items-center gap-3 animate-fade-in">
-          <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
-            <i className="ri-check-line text-teal-600 text-xl"></i>
+        <div role="status" className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-emerald-200 p-4 flex items-center gap-3 animate-fade-in">
+          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+            <i className="ri-check-line text-emerald-600 text-xl"></i>
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900">Dossier {created.numero} créé avec succès !</p>
@@ -67,7 +67,7 @@ export default function GestionDossiers() {
                 setReceipt(receiptFor(created, types));
                 setCreated(null);
               }}
-              className="text-xs text-teal-600 hover:text-teal-700 font-medium mt-1 underline"
+              className="text-xs text-emerald-600 hover:text-emerald-700 font-medium mt-1 underline"
             >
               Imprimer le reçu
             </button>
@@ -80,7 +80,7 @@ export default function GestionDossiers() {
         <div className="flex justify-end">
           <button
             onClick={() => setModal({ type: 'nouveau' })}
-            className="px-4 py-2.5 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600 transition-colors whitespace-nowrap"
+            className="px-4 py-2.5 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors whitespace-nowrap"
           >
             <i className="ri-add-line mr-2"></i>
             Nouveau dossier

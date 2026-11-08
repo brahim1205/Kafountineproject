@@ -55,7 +55,7 @@ export default function RecentTransactions() {
             <h3 className="text-lg font-semibold text-gray-900">Transactions récentes</h3>
             <p className="text-sm text-gray-600 mt-1">Dernières opérations effectuées</p>
           </div>
-          <button className="px-4 py-2 text-sm font-medium text-teal-600 hover:bg-teal-50 rounded-lg transition-colors whitespace-nowrap">
+          <button className="px-4 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors whitespace-nowrap">
             Voir tout
           </button>
         </div>

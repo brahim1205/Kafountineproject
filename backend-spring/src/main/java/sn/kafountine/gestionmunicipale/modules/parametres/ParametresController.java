@@ -113,26 +113,6 @@ public class ParametresController {
     return Api.message("Pénalité supprimée");
   }
 
-  // --- Permissions -------------------------------------------------------------------------------
-
-  @GetMapping("/api/v1/settings/permissions")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> listPermissions() {
-    return Api.ok(service.listPermissions());
-  }
-
-  @PostMapping("/api/v1/settings/permissions")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> updatePermission(@Body JsonNode body) {
-    Input input = Input.body(body);
-    String module = input.str("module").trimmed(1, 120, "Module requis").required();
-    String role = input.str("role").oneOf("AGENT", "SUPERVISEUR", "ADMIN", "SUPER_ADMIN").required();
-    Boolean enabled = input.bool("enabled").required();
-    input.check();
-    service.updatePermission(RequestContext.actor(), module, role, Boolean.TRUE.equals(enabled));
-    return Api.message("Permission mise à jour");
-  }
-
   // --- Sauvegardes -------------------------------------------------------------------------------
 
   @GetMapping("/api/v1/settings/backups")

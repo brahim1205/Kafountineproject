@@ -10,7 +10,7 @@ interface StatsCardProps {
 
 export default function StatsCard({ title, value, unit, change, trend, icon, color }: StatsCardProps) {
   const colorClasses = {
-    teal: 'bg-teal-50 text-teal-600',
+    teal: 'bg-emerald-50 text-emerald-600',
     emerald: 'bg-emerald-50 text-emerald-600',
     cyan: 'bg-cyan-50 text-cyan-600',
     sky: 'bg-sky-50 text-sky-600'

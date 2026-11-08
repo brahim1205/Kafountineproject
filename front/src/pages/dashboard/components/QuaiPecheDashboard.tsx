@@ -175,7 +175,7 @@ export default function QuaiPecheDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
       </div>
     );
   }
@@ -222,8 +222,8 @@ export default function QuaiPecheDashboard() {
               <p className="text-sm text-gray-600">Poids Total (kg)</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">{totalPoids.toLocaleString()}</h3>
             </div>
-            <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-              <i className="ri-scales-line text-xl text-teal-600"></i>
+            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+              <i className="ri-scales-line text-xl text-emerald-600"></i>
             </div>
           </div>
         </div>
@@ -260,7 +260,7 @@ export default function QuaiPecheDashboard() {
               onClick={() => setActiveTab(tab.id)}
               className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'border-teal-500 text-teal-600'
+                  ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -281,14 +281,14 @@ export default function QuaiPecheDashboard() {
               placeholder="Rechercher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
             />
           </div>
           <div className="flex items-center gap-2">
             <select
               value={statutFilter}
               onChange={(e) => setStatutFilter(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="all">Tous les statuts</option>
               <option value="ACTIF">Actif</option>

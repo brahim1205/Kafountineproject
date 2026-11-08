@@ -207,14 +207,14 @@ export default function EmbarcationsPage() {
                 placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <select
                 value={statutFilter}
                 onChange={(e) => setStatutFilter(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="all">Tous les statuts</option>
                 <option value="ACTIF">Actif</option>
@@ -224,7 +224,7 @@ export default function EmbarcationsPage() {
               {isCurrentYear && (
                 <button
                   onClick={() => setShowModal(true)}
-                  className="px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2"
+                  className="px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2"
                 >
                   <i className="ri-add-line"></i>
                   Nouveau
@@ -294,7 +294,7 @@ export default function EmbarcationsPage() {
                             <>
                               <button
                                 onClick={() => handleEdit(item)}
-                                className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
                                 title="Modifier"
                               >
                                 <i className="ri-edit-line"></i>
@@ -342,7 +342,7 @@ export default function EmbarcationsPage() {
                       placeholder="Ex: Bateau A"
                       value={formData.nom}
                       onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -353,7 +353,7 @@ export default function EmbarcationsPage() {
                       placeholder="Ex: KP-001"
                       value={formData.immatriculation}
                       onChange={(e) => setFormData({ ...formData, immatriculation: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export default function EmbarcationsPage() {
                       data-required="true"
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="Pirogue">Pirogue</option>
                       <option value="Canot">Canot</option>
@@ -382,7 +382,7 @@ export default function EmbarcationsPage() {
                       placeholder="Ex: 12"
                       value={formData.taille}
                       onChange={(e) => setFormData({ ...formData, taille: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -394,7 +394,7 @@ export default function EmbarcationsPage() {
                       placeholder="Ex: Yamaha 40 CV"
                       value={formData.moteur}
                       onChange={(e) => setFormData({ ...formData, moteur: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -402,7 +402,7 @@ export default function EmbarcationsPage() {
                     <select
                       value={formData.pecheurId}
                       onChange={(e) => setFormData({ ...formData, pecheurId: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="">Sélectionner un pêcheur</option>
                       {pecheurs.map(p => (
@@ -416,7 +416,7 @@ export default function EmbarcationsPage() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
                   Annuler
                 </button>
-                <button type="submit" className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700">
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">
                   Enregistrer
                 </button>
               </div>
@@ -447,7 +447,7 @@ export default function EmbarcationsPage() {
                       type="text"
                       value={formData.nom}
                       onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -457,7 +457,7 @@ export default function EmbarcationsPage() {
                       type="text"
                       value={formData.immatriculation}
                       onChange={(e) => setFormData({ ...formData, immatriculation: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -468,7 +468,7 @@ export default function EmbarcationsPage() {
                       data-required="true"
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="Pirogue">Pirogue</option>
                       <option value="Canot">Canot</option>
@@ -485,7 +485,7 @@ export default function EmbarcationsPage() {
                       min="0"
                       value={formData.taille}
                       onChange={(e) => setFormData({ ...formData, taille: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -496,7 +496,7 @@ export default function EmbarcationsPage() {
                       type="text"
                       value={formData.moteur}
                       onChange={(e) => setFormData({ ...formData, moteur: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div>
@@ -504,7 +504,7 @@ export default function EmbarcationsPage() {
                     <select
                       value={formData.pecheurId}
                       onChange={(e) => setFormData({ ...formData, pecheurId: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="">Sélectionner un pêcheur</option>
                       {pecheurs.map(p => (
@@ -518,7 +518,7 @@ export default function EmbarcationsPage() {
                 <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
                   Annuler
                 </button>
-                <button type="submit" className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700">
+                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">
                   Enregistrer
                 </button>
               </div>

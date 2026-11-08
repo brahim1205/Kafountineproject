@@ -55,13 +55,7 @@ public final class Env {
       .filter(value -> !value.isEmpty())
       .toList();
   public static final String REDIS_URL = get("REDIS_URL", "");
-  public static final String PORTAL_URL = get("PORTAL_URL", "http://localhost:5173");
-  public static final long PORTAL_OTP_TTL_SECONDS = number("PORTAL_OTP_TTL_SECONDS", 600);
-  public static final String PORTAL_OTP_DELIVERY_MODE = get("PORTAL_OTP_DELIVERY_MODE", "dev").trim().toLowerCase(Locale.ROOT);
-  public static final String PORTAL_OTP_WEBHOOK_URL = get("PORTAL_OTP_WEBHOOK_URL", "").trim();
-  public static final String PORTAL_OTP_WEBHOOK_TOKEN = get("PORTAL_OTP_WEBHOOK_TOKEN", "").trim();
   /** Paiement en ligne du portail : simulé, jamais activé en production (même règle que Node). */
-  public static final boolean PORTAL_ONLINE_PAYMENTS = !IS_PRODUCTION && !"false".equals(System.getenv("PORTAL_ONLINE_PAYMENTS"));
   public static final String METRICS_BEARER_TOKEN = get("METRICS_BEARER_TOKEN", "").trim();
   public static final boolean ENABLE_API_DOCS = "true".equals(System.getenv("ENABLE_API_DOCS")) || !IS_PRODUCTION;
   public static final boolean ENABLE_METRICS = "true".equals(System.getenv("ENABLE_METRICS")) || !IS_PRODUCTION;
@@ -87,11 +81,6 @@ public final class Env {
     if (!trustProxyAllowed(TRUST_PROXY)) {
       throw new IllegalStateException("TRUST_PROXY doit valoir false, loopback/linklocal/uniquelocal ou une liste IP/CIDR explicite en production.");
     }
-    if (!PORTAL_URL.startsWith("https://")) throw new IllegalStateException("PORTAL_URL doit utiliser HTTPS en production.");
-    if (!PORTAL_OTP_DELIVERY_MODE.equals("webhook") || !PORTAL_OTP_WEBHOOK_URL.startsWith("https://")) {
-      throw new IllegalStateException("PORTAL_OTP_DELIVERY_MODE=webhook et PORTAL_OTP_WEBHOOK_URL HTTPS sont requis en production.");
-    }
-    if (PORTAL_OTP_WEBHOOK_TOKEN.isEmpty()) throw new IllegalStateException("PORTAL_OTP_WEBHOOK_TOKEN est requis en production.");
     if (ENABLE_API_DOCS) throw new IllegalStateException("ENABLE_API_DOCS doit être désactivé en production.");
     if (ENABLE_METRICS && METRICS_BEARER_TOKEN.length() < 32) {
       throw new IllegalStateException("METRICS_BEARER_TOKEN doit contenir au moins 32 caractères quand ENABLE_METRICS=true en production.");

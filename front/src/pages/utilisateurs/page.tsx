@@ -21,8 +21,17 @@ type UiUser = {
   lastLogin: string;
 };
 
-const ROLE_OPTIONS = ['SUPER_ADMIN', 'ADMIN', 'SUPERVISEUR', 'SERVICE_FINANCES', 'QUAI_PECHE', 'ETAT_CIVIL', 'REGISSEUR', 'AGENT'];
+const ROLE_OPTIONS = ['SUPER_ADMIN', 'ADMIN', 'SERVICE_FINANCES', 'QUAI_PECHE', 'ETAT_CIVIL', 'REGISSEUR', 'AGENT'];
 
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super administrateur',
+  ADMIN: 'Administrateur',
+  SERVICE_FINANCES: 'Service des finances',
+  QUAI_PECHE: 'Agent quai de pêche',
+  ETAT_CIVIL: 'État civil',
+  REGISSEUR: 'Régisseur',
+  AGENT: 'Agent de terrain',
+};
 const REGISSEUR_ROLE_OPTIONS = ['AGENT', 'QUAI_PECHE', 'SERVICE_FINANCES'];
 const roleOptions = () => (getStoredUserRole() === 'regisseur' ? REGISSEUR_ROLE_OPTIONS : ROLE_OPTIONS);
 
@@ -159,7 +168,7 @@ export default function Utilisateurs() {
           {isCurrentYear && canWriteData() && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap"
           >
             <i className="ri-user-add-line text-lg"></i>
             Nouvel utilisateur
@@ -182,18 +191,18 @@ export default function Utilisateurs() {
                 placeholder="Rechercher par nom ou email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
               />
             </div>
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm cursor-pointer"
             >
               <option value="all">Tous les rôles</option>
               {roleOptions().map((role) => (
                 <option key={role} value={role}>
-                  {role}
+                  {ROLE_LABELS[role] || role}
                 </option>
               ))}
             </select>
@@ -220,7 +229,7 @@ export default function Utilisateurs() {
                       <p className="text-sm font-medium text-gray-900">{user.name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.role}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{ROLE_LABELS[user.role] || user.role}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.phone}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.lastLogin}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -235,7 +244,7 @@ export default function Utilisateurs() {
                             setSelectedUser(user);
                             setShowEditModal(true);
                           }}
-                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <i className="ri-edit-line text-lg"></i>
                         </button>
@@ -347,7 +356,7 @@ function Stat({ title, value, icon }: { title: string; value: number; icon: stri
           <p className="text-sm text-gray-600 mb-1">{title}</p>
           <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
         </div>
-        <div className="w-12 h-12 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
           <i className={`${icon} text-2xl`}></i>
         </div>
       </div>
@@ -382,11 +391,11 @@ function UserForm({
           <select
             name="role"
             defaultValue={defaultValues?.role || 'AGENT'}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm cursor-pointer"
           >
             {roleOptions().map((role) => (
               <option key={role} value={role}>
-                {role}
+                {ROLE_LABELS[role] || role}
               </option>
             ))}
           </select>
@@ -401,7 +410,7 @@ function UserForm({
           <select
             name="status"
             defaultValue={defaultValues?.status || 'Actif'}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm cursor-pointer"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm cursor-pointer"
           >
             <option>Actif</option>
             <option>Inactif</option>
@@ -413,7 +422,7 @@ function UserForm({
         <button type="button" onClick={onCancel} className="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap">
           Annuler
         </button>
-        <button type="submit" className="px-4 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap">
+        <button type="submit" className="px-4 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap">
           Enregistrer
         </button>
       </div>
@@ -448,7 +457,7 @@ function Field({
         minLength={minLength}
         autoComplete={autoComplete}
         defaultValue={defaultValue}
-        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
       />
     </div>
   );

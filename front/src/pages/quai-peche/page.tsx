@@ -105,8 +105,8 @@ export default function QuaiPechePage() {
                 <p className="text-sm text-gray-600">Poids Total (kg)</p>
                 <h3 className="text-2xl font-bold text-gray-900 mt-1">{totalPoids.toLocaleString()}</h3>
               </div>
-              <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                <i className="ri-scales-line text-xl text-teal-600"></i>
+              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                <i className="ri-scales-line text-xl text-emerald-600"></i>
               </div>
             </div>
           </div>
@@ -144,14 +144,14 @@ export default function QuaiPechePage() {
                 placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <select
                 value={statutFilter}
                 onChange={(e) => setStatutFilter(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="all">Tous les statuts</option>
                 <option value="Enregistrée">Enregistrée</option>

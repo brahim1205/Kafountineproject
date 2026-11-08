@@ -18,6 +18,11 @@ public class KafountineSpringApplication {
     // Les colonnes « timestamp » (sans fuseau) de Prisma sont en UTC : JDBC doit les lire en UTC.
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     Env.validate();
+    // Documentation et compression pilotées par les mêmes variables que Node.
+    System.setProperty("springdoc.api-docs.enabled", String.valueOf(Env.ENABLE_API_DOCS));
+    System.setProperty("springdoc.swagger-ui.enabled", String.valueOf(Env.ENABLE_API_DOCS));
+    System.setProperty("server.compression.enabled", String.valueOf(!"false".equals(System.getenv("COMPRESSION_ENABLED"))));
+    System.setProperty("server.compression.mime-types", "application/json,text/csv,text/plain,text/html,text/css,application/javascript");
     SpringApplication.run(KafountineSpringApplication.class, args);
   }
 }

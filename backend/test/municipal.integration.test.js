@@ -376,9 +376,9 @@ describeIntegration('services municipaux (intégration)', () => {
       const changed = await user.post('/auth/change-password', { currentPassword: password, newPassword: nouveau });
       expect(changed.status).toBe(200);
 
-      const oldLogin = await request(app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password });
+      const oldLogin = await request(API_BASE_URL || app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password });
       expect(oldLogin.status).toBe(401);
-      const relogged = await request.agent(app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password: nouveau });
+      const relogged = await request.agent(API_BASE_URL || app).post('/api/v1/auth/login').set('Origin', origin).send({ email, password: nouveau });
       expect(relogged.status).toBe(200);
 
       const restored = await user.post('/auth/change-password', { currentPassword: nouveau, newPassword: password });

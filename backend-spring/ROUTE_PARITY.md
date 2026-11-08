@@ -1,6 +1,7 @@
 # Correspondance Node / Spring
 
 Ce document liste les familles de routes Node reproduites dans le backend Spring Boot.
+La comparaison automatique se trouve dans `parity/` (voir son README).
 
 ## Socle
 
@@ -9,7 +10,7 @@ Ce document liste les familles de routes Node reproduites dans le backend Spring
 | Santé | `GET /health` | `GET /health` |
 | Readiness DB/Redis | `GET /ready` | `GET /ready` |
 | Swagger | `GET /api-docs` | `GET /api-docs` |
-| Métriques | `GET /metrics` | Actuator Prometheus inclus |
+| Métriques | `GET /metrics` | `GET /metrics` |
 
 ## Authentification
 

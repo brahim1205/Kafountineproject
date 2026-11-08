@@ -26,9 +26,11 @@ spring:
 
 springdoc:
   api-docs:
-    path: /api-docs/openapi.json
+    path: /api-docs/generated
   swagger-ui:
     path: /api-docs
+    # Même spécification que Node (générée depuis ses annotations swagger-jsdoc).
+    url: /api-docs/openapi.json
 
 logging:
   level:

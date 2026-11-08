@@ -55,6 +55,20 @@ public class SystemController {
     return ResponseEntity.status(database && redis ? 200 : 503).body(body);
   }
 
+  /** Spécification OpenAPI de l'API, identique à celle publiée par Node sur /api-docs. */
+  @GetMapping("/api-docs/openapi.json")
+  public ResponseEntity<?> openApi() throws java.io.IOException {
+    if (!Env.ENABLE_API_DOCS) {
+      Map<String, Object> body = new LinkedHashMap<>();
+      body.put("success", false);
+      body.put("message", "Route non trouvée");
+      return ResponseEntity.status(404).body(body);
+    }
+    try (java.io.InputStream in = getClass().getResourceAsStream("/openapi/openapi.json")) {
+      return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(in.readAllBytes());
+    }
+  }
+
   @GetMapping("/metrics")
   public ResponseEntity<?> metrics(HttpServletRequest request) {
     if (!Env.ENABLE_METRICS) {

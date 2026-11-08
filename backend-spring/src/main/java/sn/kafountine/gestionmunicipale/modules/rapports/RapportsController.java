@@ -10,7 +10,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
@@ -40,7 +40,7 @@ public class RapportsController {
 
   @PostMapping("/receipt.pdf")
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES", "QUAI_PECHE"})
-  public ResponseEntity<byte[]> receipt(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<byte[]> receipt(@Body JsonNode body) {
     Input input = Input.body(body);
     Map<String, Object> values = new LinkedHashMap<>();
     values.put("ticketNumber", input.str("ticketNumber").trimmed(1, 120, "Numéro requis").required());
@@ -56,7 +56,7 @@ public class RapportsController {
 
   @PostMapping("/report.pdf")
   @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
-  public ResponseEntity<byte[]> report(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<byte[]> report(@Body JsonNode body) {
     Input input = Input.body(body);
     Double year = input.num("year").integer().min(2000).max(2100).required();
     Double total = input.num("total").min(0, "Valeur positive ou nulle requise").required();

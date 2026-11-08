@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.modules.quaipeche.QuaiPecheService.Collection;
@@ -51,14 +51,14 @@ public class QuaiPecheController {
 
   @PostMapping("/" + COLLECTIONS)
   @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE"})
-  public ResponseEntity<Map<String, Object>> create(@PathVariable String collection, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> create(@PathVariable String collection, @Body JsonNode body) {
     Collection c = Collection.valueOf(collection);
     return Api.created(service.create(RequestContext.actor(), c, fields(c, Input.body(body), true)));
   }
 
   @PutMapping("/" + COLLECTIONS + "/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE"})
-  public ResponseEntity<Map<String, Object>> update(@PathVariable String collection, @PathVariable String id, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> update(@PathVariable String collection, @PathVariable String id, @Body JsonNode body) {
     Collection c = Collection.valueOf(collection);
     String resourceId = Common.id(id);
     return Api.ok(service.update(RequestContext.actor(), c, resourceId, fields(c, Input.body(body), false)));

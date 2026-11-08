@@ -155,7 +155,7 @@ public class WebFilters {
       }
     };
     FilterRegistrationBean<OncePerRequestFilter> registration = new FilterRegistrationBean<>(filter);
-    registration.setOrder(3);
+    registration.setOrder(4);
     return registration;
   }
 
@@ -176,7 +176,7 @@ public class WebFilters {
     };
     FilterRegistrationBean<OncePerRequestFilter> registration = new FilterRegistrationBean<>(filter);
     registration.addUrlPatterns("/api/*");
-    registration.setOrder(4);
+    registration.setOrder(5);
     return registration;
   }
 }

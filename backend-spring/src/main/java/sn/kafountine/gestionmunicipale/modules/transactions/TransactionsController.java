@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
@@ -91,7 +91,7 @@ public class TransactionsController {
 
   @PostMapping
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES"})
-  public ResponseEntity<Map<String, Object>> create(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String contribuableId = input.str("contribuableId").noTrim().uuid("ID contribuable invalide").required();
     String categorie = input.str("categorie").max(100).optional();
@@ -133,7 +133,7 @@ public class TransactionsController {
 
   @PutMapping("/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String transactionId = uuid(id);
     Input input = Input.body(body);
     String contribuableId = input.str("contribuableId").noTrim().uuid("ID contribuable invalide").optionalPlain();

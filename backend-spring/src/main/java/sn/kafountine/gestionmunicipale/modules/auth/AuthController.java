@@ -7,7 +7,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.config.Env;
@@ -35,7 +35,7 @@ public class AuthController {
 
   /** Limite par IP (plafond large), puis par compte visé et IP ; ensuite la validation (même ordre que Node). */
   @PostMapping("/login")
-  public ResponseEntity<Map<String, Object>> login(@RequestBody(required = false) JsonNode body, HttpServletRequest request, HttpServletResponse response) {
+  public ResponseEntity<Map<String, Object>> login(@Body JsonNode body, HttpServletRequest request, HttpServletResponse response) {
     rateLimiter.check(request, response, "auth-login-ip", Env.LOGIN_RATE_LIMIT_WINDOW_MS, Env.LOGIN_RATE_LIMIT_MAX * 10, RateLimiter.KeyKind.IP, null);
     String rawEmail = body != null && body.has("email") && body.get("email").isTextual() ? body.get("email").asText() : "";
     rateLimiter.check(request, response, "auth-login", Env.LOGIN_RATE_LIMIT_WINDOW_MS, Env.LOGIN_RATE_LIMIT_MAX, RateLimiter.KeyKind.LOGIN_ATTEMPT, rawEmail);
@@ -51,7 +51,7 @@ public class AuthController {
   @PostMapping("/change-password")
   @Authenticated
   @RateLimit(prefix = "auth-change-password", windowMs = 15 * 60 * 1000, max = 5, key = RateLimiter.KeyKind.USER_OR_IP)
-  public ResponseEntity<Map<String, Object>> changePassword(@RequestBody(required = false) JsonNode body, HttpServletRequest request) {
+  public ResponseEntity<Map<String, Object>> changePassword(@Body JsonNode body, HttpServletRequest request) {
     Input input = Input.body(body);
     String current = input.str("currentPassword").trimmed(1, 128, "Mot de passe actuel requis").required();
     String next = input.str("newPassword").trimmed(12, 128, "Le nouveau mot de passe doit contenir au moins 12 caractères").required();
@@ -79,7 +79,7 @@ public class AuthController {
 
   @PostMapping("/refresh")
   @RateLimit(prefix = "auth-refresh", windowMs = 5 * 60 * 1000, max = 20)
-  public ResponseEntity<Map<String, Object>> refresh(@RequestBody(required = false) JsonNode body, HttpServletRequest request, HttpServletResponse response) {
+  public ResponseEntity<Map<String, Object>> refresh(@Body JsonNode body, HttpServletRequest request, HttpServletResponse response) {
     Input input = Input.body(body);
     String fromBody = input.str("refreshToken").max(2048).optional();
     input.check();
@@ -92,7 +92,7 @@ public class AuthController {
 
   @PostMapping("/forgot-password")
   @RateLimit(prefix = "auth-forgot-password", windowMs = 15 * 60 * 1000, max = 5)
-  public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> forgotPassword(@Body JsonNode body) {
     Input input = Input.body(body);
     String email = input.str("email").trimmed(5, 254, "Email invalide").email("Email invalide").lower().required();
     input.check();

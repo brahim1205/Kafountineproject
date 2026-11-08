@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
@@ -50,13 +50,13 @@ public class ParametresController {
 
   @PostMapping("/api/v1/settings/tarifs")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> createTariff(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> createTariff(@Body JsonNode body) {
     return Api.created(service.createTariff(RequestContext.actor(), tariff(Input.body(body), true)));
   }
 
   @PutMapping("/api/v1/settings/tarifs/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> updateTariff(@PathVariable String id, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> updateTariff(@PathVariable String id, @Body JsonNode body) {
     String tariffId = Common.id(id);
     return Api.ok(service.updateTariff(RequestContext.actor(), tariffId, tariff(Input.body(body), false)));
   }
@@ -95,13 +95,13 @@ public class ParametresController {
 
   @PostMapping("/api/v1/settings/penalites")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> createPenalty(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> createPenalty(@Body JsonNode body) {
     return Api.created(service.createPenalty(RequestContext.actor(), penalty(Input.body(body), true)));
   }
 
   @PutMapping("/api/v1/settings/penalites/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> updatePenalty(@PathVariable String id, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> updatePenalty(@PathVariable String id, @Body JsonNode body) {
     String penaltyId = Common.id(id);
     return Api.ok(service.updatePenalty(RequestContext.actor(), penaltyId, penalty(Input.body(body), false)));
   }
@@ -123,7 +123,7 @@ public class ParametresController {
 
   @PostMapping("/api/v1/settings/permissions")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> updatePermission(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> updatePermission(@Body JsonNode body) {
     Input input = Input.body(body);
     String module = input.str("module").trimmed(1, 120, "Module requis").required();
     String role = input.str("role").oneOf("AGENT", "SUPERVISEUR", "COMPTABLE", "ADMIN", "SUPER_ADMIN").required();
@@ -143,14 +143,14 @@ public class ParametresController {
 
   @PostMapping("/api/v1/settings/backups")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> createBackup(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> createBackup(@Body JsonNode body) {
     Input.body(body).check();
     return Api.created(service.createBackup(RequestContext.actor()));
   }
 
   @PostMapping("/api/v1/settings/backups/restore")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> restoreBackup(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> restoreBackup(@Body JsonNode body) {
     Input input = Input.body(body);
     String filename = input.str("filename").noTrim().pattern(BACKUP_FILENAME, "Nom de fichier de sauvegarde invalide").required();
     input.check();

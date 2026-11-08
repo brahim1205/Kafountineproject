@@ -8,12 +8,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import sn.kafountine.gestionmunicipale.shared.config.Env;
@@ -57,17 +54,6 @@ public class ErrorHandling {
   @ExceptionHandler(EmptyResultDataAccessException.class)
   public ResponseEntity<Map<String, Object>> missing(HttpServletRequest request) {
     return app(AppException.notFound("Ressource introuvable"), request);
-  }
-
-  /** Corps JSON illisible : Node (body-parser) répond 400. */
-  @ExceptionHandler({HttpMessageNotReadableException.class, HttpMediaTypeNotSupportedException.class})
-  public ResponseEntity<Map<String, Object>> unreadable(HttpServletRequest request) {
-    return app(AppException.validation("Données invalides"), request);
-  }
-
-  @ExceptionHandler(MaxUploadSizeExceededException.class)
-  public ResponseEntity<Map<String, Object>> tooLarge(HttpServletRequest request) {
-    return app(new AppException(400, "Fichier trop volumineux"), request);
   }
 
   @ExceptionHandler(Exception.class)

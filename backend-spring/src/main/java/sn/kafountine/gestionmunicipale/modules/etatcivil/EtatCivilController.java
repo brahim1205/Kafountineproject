@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
@@ -55,7 +55,7 @@ public class EtatCivilController {
 
   @PostMapping
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
-  public ResponseEntity<Map<String, Object>> create(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String contribuableId = input.str("contribuableId").noTrim().uuid("Identifiant invalide").required();
     String typeDocument = input.str("typeDocument").trimmed(1, 120, "Type de document requis").required();
@@ -75,7 +75,7 @@ public class EtatCivilController {
 
   @PutMapping("/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
-  public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String requestId = Common.id(id);
     Input input = Input.body(body);
     String contribuableId = input.str("contribuableId").noTrim().uuid("Identifiant invalide").optionalPlain();

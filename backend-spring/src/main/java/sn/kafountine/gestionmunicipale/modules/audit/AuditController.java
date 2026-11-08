@@ -8,7 +8,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
@@ -51,7 +51,7 @@ public class AuditController {
 
   @PostMapping("/export")
   @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<byte[]> export(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<byte[]> export(@Body JsonNode body) {
     Input input = Input.body(body);
     Integer year = Common.year(input);
     input.check();

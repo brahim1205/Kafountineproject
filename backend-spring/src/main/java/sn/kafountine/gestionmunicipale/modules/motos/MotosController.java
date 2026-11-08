@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
@@ -72,20 +72,20 @@ public class MotosController {
 
   @PostMapping
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
-  public ResponseEntity<Map<String, Object>> create(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     return Api.created(service.create(RequestContext.actor(), moto(Input.body(body), true)));
   }
 
   @PutMapping("/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
-  public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String motoId = Common.id(id);
     return Api.ok(service.update(RequestContext.actor(), motoId, moto(Input.body(body), false)));
   }
 
   @PostMapping("/{id}/changement-conducteur")
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
-  public ResponseEntity<Map<String, Object>> changeDriver(@PathVariable String id, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> changeDriver(@PathVariable String id, @Body JsonNode body) {
     String motoId = Common.id(id);
     Input input = Input.body(body);
     String conducteurId = input.str("conducteurId").noTrim().uuid("Identifiant invalide").required();
@@ -115,7 +115,7 @@ public class MotosController {
 
   @PostMapping("/paiements")
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES"})
-  public ResponseEntity<Map<String, Object>> createPayment(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> createPayment(@Body JsonNode body) {
     Input input = Input.body(body);
     String motoId = input.str("motoId").noTrim().uuid("Identifiant invalide").required();
     Double montant = input.num("montant").positive("Valeur positive requise").optional();

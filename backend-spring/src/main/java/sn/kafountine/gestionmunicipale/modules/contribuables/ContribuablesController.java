@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
@@ -69,7 +69,7 @@ public class ContribuablesController {
 
   @PostMapping
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE"})
-  public ResponseEntity<Map<String, Object>> create(@RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     Map<String, Object> data = new LinkedHashMap<>();
     data.put("nin", input.str("nin").trimmed(1, 30, "NIN requis").required());
@@ -93,7 +93,7 @@ public class ContribuablesController {
 
   @PutMapping("/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE"})
-  public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @RequestBody(required = false) JsonNode body) {
+  public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     Input input = Input.body(body);
     Map<String, Object> data = new LinkedHashMap<>();
     for (Map.Entry<String, Integer> field : List.of(Map.entry("nin", 30), Map.entry("nom", 100), Map.entry("prenom", 100),

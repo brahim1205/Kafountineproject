@@ -59,10 +59,12 @@ jobs:
             echo "file=backups/$BACKUP_FILENAME" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          sudo apt-get install -y -qq age >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
           age -r "$AGE_RECIPIENT" -o "backups/$BACKUP_FILENAME.age" "backups/$BACKUP_FILENAME"
           test -s "backups/$BACKUP_FILENAME.age"
-          rm -f "backups/$BACKUP_FILENAME" "backups/$BACKUP_FILENAME.age"
+          # Seul le fichier en clair est retiré : le fichier chiffré est celui qu'on archive.
+          rm -f "backups/$BACKUP_FILENAME"
           echo "file=backups/$BACKUP_FILENAME.age" >> "$GITHUB_OUTPUT"
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4

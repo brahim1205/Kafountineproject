@@ -33,7 +33,10 @@ public final class Input {
   private final ObjectNode node;
   private final boolean query;
   private final Set<String> declared = new LinkedHashSet<>();
-  private final List<Map<String, String>> issues = new ArrayList<>();
+  private final List<Map<String, String>> issues;
+  /** Chemin d'un objet imbriqué (« modules.1 »), vide à la racine. */
+  private final String prefix;
+  private final Input parent;
   /** Corps non-objet : Zod s'arrête à l'erreur racine. */
   private boolean rootFailed;
   /** Erreur de type (non « continuable ») : les .refine() de l'objet ne s'exécutent pas. */
@@ -43,6 +46,48 @@ public final class Input {
   private Input(ObjectNode node, boolean query) {
     this.node = node;
     this.query = query;
+    this.issues = new ArrayList<>();
+    this.prefix = "";
+    this.parent = null;
+  }
+
+  /** Objet imbriqué (élément d'un tableau) : ses erreurs rejoignent celles du parent, préfixées de son chemin. */
+  private Input(ObjectNode node, Input parent, String prefix) {
+    this.node = node;
+    this.query = false;
+    this.issues = parent.issues;
+    this.prefix = prefix;
+    this.parent = parent;
+  }
+
+  /**
+   * z.array(z.object({...}).strict()).max(max) : un tableau trop long ne donne que l'erreur de taille ;
+   * sinon chaque élément est validé par {@code element} (chemins « clé.indice.champ »).
+   */
+  public <T> List<T> array(String key, int max, java.util.function.Function<Input, T> element) {
+    JsonNode raw = raw(key);
+    if (raw == null || !raw.isArray()) {
+      abortingIssue(key, "Entrée invalide : tableau attendu, " + received(raw) + " reçu");
+      return null;
+    }
+    if (raw.size() > max) {
+      issue(key, "Trop grand : tableau doit avoir <=" + max + " éléments");
+      return null;
+    }
+    List<T> result = new ArrayList<>();
+    for (int i = 0; i < raw.size(); i++) {
+      JsonNode item = raw.get(i);
+      String path = key + "." + i;
+      if (!item.isObject()) {
+        abortingIssue(path, "Entrée invalide : objet attendu, " + received(item) + " reçu");
+        continue;
+      }
+      Input nested = new Input((ObjectNode) item, this, path);
+      T value = element.apply(nested);
+      nested.unknownKeys();
+      result.add(value);
+    }
+    return result;
   }
 
   /** Corps JSON d'une requête (absent ou non-objet : objet vide, comme express.json). */
@@ -82,13 +127,14 @@ public final class Input {
   /** Erreur de type, d'énumération ou d'union : elle interrompt les .refine() de l'objet. */
   void abortingIssue(String field, String message) {
     aborted = true;
+    if (parent != null) parent.aborted = true;
     issue(field, message);
   }
 
   void issue(String field, String message) {
     if (rootFailed) return;
     Map<String, String> issue = new LinkedHashMap<>();
-    issue.put("field", field);
+    issue.put("field", prefix.isEmpty() ? field : field.isEmpty() ? prefix : prefix + "." + field);
     issue.put("message", message);
     issues.add(issue);
   }
@@ -138,13 +184,7 @@ public final class Input {
 
   /** Termine la validation : clés inconnues refusées (strict) puis erreurs regroupées. */
   public void check() {
-    List<String> unknown = new ArrayList<>();
-    node.fieldNames().forEachRemaining(name -> {
-      if (!declared.contains(name)) unknown.add(name);
-    });
-    if (!unknown.isEmpty()) {
-      issue("", (unknown.size() > 1 ? "Clés non reconnues : " : "Clé non reconnue : ") + String.join(", ", unknown.stream().map(k -> "\"" + k + "\"").toList()));
-    }
+    unknownKeys();
     // .refine() de l'objet : après les champs et les clés inconnues, sauf erreur de type.
     if (!aborted) {
       for (Object[] refinement : refinements) {
@@ -152,6 +192,17 @@ public final class Input {
       }
     }
     if (!issues.isEmpty()) throw AppException.validation("Données invalides", issues);
+  }
+
+  /** Clés inconnues refusées (.strict()). */
+  private void unknownKeys() {
+    List<String> unknown = new ArrayList<>();
+    node.fieldNames().forEachRemaining(name -> {
+      if (!declared.contains(name)) unknown.add(name);
+    });
+    if (!unknown.isEmpty()) {
+      issue("", (unknown.size() > 1 ? "Clés non reconnues : " : "Clé non reconnue : ") + String.join(", ", unknown.stream().map(k -> "\"" + k + "\"").toList()));
+    }
   }
 
   // --- Champs -----------------------------------------------------------------------------------

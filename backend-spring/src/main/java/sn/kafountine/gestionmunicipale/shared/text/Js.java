@@ -120,4 +120,39 @@ public final class Js {
     }
     return null;
   }
+
+  /**
+   * nombre.toLocaleString('fr-FR') : groupes de trois chiffres séparés par une espace fine
+   * insécable (U+202F), virgule décimale, trois décimales au plus (arrondi au plus proche, demi vers l'extérieur).
+   */
+  public static String localeFr(double value) {
+    if (Double.isNaN(value)) return "NaN";
+    if (Double.isInfinite(value)) return value > 0 ? "∞" : "-∞";
+    BigDecimal decimal = new BigDecimal(Double.toString(Math.abs(value))).setScale(3, java.math.RoundingMode.HALF_UP).stripTrailingZeros();
+    String plain = decimal.toPlainString();
+    int dot = plain.indexOf('.');
+    String integer = dot < 0 ? plain : plain.substring(0, dot);
+    String fraction = dot < 0 ? "" : plain.substring(dot + 1);
+    StringBuilder grouped = new StringBuilder();
+    for (int i = 0; i < integer.length(); i++) {
+      if (i > 0 && (integer.length() - i) % 3 == 0) grouped.append(' ');
+      grouped.append(integer.charAt(i));
+    }
+    boolean negative = value < 0 && decimal.signum() != 0;
+    return (negative ? "-" : "") + grouped + (fraction.isEmpty() ? "" : "," + fraction);
+  }
+
+  /** encodeURIComponent de JavaScript. */
+  public static String encodeURIComponent(String value) {
+    StringBuilder out = new StringBuilder();
+    for (byte b : value.getBytes(java.nio.charset.StandardCharsets.UTF_8)) {
+      int c = b & 0xFF;
+      if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || "-_.!~*'()".indexOf(c) >= 0) {
+        out.append((char) c);
+      } else {
+        out.append('%').append(String.format(Locale.ROOT, "%02X", c));
+      }
+    }
+    return out.toString();
+  }
 }

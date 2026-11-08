@@ -17,12 +17,16 @@ function normalize(value) {
   if (Array.isArray(value)) return value.map(normalize);
   if (value && typeof value === 'object') {
     const out = {};
-    for (const k of Object.keys(value).sort()) if (k !== 'requestId') out[k] = normalize(value[k]);
+    for (const k of Object.keys(value).sort()) {
+      // requestId d'erreur retiré, mais conservé (masqué) quand c'est une donnée du défi OTP.
+      if (k === 'requestId' && value.success === false) continue;
+      out[k] = k === 'devCode' ? '<code>' : normalize(value[k]);
+    }
     return out;
   }
   if (typeof value !== 'string') return value;
   if (ISO.test(value) && Date.parse(value) >= started) return '<now>';
-  return value.replace(BACKUP, 'backup-<now>.json').replace(UUID_G, (id) => (seeded.has(id) ? id : '<new-id>'));
+  return value.replace(/PAY-\d+-[0-9a-f]{8}/g, 'PAY-<id>').replace(BACKUP, 'backup-<now>.json').replace(UUID_G, (id) => (seeded.has(id) ? id : '<new-id>'));
 }
 
 const tokens = { node: {}, spring: {} };
@@ -43,6 +47,7 @@ async function call(side, step) {
   let json;
   try { json = JSON.parse(text); } catch { json = step.raw || text.length <= 300 ? text : `<${res.headers.get('content-type')} ${text.length}o>`; }
   if (step.save) saved[side][step.save] = json;
+  if (step.portalAs) tokens[side][step.portalAs] = res.headers.getSetCookie().find((c) => c.startsWith('portal_token='))?.split(';')[0].slice(13);
   if (step.headers) json = { headers: Object.fromEntries(step.headers.map((h) => [h, h === 'content-type' ? res.headers.get(h)?.replace(/;\s*/g, '; ') : res.headers.get(h)])), body: json };
   return { status: res.status, json };
 }

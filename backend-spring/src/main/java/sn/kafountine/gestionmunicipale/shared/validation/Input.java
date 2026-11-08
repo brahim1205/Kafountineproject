@@ -194,6 +194,33 @@ public final class Input {
     if (!issues.isEmpty()) throw AppException.validation("Données invalides", issues);
   }
 
+  /** z.array(trimmedString(min, max, message)).max(maxItems).optional(). */
+  public List<String> optionalStrings(String key, int maxItems, int min, int max, String message) {
+    JsonNode raw = raw(key);
+    if (raw == null) return null;
+    if (!raw.isArray()) {
+      abortingIssue(key, "Entrée invalide : tableau attendu, " + received(raw) + " reçu");
+      return null;
+    }
+    if (raw.size() > maxItems) {
+      issue(key, "Trop grand : tableau doit avoir <=" + maxItems + " éléments");
+      return null;
+    }
+    List<String> result = new ArrayList<>();
+    for (int i = 0; i < raw.size(); i++) {
+      JsonNode item = raw.get(i);
+      if (!item.isTextual()) {
+        abortingIssue(key + "." + i, "Entrée invalide : chaîne de caractères attendu, " + received(item) + " reçu");
+        continue;
+      }
+      String value = item.asText().strip();
+      if (value.length() < min) issue(key + "." + i, message);
+      if (value.length() > max) issue(key + "." + i, message + " (max " + max + ")");
+      result.add(value);
+    }
+    return result;
+  }
+
   /** Clés inconnues refusées (.strict()). */
   private void unknownKeys() {
     List<String> unknown = new ArrayList<>();

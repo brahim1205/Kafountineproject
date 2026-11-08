@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-backend/node_modules/
+database/node_modules/
 front/node_modules/
 mobile/node_modules/
 backendnest/node_modules/
@@ -14,7 +14,7 @@ coverage/
 .expo/
 .turbo/
 *.tsbuildinfo
-backend/dist/
+database/dist/
 front/dist/
 front/out/
 mobile/dist/
@@ -45,15 +45,15 @@ front/backend.log
 .env
 .env.*
 .env.prod*
-backend/.env
-backend/.env.*
+database/.env
+database/.env.*
 front/.env
 front/.env.*
 mobile/.env
 mobile/.env.*
 !.env.example
 !.env.*.example
-!backend/.env.example
+!database/.env.example
 !front/.env.example
 !mobile/.env.example
 
@@ -65,16 +65,16 @@ mobile/.env.*
 *.db-journal
 *.dump
 *.sql
-!backend/prisma/migrations/**/*.sql
+!database/prisma/migrations/**/*.sql
 pg_data/
-backend/prisma/*.backup
+database/prisma/*.backup
 infra/k8s/02-secret.yml
 
 # Backups and generated storage
 backups/
 backups-test/
-backend/backups/
-backend/backups-test/
+database/backups/
+database/backups-test/
 front/backups/
 front/backups-test/
 traefik/acme/

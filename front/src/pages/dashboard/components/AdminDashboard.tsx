@@ -84,7 +84,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-gray-600">Chargement des statistiques...</p>
         </div>
       </div>
@@ -103,7 +103,7 @@ export default function AdminDashboard() {
           <p className="text-red-600 font-medium">Erreur: {error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700"
           >
             Réessayer
           </button>
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
       change: periodeActive === 0 ? '+18' : periodeActive === 1 ? '+42' : '+156', 
       trend: 'up', 
       icon: 'ri-file-list-3-line', 
-      color: 'bg-teal-50 text-teal-600' 
+      color: 'bg-emerald-50 text-emerald-600' 
     },
     { 
       title: 'Contribuables', 
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
   const totalCategories = stats?.categories?.reduce((sum, cat) => sum + (cat.montant || 0), 0) || 0;
 
   const modulesRecettes = stats?.categories?.map((cat, idx: number) => {
-    const colors = ['bg-teal-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-amber-500', 'bg-rose-400'];
+    const colors = ['bg-emerald-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-amber-500', 'bg-rose-400'];
     const icons = ['ri-file-list-3-line', 'ri-store-2-line', 'ri-motorbike-line', 'ri-file-text-line', 'ri-building-line'];
     return {
       nom: cat.categorie,
@@ -236,7 +236,6 @@ export default function AdminDashboard() {
       ];
 
   const raccourcis = [
-    { label: 'Contribuables', icon: 'ri-user-line', link: '/contribuables', color: 'bg-teal-50 text-teal-600 hover:bg-teal-100' },
     { label: 'Recettes', icon: 'ri-money-dollar-circle-line', link: '/recettes', color: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' },
     { label: 'Taxes', icon: 'ri-file-list-3-line', link: '/taxes', color: 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100' },
     { label: 'État Civil', icon: 'ri-file-text-line', link: '/etat-civil', color: 'bg-amber-50 text-amber-600 hover:bg-amber-100' },
@@ -331,7 +330,7 @@ export default function AdminDashboard() {
               {stats?.stats?.validations?.total || 0} dossiers et demandes en attente
             </p>
           </div>
-          <span className="inline-flex items-center px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-semibold">
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
             Année {selectedYear}
           </span>
         </div>
@@ -366,7 +365,7 @@ export default function AdminDashboard() {
               <h3 className="text-lg font-semibold text-gray-900">Évolution des recettes</h3>
               <p className="text-sm text-gray-600 mt-1">Cette semaine</p>
             </div>
-            <Link to="/rapports" className="text-sm text-teal-600 hover:text-teal-700 font-medium cursor-pointer whitespace-nowrap">
+            <Link to="/rapports" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer whitespace-nowrap">
               Voir rapports
             </Link>
           </div>
@@ -379,11 +378,11 @@ export default function AdminDashboard() {
                   <span className="text-xs font-semibold text-gray-700">{(item.montant / 1000000).toFixed(1)}M</span>
                   <div className="w-full relative" style={{ height: '140px' }}>
                     <div
-                      className={`absolute bottom-0 w-full rounded-t-lg transition-all duration-500 ${isToday ? 'bg-gradient-to-t from-teal-600 to-teal-400' : 'bg-gradient-to-t from-gray-200 to-gray-100'}`}
+                      className={`absolute bottom-0 w-full rounded-t-lg transition-all duration-500 ${isToday ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-gradient-to-t from-gray-200 to-gray-100'}`}
                       style={{ height: `${height}%` }}
                     ></div>
                   </div>
-                  <span className={`text-xs font-medium ${isToday ? 'text-teal-700 font-bold' : 'text-gray-500'}`}>{item.jour}</span>
+                  <span className={`text-xs font-medium ${isToday ? 'text-emerald-700 font-bold' : 'text-gray-500'}`}>{item.jour}</span>
                 </div>
               );
             })}
@@ -431,12 +430,12 @@ export default function AdminDashboard() {
               <h3 className="text-lg font-semibold text-gray-900">Performance des agents</h3>
               <p className="text-sm text-gray-600 mt-1">Top 5 du jour</p>
             </div>
-            <Link to="/utilisateurs" className="text-sm text-teal-600 hover:text-teal-700 font-medium cursor-pointer whitespace-nowrap">
+            <Link to="/utilisateurs" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer whitespace-nowrap">
               Voir tous
             </Link>
           </div>
           <div>
-            <table className="w-full">
+            <div className="overflow-x-auto"><table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Agent</th>
@@ -453,7 +452,7 @@ export default function AdminDashboard() {
                     <tr key={idx} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold">
+                          <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
                             {agent.initiale || `${agent.nom?.[0] || ''}${agent.prenom?.[0] || ''}`}
                           </div>
                           <span className="text-sm font-medium text-gray-900">{agent.nom}</span>
@@ -481,7 +480,7 @@ export default function AdminDashboard() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
 
@@ -523,12 +522,12 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-semibold text-gray-900">Transactions récentes</h3>
             <p className="text-sm text-gray-600 mt-1">Dernières opérations de la journée</p>
           </div>
-          <Link to="/recettes" className="px-4 py-2 text-sm font-medium text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer whitespace-nowrap">
+          <Link to="/recettes" className="px-4 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer whitespace-nowrap">
             Voir tout
           </Link>
         </div>
         <div>
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">N° Ticket</th>
@@ -545,7 +544,7 @@ export default function AdminDashboard() {
                 <tr key={t.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{t.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700">{t.type}</span>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">{t.type}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{t.contribuable}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{t.agent}</td>
@@ -559,7 +558,7 @@ export default function AdminDashboard() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </div>

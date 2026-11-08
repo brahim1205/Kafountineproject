@@ -47,9 +47,12 @@ export type MotoStats = {
   montantEnRetard?: number;
 };
 
+export type MotoPaymentType = 'ADHESION' | 'COTISATION' | 'AMENDE_POLICE';
+
 export type MotoPayment = {
   id: string;
   motoId: string;
+  type?: MotoPaymentType;
   montant: number;
   reference?: string;
   statut: string;
@@ -93,7 +96,7 @@ function normalizeListResult<T>(result: ApiListResult<T>): T[] {
 }
 
 export async function listMotos(year?: number): Promise<Moto[]> {
-  const query = year ? `?year=${year}&limit=300` : '?limit=300';
+  const query = year ? `?year=${year}` : '';
   const result = await apiRequest<ApiListResult<Moto>>(`/motos${query}`);
   return normalizeListResult(result);
 }
@@ -104,7 +107,7 @@ export async function getMotosStats(year?: number): Promise<MotoStats> {
 }
 
 export async function getMotoConfiguration() {
-  return apiRequest<{ tarifMensuel: number; penaliteRetard: number }>('/motos/configuration');
+  return apiRequest<{ droitAdhesion: number; tarifMensuel: number; penaliteRetard: number; amendePolice: number }>('/motos/configuration');
 }
 
 /**
@@ -124,7 +127,7 @@ export async function checkMatriculeExists(matricule: string, excludeId?: string
  */
 export async function checkPermisExists(permis: string, excludeId?: string): Promise<boolean> {
   if (!permis) return false;
-  const result = await apiRequest<ApiListResult<Moto>>(`/motos?limit=300`);
+  const result = await apiRequest<ApiListResult<Moto>>(`/motos`);
   const items = normalizeListResult(result);
   const match = items.find((m) => m.permis && String(m.permis).toLowerCase() === String(permis).toLowerCase());
   if (!match) return false;
@@ -153,8 +156,8 @@ export async function listMotoPayments(year?: number): Promise<MotoPayment[]> {
   return apiRequest<MotoPayment[]>(`/motos/paiements${query}`);
 }
 
-export async function createMoto(payload: CreateMotoPayload): Promise<Moto> {
-  return apiRequest<Moto>('/motos', {
+export async function createMoto(payload: CreateMotoPayload): Promise<Moto & { adhesion?: MotoPayment }> {
+  return apiRequest<Moto & { adhesion?: MotoPayment }>('/motos', {
     method: 'POST',
     headers: {
       'idempotency-key': crypto.randomUUID(),
@@ -183,7 +186,7 @@ export async function changeMotoDriver(id: string, payload: {
   });
 }
 
-export async function createMotoPayment(payload: { motoId: string; reference?: string; mois?: string }) {
+export async function createMotoPayment(payload: { motoId: string; type?: 'COTISATION' | 'AMENDE_POLICE'; reference?: string }) {
   return apiRequest<MotoPayment>('/motos/paiements', {
     method: 'POST',
     headers: {

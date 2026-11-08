@@ -37,7 +37,7 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
       name: 'Taxes',
       amount: taxes,
       icon: 'ri-file-list-3-line',
-      couleur: 'bg-teal-500',
+      couleur: 'bg-emerald-500',
       stats: {
         transactions: overview?.txStats?.annee?.transactions || 0,
         moyenne: taxes > 0 ? Math.round(taxes / (overview?.txStats?.annee?.transactions || 1)) : 0,

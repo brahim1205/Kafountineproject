@@ -130,7 +130,7 @@ export default function FormationCard({
           </div>
           <div className="text-center">
             <p className="text-xs text-gray-600 mb-1">Réussite</p>
-            <p className="text-lg font-bold text-teal-600">
+            <p className="text-lg font-bold text-emerald-600">
               {formation.tauxReussite}%
             </p>
           </div>

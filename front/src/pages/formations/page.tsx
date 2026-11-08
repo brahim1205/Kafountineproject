@@ -23,7 +23,6 @@ import {
   type JeuneFormationEnrollment,
   type FormationStats,
 } from '../../services/formations';
-import { getStoredUserRole } from '../../services/auth';
 import { useYear } from '../../contexts/YearContext';
 
 export interface FormationType {
@@ -113,7 +112,6 @@ function mapJeuneToUi(jeune: Jeune, enrollment: JeuneFormationEnrollment | null)
 
 export default function FormationsPage() {
   const [activeTab, setActiveTab] = useState<'formations' | 'jeunes' | 'statistiques'>('formations');
-  const userRole = getStoredUserRole() || 'admin';
   const [formationsList, setFormationsList] = useState<FormationType[]>([]);
   const [jeunesList, setJeunesList] = useState<JeuneType[]>([]);
   const [formationsStats, setFormationsStats] = useState<FormationStats>(EMPTY_FORMATION_STATS);
@@ -321,7 +319,7 @@ export default function FormationsPage() {
             <p className="text-sm text-gray-600 mt-1">Gestion des formations gratuites de la mairie</p>
           </div>
           <div className="flex gap-2">
-            {userRole !== 'super_admin' && isCurrentYear && (
+            {isCurrentYear && (
               <>
                 <button
                   onClick={() => setShowInscriptionJeune(true)}
@@ -362,8 +360,8 @@ export default function FormationsPage() {
             icon="ri-team-line"
             label="Jeunes inscrits"
             value={totalJeunes.toString()}
-            bgColor="bg-teal-50"
-            iconColor="text-teal-600"
+            bgColor="bg-emerald-50"
+            iconColor="text-emerald-600"
           />
           <StatsCard
             icon="ri-award-line"

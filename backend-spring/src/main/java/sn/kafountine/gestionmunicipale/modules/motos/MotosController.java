@@ -71,20 +71,20 @@ public class MotosController {
   }
 
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     return Api.created(service.create(RequestContext.actor(), moto(Input.body(body), true)));
   }
 
   @PutMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String motoId = Common.id(id);
     return Api.ok(service.update(RequestContext.actor(), motoId, moto(Input.body(body), false)));
   }
 
   @PostMapping("/{id}/changement-conducteur")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> changeDriver(@PathVariable String id, @Body JsonNode body) {
     String motoId = Common.id(id);
     Input input = Input.body(body);
@@ -114,15 +114,15 @@ public class MotosController {
   }
 
   @PostMapping("/paiements")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR", "SERVICE_FINANCES"})
   public ResponseEntity<Map<String, Object>> createPayment(@Body JsonNode body) {
     Input input = Input.body(body);
     String motoId = input.str("motoId").noTrim().uuid("Identifiant invalide").required();
-    Double montant = input.num("montant").positive("Valeur positive requise").optional();
+    String type = input.str("type").oneOf("COTISATION", "AMENDE_POLICE").optional();
     String reference = input.str("reference").max(120).optional();
     String mois = input.str("mois").max(80).optional();
     Integer year = Common.year(input);
     input.check();
-    return Api.created(service.createPayment(RequestContext.actor(), new MotoService.PaymentInput(motoId, montant, reference, mois, year)));
+    return Api.created(service.createPayment(RequestContext.actor(), new MotoService.PaymentInput(motoId, type, reference, mois, year)));
   }
 }

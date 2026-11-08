@@ -1,10 +1,10 @@
 name: Spring CI
 on:
   pull_request:
-    paths: ['backend/**', 'backend-spring/**', '.github/workflows/spring-ci.yml']
+    paths: ['backend-spring/**', 'database/**', '.github/workflows/spring-ci.yml']
   push:
     branches: [main]
-    paths: ['backend/**', 'backend-spring/**', '.github/workflows/spring-ci.yml']
+    paths: ['backend-spring/**', 'database/**', '.github/workflows/spring-ci.yml']
 
 permissions:
   contents: read
@@ -19,37 +19,67 @@ jobs:
         run: docker build -f backend-spring/Dockerfile.prod -t kafontine-spring-ci backend-spring
       - name: Check the runtime user and the uploads directory
         run: |
-          docker run --rm --entrypoint sh kafontine-spring-ci -c 'test "$(id -u)" = 1000 && test -w /app/uploads && test -r /app/app.jar'
+          docker run --rm --entrypoint sh kafontine-spring-ci -c 'test "$(id -u)" = 1000 && test -w /app/uploads'
+      - name: Build the migration image
+        run: docker build -f database/Dockerfile.prod -t kafontine-migrator-ci database
 
-  parity:
+  api-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: kafountine
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kafountine"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/kafountine?schema=public
+      REDIS_URL: redis://127.0.0.1:6379
+      JWT_SECRET: ci_spring_jwt_secret_32_chars_minimum_value
+      JWT_REFRESH_SECRET: ci_spring_refresh_secret_32_chars_minimum
+      SEED_DEFAULT_PASSWORD: TestPassword123!
+      CORS_ORIGIN: http://localhost:5173
+      LOGIN_RATE_LIMIT_MAX: 1000
+      RUN_INTEGRATION_TESTS: 'true'
+      API_BASE_URL: http://127.0.0.1:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: database/package-lock.json
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Install Redis
-        run: sudo apt-get update && sudo apt-get install -y redis-server && sudo systemctl stop redis-server
-      - name: Install Node backend
-        run: npm ci && npx prisma generate
-        working-directory: backend
-      - name: Build Spring backend
-        run: mvn -q -Dmaven.test.skip=true package
+      - name: Prepare the database
+        working-directory: database
+        run: npm ci && npx prisma generate && npx prisma migrate deploy && npm run prisma:seed
+      - name: Build and start the backend
         working-directory: backend-spring
-      - name: Compare Node and Spring
-        env:
-          KAF_PARITY_DATA: ${{ runner.temp }}/parity
         run: |
-          bash backend-spring/parity/setup.sh
-          bash backend-spring/parity/run-all.sh
+          mvn -q -Dmaven.test.skip=true package
+          nohup java -jar target/*.jar > "$RUNNER_TEMP/spring.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:3000/ready && exit 0; sleep 2; done
+          tail -n 80 "$RUNNER_TEMP/spring.log"
+          exit 1
+      - name: Run the API tests
+        working-directory: database
+        run: npm run test:api
       - name: Show server logs
         if: failure()
-        run: tail -n 80 "$RUNNER_TEMP/parity/node.log" "$RUNNER_TEMP/parity/spring.log" || true
+        run: tail -n 80 "$RUNNER_TEMP/spring.log" || true

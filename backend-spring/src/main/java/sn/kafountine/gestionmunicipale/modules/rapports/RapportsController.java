@@ -39,7 +39,7 @@ public class RapportsController {
   }
 
   @PostMapping("/receipt.pdf")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES", "QUAI_PECHE"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<byte[]> receipt(@Body JsonNode body) {
     Input input = Input.body(body);
     Map<String, Object> values = new LinkedHashMap<>();
@@ -55,7 +55,7 @@ public class RapportsController {
   }
 
   @PostMapping("/report.pdf")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<byte[]> report(@Body JsonNode body) {
     Input input = Input.body(body);
     Double year = input.num("year").integer().min(2000).max(2100).required();
@@ -82,7 +82,7 @@ public class RapportsController {
 
   /** Sans schéma côté Node : Number(year) || année en cours. */
   @GetMapping("/report-data")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> reportData(HttpServletRequest request) {
     String[] values = request.getParameterMap().get("year");
     double parsed = values == null || values.length == 0 ? Double.NaN : Input.jsNumber(JsonNodeFactory.instance.textNode(values[values.length - 1]));

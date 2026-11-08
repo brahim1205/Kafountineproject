@@ -20,10 +20,10 @@ help:
 	@echo "  make check            -> lance la vérification backend"
 
 check:
-	cd backend && npm run build
+	cd backend-spring && mvn -q -Dmaven.test.skip=true package
 
 backend-check:
-	cd backend && npm run build
+	cd backend-spring && mvn -q -Dmaven.test.skip=true package
 
 security-scan:
 	bash ./scripts/security-repo-scan.sh
@@ -67,20 +67,20 @@ reset-dev:
 	docker compose -f docker-compose.dev.yml up -d postgres redis
 
 bootstrap-dev-db:
-	cd backend && test -f .env || cp .env.example .env
-	cd backend && npm run prisma:generate
-	cd backend && npx prisma db push
-	cd backend && npm run prisma:seed
+	cd database && test -f .env || cp .env.example .env
+	cd database && npm run prisma:generate
+	cd database && npx prisma migrate deploy
+	cd database && npm run prisma:seed
 
 dev-local: up-dev bootstrap-dev-db
-	cd backend && npm run dev
+	cd backend-spring && mvn spring-boot:run
 
 backend-local: up-dev bootstrap-dev-db
-	cd backend && npm run dev
+	cd backend-spring && mvn spring-boot:run
 
 backend-local-no-db:
-	cd backend && test -f .env || cp .env.example .env
-	cd backend && npm run dev
+	cd database && test -f .env || cp .env.example .env
+	cd backend-spring && mvn spring-boot:run
 
 front-local:
 	cd front && npm run dev

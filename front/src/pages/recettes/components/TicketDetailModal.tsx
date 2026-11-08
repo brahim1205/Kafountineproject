@@ -25,7 +25,7 @@ export default function TicketDetailModal({ row, onClose, onPrint }: TicketDetai
       footer={
         <button
           onClick={() => onPrint(row)}
-          className="px-4 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+          className="px-4 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap"
         >
           <i className="ri-printer-line"></i>
           Imprimer le reçu

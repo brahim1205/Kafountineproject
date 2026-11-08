@@ -55,8 +55,8 @@ export default function RapportPDF({
       <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white/80 backdrop-blur-md p-4 border-b border-gray-100 flex items-center justify-between z-20">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-teal-50 rounded-lg">
-              <i className="ri-file-list-3-line text-teal-600 text-xl"></i>
+            <div className="p-2 bg-emerald-50 rounded-lg">
+              <i className="ri-file-list-3-line text-emerald-600 text-xl"></i>
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">Prévisualisation du Rapport Annuel</h2>
@@ -72,7 +72,7 @@ export default function RapportPDF({
             </button>
             <button
               onClick={() => window.print()}
-              className="px-6 py-2 bg-teal-600 text-white text-sm font-black rounded-xl hover:bg-teal-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+              className="px-6 py-2 bg-emerald-600 text-white text-sm font-black rounded-xl hover:bg-emerald-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2"
             >
               <i className="ri-printer-line"></i>
               IMPRIMER LE RAPPORT
@@ -87,7 +87,7 @@ export default function RapportPDF({
           </div>
 
           {/* En-tête Officiel */}
-          <div className="relative text-center border-b-4 border-double border-teal-600/20 pb-8 mb-12">
+          <div className="relative text-center border-b-4 border-double border-emerald-600/20 pb-8 mb-12">
             <div className="flex justify-between items-start mb-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
               <div className="text-left leading-relaxed">
                 <p>République du Sénégal</p>
@@ -100,17 +100,17 @@ export default function RapportPDF({
             </div>
 
             <div className="flex flex-col items-center gap-4">
-              <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-teal-50 shadow-xl">
+              <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-emerald-50 shadow-xl">
                 <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-contain p-2" />
               </div>
               <div className="mt-2">
-                <h1 className="text-4xl font-black text-teal-800 tracking-tighter uppercase mb-1">
+                <h1 className="text-4xl font-black text-emerald-800 tracking-tighter uppercase mb-1">
                   Commune de Kafountine
                 </h1>
                 <div className="flex items-center justify-center gap-4">
-                  <div className="h-[2px] w-12 bg-teal-500"></div>
-                  <span className="text-sm font-black text-teal-600 uppercase tracking-[0.5em]">Hôtel de Ville</span>
-                  <div className="h-[2px] w-12 bg-teal-500"></div>
+                  <div className="h-[2px] w-12 bg-emerald-500"></div>
+                  <span className="text-sm font-black text-emerald-600 uppercase tracking-[0.5em]">Hôtel de Ville</span>
+                  <div className="h-[2px] w-12 bg-emerald-500"></div>
                 </div>
               </div>
             </div>
@@ -127,7 +127,7 @@ export default function RapportPDF({
           {/* Synthèse Chiffrée */}
           <div className="mb-16">
             <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest mb-8 flex items-center gap-3">
-              <span className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center text-teal-600">
+              <span className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
                 <i className="ri-dashboard-3-line"></i>
               </span>
               SYNTHESE GENERALE
@@ -135,13 +135,13 @@ export default function RapportPDF({
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-lg">
                 <p className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-60">Total Recettes</p>
-                <h4 className="text-xl font-black text-teal-400">{total.toLocaleString('fr-FR')} <span className="text-[10px]">FCFA</span></h4>
+                <h4 className="text-xl font-black text-emerald-400">{total.toLocaleString('fr-FR')} <span className="text-[10px]">FCFA</span></h4>
               </div>
               <div className="bg-white border-2 border-red-50 p-6 rounded-3xl shadow-sm">
                 <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-gray-400">Total Dépenses</p>
                 <h4 className="text-xl font-black text-red-600">{totalExpenses.toLocaleString('fr-FR')} <span className="text-[10px]">FCFA</span></h4>
               </div>
-              <div className="bg-teal-600 text-white p-6 rounded-3xl shadow-lg">
+              <div className="bg-emerald-600 text-white p-6 rounded-3xl shadow-lg">
                 <p className="text-[9px] font-black uppercase tracking-widest mb-1 opacity-60">Solde Net</p>
                 <h4 className="text-xl font-black">{(total - totalExpenses).toLocaleString('fr-FR')} <span className="text-[10px]">FCFA</span></h4>
               </div>

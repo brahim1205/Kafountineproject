@@ -129,7 +129,7 @@ export default function Audit() {
           <div className="flex gap-2">
             <button
               onClick={handleExport}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
             >
               <i className="ri-download-line"></i>
               Exporter le journal
@@ -207,14 +207,14 @@ export default function Audit() {
                   placeholder="Rechercher..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
               </div>
             </div>
             <select
               value={filterModule}
               onChange={(e) => setFilterModule(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="all">Tous les modules</option>
               <option value="Recettes">Recettes</option>
@@ -227,7 +227,7 @@ export default function Audit() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="all">Tous les statuts</option>
               <option value="success">Succès</option>
@@ -241,7 +241,7 @@ export default function Audit() {
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -268,7 +268,7 @@ export default function Audit() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-semibold text-xs">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-semibold text-xs">
                             {log.user.split(' ').map(n => n[0]).join('').substring(0, 2)}
                           </div>
                           <div>
@@ -286,7 +286,7 @@ export default function Audit() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => openDetailModal(log)}
-                          className="text-teal-600 hover:text-teal-700"
+                          className="text-emerald-600 hover:text-emerald-700"
                         >
                           <i className="ri-eye-line text-lg"></i>
                         </button>

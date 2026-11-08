@@ -18,7 +18,7 @@ export type RecetteRow = ReceiptData & {
 };
 
 export const INPUT_CLASS =
-  'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm';
+  'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm';
 
 export const formatDate = (date: Date) => date.toLocaleDateString('fr-FR');
 export const formatTime = (date: Date) => date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });

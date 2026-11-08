@@ -19,7 +19,7 @@ export function StatutBadge({ statut, statuts }: { statut: string; statuts: Reco
   );
 }
 
-export const INPUT_CLASS = 'w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500';
+export const INPUT_CLASS = 'w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500';
 export const formatKg = (value?: number | null) => (value ? `${value.toLocaleString('fr-FR')} kg` : '-');
 export const formatFcfa = (value?: number | null) => (value ? `${value.toLocaleString('fr-FR')} FCFA` : '-');
 export const formatDate = (value: string) => new Date(value).toLocaleDateString('fr-FR');

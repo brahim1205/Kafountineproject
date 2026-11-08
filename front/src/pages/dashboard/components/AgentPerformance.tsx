@@ -46,13 +46,13 @@ export default function AgentPerformance() {
     loadAgents();
   }, [selectedYear]);
 
-  const colors = ['bg-teal-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-sky-500', 'bg-indigo-500'];
+  const colors = ['bg-emerald-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-sky-500', 'bg-indigo-500'];
 
   if (loading) {
     return (
       <div className="bg-white rounded-xl p-6 border border-gray-200">
         <div className="flex items-center justify-center h-32">
-          <div className="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
     );
@@ -89,7 +89,7 @@ export default function AgentPerformance() {
         </div>
       )}
 
-      <button className="w-full mt-6 py-2.5 text-sm font-medium text-teal-600 hover:bg-teal-50 rounded-lg transition-colors whitespace-nowrap">
+      <button className="w-full mt-6 py-2.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors whitespace-nowrap">
         Voir tous les agents
       </button>
     </div>

@@ -11,7 +11,7 @@ const TONES = {
   emerald: 'bg-emerald-100 text-emerald-600',
   blue: 'bg-blue-100 text-blue-600',
   red: 'bg-red-100 text-red-600',
-  teal: 'bg-teal-100 text-teal-600',
+  teal: 'bg-emerald-100 text-emerald-600',
 };
 
 export default function MotosStats({ stats }: { stats: MotoStats }) {

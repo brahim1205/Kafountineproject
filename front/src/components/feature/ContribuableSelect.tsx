@@ -94,7 +94,7 @@ export default function ContribuableSelect({ name, initial, inputClassName }: Co
                 aria-selected={false}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(c)}
-                className="cursor-pointer px-4 py-2 text-sm text-gray-900 hover:bg-teal-50"
+                className="cursor-pointer px-4 py-2 text-sm text-gray-900 hover:bg-emerald-50"
               >
                 {contribuableLabel(c)}
                 {c.telephone && <span className="ml-2 text-xs text-gray-500">{c.telephone}</span>}

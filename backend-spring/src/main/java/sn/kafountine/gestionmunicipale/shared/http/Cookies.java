@@ -12,7 +12,6 @@ import sn.kafountine.gestionmunicipale.shared.config.Env;
 public final class Cookies {
   public static final String AUTH_TOKEN = "auth_token";
   public static final String REFRESH_TOKEN = "refresh_token";
-  public static final String PORTAL_TOKEN = "portal_token";
 
   private Cookies() {}
 
@@ -49,14 +48,6 @@ public final class Cookies {
   public static void clearAuthCookies(HttpServletResponse response) {
     add(response, build(AUTH_TOKEN, "", 0));
     add(response, build(REFRESH_TOKEN, "", 0));
-  }
-
-  public static void setPortalCookie(HttpServletResponse response, String token) {
-    add(response, build(PORTAL_TOKEN, token, 7L * 24 * 3600));
-  }
-
-  public static void clearPortalCookie(HttpServletResponse response) {
-    add(response, build(PORTAL_TOKEN, "", 0));
   }
 
   public static String read(HttpServletRequest request, String name) {

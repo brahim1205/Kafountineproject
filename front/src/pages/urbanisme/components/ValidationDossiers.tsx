@@ -154,7 +154,7 @@ export default function ValidationDossiers() {
 
         {loading ? (
           <div className="p-8 text-center text-gray-500">
-            <i className="ri-loader-4-line animate-spin text-teal-500 text-2xl mb-2"></i>
+            <i className="ri-loader-4-line animate-spin text-emerald-500 text-2xl mb-2"></i>
             <p>Chargement...</p>
           </div>
         ) : dossiersEnAttente.length === 0 ? (
@@ -181,7 +181,7 @@ export default function ValidationDossiers() {
                     <p className="text-sm text-gray-600">Déposé le {dossier.date}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-teal-600">{dossier.montant.toLocaleString()} FCFA</p>
+                    <p className="text-lg font-bold text-emerald-600">{dossier.montant.toLocaleString()} FCFA</p>
                   </div>
                 </div>
 
@@ -296,9 +296,9 @@ export default function ValidationDossiers() {
 
               <div>
                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Montant</h4>
-                <div className="bg-teal-50 rounded-lg p-4 flex items-center justify-between">
-                  <span className="text-sm text-teal-700">Droits d'urbanisme</span>
-                  <span className="text-xl font-bold text-teal-700">{selectedDossier.montant.toLocaleString()} FCFA</span>
+                <div className="bg-emerald-50 rounded-lg p-4 flex items-center justify-between">
+                  <span className="text-sm text-emerald-700">Droits d'urbanisme</span>
+                  <span className="text-xl font-bold text-emerald-700">{selectedDossier.montant.toLocaleString()} FCFA</span>
                 </div>
               </div>
             </div>

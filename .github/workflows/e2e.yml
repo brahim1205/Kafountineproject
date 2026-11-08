@@ -11,7 +11,8 @@ on:
       - 'front/playwright.config.ts'
       - 'front/package.json'
       - 'front/package-lock.json'
-      - 'backend/**'
+      - 'backend-spring/**'
+      - 'database/**'
       - 'scripts/security-repo-scan.sh'
       - '.github/workflows/e2e.yml'
   pull_request:
@@ -21,7 +22,8 @@ on:
       - 'front/playwright.config.ts'
       - 'front/package.json'
       - 'front/package-lock.json'
-      - 'backend/**'
+      - 'backend-spring/**'
+      - 'database/**'
       - 'scripts/security-repo-scan.sh'
       - '.github/workflows/e2e.yml'
 
@@ -41,9 +43,6 @@ jobs:
       SEED_DEFAULT_PASSWORD: TestPassword123!
       CORS_ORIGIN: http://localhost:4173
       COOKIE_SAME_SITE: lax
-      PORTAL_URL: http://localhost:4173
-      PORTAL_OTP_DELIVERY_MODE: dev
-      PORTAL_OTP_TTL_SECONDS: 300
       REDIS_URL: redis://127.0.0.1:6379
       # La suite se connecte des dizaines de fois depuis la même IP : on lève la limite anti-bruteforce en test.
       LOGIN_RATE_LIMIT_MAX: 1000
@@ -76,7 +75,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: front/package-lock.json
+          cache-dependency-path: |
+            front/package-lock.json
+            database/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -92,17 +93,17 @@ jobs:
         env:
           VITE_API_URL: http://localhost:3000/api/v1
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
       - name: Start backend for testing
         run: |
-          cd backend
-          npm ci
-          npm run prisma:generate
-          npx prisma validate
-          npm run prisma:deploy
-          npm run prisma:seed
-          npm run build
-          npm start > /tmp/kafontine-backend.log 2>&1 &
-          sleep 10
+          (cd database && npm ci && npx prisma generate && npx prisma migrate deploy && npm run prisma:seed)
+          (cd backend-spring && mvn -q -Dmaven.test.skip=true package)
+          nohup java -jar backend-spring/target/*.jar > /tmp/kafontine-backend.log 2>&1 &
 
       - name: Repository security scan
         run: bash ./scripts/security-repo-scan.sh

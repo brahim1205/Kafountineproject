@@ -4,7 +4,8 @@ import DashboardLayout from '../../components/feature/DashboardLayout';
 import AdminDashboard from './components/AdminDashboard';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import AgentDashboard from './components/AgentDashboard';
-import ComptableDashboard from './components/ComptableDashboard';
+import RegisseurDashboard from './components/RegisseurDashboard';
+import EtatCivilDashboard from './components/EtatCivilDashboard';
 import ServiceFinancesDashboard from './components/ServiceFinancesDashboard';
 import QuaiPecheDashboard from './components/QuaiPecheDashboard';
 import { clearSession, restoreSession } from '../../services/auth';
@@ -69,10 +70,12 @@ export default function Dashboard() {
         return <SuperAdminDashboard />;
       case 'agent':
         return <AgentDashboard />;
-      case 'comptable':
-        return <ComptableDashboard />;
       case 'service_finances':
         return <ServiceFinancesDashboard />;
+      case 'regisseur':
+        return <RegisseurDashboard />;
+      case 'etat_civil':
+        return <EtatCivilDashboard />;
       case 'quai_peche':
         return <QuaiPecheDashboard />;
       default:

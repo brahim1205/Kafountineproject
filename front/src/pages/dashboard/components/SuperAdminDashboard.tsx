@@ -154,7 +154,7 @@ export default function SuperAdminDashboard() {
   const maxMontant = Math.max(...evolutionSemaine.map(e => e.montant), 1);
   const totalCategories = stats?.categories?.reduce((sum, module) => sum + (module.montant || 0), 0) || 0;
   const modulesRecettes = stats?.categories?.map((module, index: number) => {
-    const colors = ['bg-teal-500', 'bg-cyan-500', 'bg-orange-500', 'bg-amber-500', 'bg-rose-500'];
+    const colors = ['bg-emerald-500', 'bg-cyan-500', 'bg-orange-500', 'bg-amber-500', 'bg-rose-500'];
     return {
       nom: module.categorie,
       montant: module.montant || 0,
@@ -166,16 +166,14 @@ export default function SuperAdminDashboard() {
     { label: 'Formations actives', value: String(stats?.totalFormations || 0), icon: 'ri-book-open-line', color: 'text-emerald-600' },
     { label: 'Transactions année', value: String(stats?.totalTransactions || stats?.transactionsMois || 0), icon: 'ri-file-list-3-line', color: 'text-blue-600' },
     { label: 'Recettes mois', value: `${Math.round((stats?.recettesMois || 0) / 1000)}K`, icon: 'ri-award-line', color: 'text-purple-600' },
-    { label: 'Taux recouvrement', value: `${stats?.tauxRecouvrement || 0}%`, icon: 'ri-percent-line', color: 'text-teal-600' },
+    { label: 'Taux recouvrement', value: `${stats?.tauxRecouvrement || 0}%`, icon: 'ri-percent-line', color: 'text-emerald-600' },
   ];
   const statsUtilisateurs = [
     { label: 'Total utilisateurs', value: String(stats?.totalUsers || 0), icon: 'ri-team-line', color: 'text-indigo-600' },
     { label: 'Administrateurs', value: String(stats?.totalAdmins || 0), icon: 'ri-admin-line', color: 'text-red-600' },
     { label: 'Agents', value: String(stats?.totalAgents || 0), icon: 'ri-user-line', color: 'text-blue-600' },
-    { label: 'Comptables', value: String(stats?.totalComptables || 0), icon: 'ri-calculator-line', color: 'text-green-600' },
   ];
   const validations = [
-    { label: 'État civil', value: stats?.stats?.etatCivil?.enAttente || 0, icon: 'ri-file-text-line', link: '/etat-civil', color: 'bg-amber-50 text-amber-700 border-amber-200' },
     { label: 'Urbanisme', value: stats?.stats?.urbanisme?.enAttente || 0, icon: 'ri-building-line', link: '/urbanisme', color: 'bg-rose-50 text-rose-700 border-rose-200' },
     { label: 'Budget', value: stats?.stats?.budget?.enAttente || 0, icon: 'ri-bank-card-line', link: '/service-finances', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
     { label: 'Quai de pêche', value: stats?.stats?.quaiPeche?.enAttente || 0, icon: 'ri-ship-line', link: '/quai-peche/commissions', color: 'bg-sky-50 text-sky-700 border-sky-200' },

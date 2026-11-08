@@ -71,7 +71,7 @@ public class ParametresController {
   // --- Pénalités ---------------------------------------------------------------------------------
 
   @GetMapping("/api/v1/settings/penalites")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> listPenalties() {
     return Api.ok(service.listPenalties());
   }
@@ -111,26 +111,6 @@ public class ParametresController {
   public ResponseEntity<Map<String, Object>> deletePenalty(@PathVariable String id) {
     service.deletePenalty(RequestContext.actor(), Common.id(id));
     return Api.message("Pénalité supprimée");
-  }
-
-  // --- Permissions -------------------------------------------------------------------------------
-
-  @GetMapping("/api/v1/settings/permissions")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> listPermissions() {
-    return Api.ok(service.listPermissions());
-  }
-
-  @PostMapping("/api/v1/settings/permissions")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> updatePermission(@Body JsonNode body) {
-    Input input = Input.body(body);
-    String module = input.str("module").trimmed(1, 120, "Module requis").required();
-    String role = input.str("role").oneOf("AGENT", "SUPERVISEUR", "COMPTABLE", "ADMIN", "SUPER_ADMIN").required();
-    Boolean enabled = input.bool("enabled").required();
-    input.check();
-    service.updatePermission(RequestContext.actor(), module, role, Boolean.TRUE.equals(enabled));
-    return Api.message("Permission mise à jour");
   }
 
   // --- Sauvegardes -------------------------------------------------------------------------------

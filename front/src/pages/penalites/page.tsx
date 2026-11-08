@@ -7,7 +7,7 @@ import RecuPDF from '../../components/feature/RecuPDF';
 import ContribuableSelect, { requireSelectedContribuable } from '../../components/feature/ContribuableSelect';
 import { clearFieldValidationError, getErrorMessage, validateFormElement } from '../../utils/formValidation';
 
-const INPUT_CLASS = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500';
+const INPUT_CLASS = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500';
 
 export default function Penalites() {
   // L'administrateur est en consultation seule : il voit les pénalités sans les appliquer.
@@ -145,7 +145,7 @@ export default function Penalites() {
               placeholder="Rechercher une pénalité..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function Penalites() {
 
           {loading ? (
             <div className="p-8 text-center">
-              <div className="inline-block w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="inline-block w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
               <p className="text-gray-600 mt-2">Chargement...</p>
             </div>
           ) : (
@@ -182,7 +182,7 @@ export default function Penalites() {
                         <span className="text-sm text-gray-600">{penalite.description || '-'}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-semibold text-teal-600">{formatMontant(penalite.montant)} FCFA</span>
+                        <span className="font-semibold text-emerald-600">{formatMontant(penalite.montant)} FCFA</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-600">{penalite.delai}</span>
@@ -194,7 +194,7 @@ export default function Penalites() {
                             setSelectedPenalite(penalite);
                             setShowAssociateModal(true);
                           }}
-                          className="px-3 py-1.5 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 inline-flex"
+                          className="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 inline-flex"
                         >
                           <i className="ri-hand-coin-line"></i>
                           Appliquer
@@ -221,9 +221,9 @@ export default function Penalites() {
               </button>
             </div>
             <div className="p-6 space-y-6">
-              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-sm">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-sm">
                 <p className="text-gray-600">Type : <span className="font-bold">{selectedPenalite.type}</span></p>
-                <p className="text-gray-600">Montant : <span className="font-bold text-teal-600">{formatMontant(selectedPenalite.montant)} FCFA</span></p>
+                <p className="text-gray-600">Montant : <span className="font-bold text-emerald-600">{formatMontant(selectedPenalite.montant)} FCFA</span></p>
               </div>
 
               <form onSubmit={handleAssociate} onInput={clearFieldValidationError} noValidate className="space-y-6">
@@ -236,7 +236,7 @@ export default function Penalites() {
                   <button type="button" onClick={() => setShowAssociateModal(false)} className="px-4 py-2 text-gray-600 border rounded-lg">
                     Annuler
                   </button>
-                  <button type="submit" disabled={applying} className="px-4 py-2 bg-teal-600 text-white rounded-lg disabled:opacity-50 flex items-center gap-2">
+                  <button type="submit" disabled={applying} className="px-4 py-2 bg-emerald-600 text-white rounded-lg disabled:opacity-50 flex items-center gap-2">
                     <i className="ri-printer-line"></i>
                     {applying ? 'Enregistrement...' : 'Valider et imprimer'}
                   </button>

@@ -19,14 +19,6 @@ export interface Penalite {
   actif: boolean;
 }
 
-export interface Permission {
-  module: string;
-  agent: boolean;
-  superviseur: boolean;
-  comptable: boolean;
-  admin: boolean;
-}
-
 export interface BackupFile {
   filename: string;
   size: number;
@@ -68,14 +60,6 @@ export async function deletePenalite(id: string): Promise<{ message: string }> {
 }
 
 // PERMISSIONS
-export async function getPermissions(): Promise<Permission[]> {
-  return apiRequest<Permission[]>('/settings/permissions');
-}
-
-export async function updatePermission(data: { role: string; module: string; enabled: boolean }): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>('/settings/permissions', { method: 'POST', body: JSON.stringify(data) });
-}
-
 export async function listBackups(): Promise<BackupFile[]> {
   return apiRequest<BackupFile[]>('/settings/backups');
 }

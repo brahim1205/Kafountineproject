@@ -114,10 +114,10 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
       <div className="fixed inset-0 z-40" onClick={onClose}></div>
       
       <div className="absolute right-0 top-16 z-50 flex max-h-[min(80vh,600px)] w-[min(24rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] flex-col rounded-lg border border-gray-200 bg-white shadow-2xl animate-slideDown max-sm:right-2">
-        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-teal-50 to-emerald-50">
+        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-emerald-50">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <i className={`ri-notification-3-line text-xl text-teal-600 ${clignotement ? 'animate-pulse' : ''}`}></i>
+              <i className={`ri-notification-3-line text-xl text-emerald-600 ${clignotement ? 'animate-pulse' : ''}`}></i>
               <h3 className="font-semibold text-gray-900">Notifications</h3>
               {notificationsNonLues > 0 && (
                 <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-semibold rounded-full">
@@ -138,7 +138,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
               onClick={() => setFiltreType('toutes')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap cursor-pointer ${
                 filtreType === 'toutes'
-                  ? 'bg-teal-600 text-white'
+                  ? 'bg-emerald-600 text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
@@ -234,7 +234,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
           <div className="p-3 border-t border-gray-200 bg-gray-50">
             <button
               onClick={marquerToutCommeLu}
-              className="w-full px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap cursor-pointer"
+              className="w-full px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap cursor-pointer"
             >
               Marquer tout comme lu
             </button>

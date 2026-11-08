@@ -55,7 +55,7 @@ public class FormationsController {
   }
 
   @PostMapping("/api/v1/formations")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String nom = input.str("nom").trimmed(1, 120, "Nom requis").required();
@@ -72,7 +72,7 @@ public class FormationsController {
   }
 
   @PutMapping("/api/v1/formations/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String formationId = Common.id(id);
     Input input = Input.body(body);
@@ -90,7 +90,7 @@ public class FormationsController {
   }
 
   @DeleteMapping("/api/v1/formations/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
     service.deleteFormation(RequestContext.actor(), Common.id(id));
     return Api.message("Suppression effectuée");
@@ -108,7 +108,7 @@ public class FormationsController {
   }
 
   @PostMapping("/api/v1/jeunes")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> createJeune(@Body JsonNode body) {
     Input input = Input.body(body);
     String nom = input.str("nom").trimmed(1, 100, "Nom requis").required();
@@ -126,14 +126,14 @@ public class FormationsController {
   }
 
   @DeleteMapping("/api/v1/jeunes/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> deleteJeune(@PathVariable String id) {
     service.deleteJeune(RequestContext.actor(), Common.id(id));
     return Api.message("Suppression effectuée");
   }
 
   @PostMapping("/api/v1/jeunes/{id}/formations/{formationId}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> inscrire(@PathVariable String id, @PathVariable String formationId) {
     Input params = Input.params(Map.of("id", id, "formationId", formationId));
     String jeune = params.str("id").noTrim().uuid("Identifiant invalide").required();

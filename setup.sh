@@ -70,7 +70,7 @@ done
 
 # Configuration du backend
 log_info "Configuration du backend..."
-cd backend
+cd database
 
 # Installer les dépendances si nécessaire
 if [ ! -d "node_modules" ]; then
@@ -110,7 +110,7 @@ log_info "  Configuration terminée!"
 log_info "========================================"
 log_info ""
 log_info "Pour démarrer l'application:"
-log_info "  Backend:  cd backend && npm run dev"
+log_info "  Backend:  cd backend-spring && mvn spring-boot:run"
 log_info "  Frontend: cd front && npm run dev"
 log_info ""
 log_info "Ou avec Docker:"
@@ -119,5 +119,4 @@ log_info ""
 log_info "Comptes de démonstration créés avec le mot de passe SEED_DEFAULT_PASSWORD défini dans .env."
 log_info "  Admin: admin@kafountine.gouv.sn"
 log_info "  Agent: agent@kafountine.gouv.sn"
-log_info "  Comptable: comptable@kafountine.gouv.sn"
 log_info ""

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import { useYear } from '../../../contexts/YearContext';
 import { getMotosStats } from '../../../services/motos';
-import { getEtatCivilStats } from '../../../services/etatCivil';
 import { getUrbanismeStats } from '../../../services/urbanisme';
 import { getMarcheStats } from '../../../services/marche';
 import { getStoredUserId, getStoredUserName } from '../../../services/auth';
@@ -54,7 +53,6 @@ export default function AgentDashboard() {
   const [resumeLabel, setResumeLabel] = useState("Voici le résumé de votre journée de collecte");
   const [tachesCounts, setTachesCounts] = useState({
     motos: 0,
-    etatCivil: 0,
     urbanisme: 0,
     marche: 0,
   });
@@ -75,10 +73,9 @@ export default function AgentDashboard() {
           getTransactions({ agentId: agentId || undefined, year: selectedYear, startDate: day, endDate: day, limit: DAY_LIST_LIMIT });
 
         try {
-          const [todayResult, motosStats, etatCivilStats, urbanismeStats, marcheStats] = await Promise.all([
+          const [todayResult, motosStats, urbanismeStats, marcheStats] = await Promise.all([
             agentId ? dayOf(todayKey) : Promise.resolve(null),
             getMotosStats(selectedYear).catch(() => null),
-            getEtatCivilStats(selectedYear).catch(() => null),
             getUrbanismeStats(selectedYear).catch(() => null),
             getMarcheStats(selectedYear).catch(() => null),
           ]);
@@ -113,7 +110,6 @@ export default function AgentDashboard() {
 
           setTachesCounts({
             motos: Number(motosStats?.enRetard || 0),
-            etatCivil: Number(etatCivilStats?.enAttente || etatCivilStats?.data?.enAttente || 0),
             urbanisme: Number(urbanismeStats?.enAttente || urbanismeStats?.data?.enAttente || 0),
             marche: Number(marcheStats?.recettesEnRetard ? 1 : 0),
           });
@@ -121,13 +117,13 @@ export default function AgentDashboard() {
           setMesCollectes([]);
           setTotalJour(0);
           setResumeLabel("Impossible de charger les collectes");
-          setTachesCounts({ motos: 0, etatCivil: 0, urbanisme: 0, marche: 0 });
+          setTachesCounts({ motos: 0, urbanisme: 0, marche: 0 });
         }
       } catch {
         setMesCollectes([]);
         setTotalJour(0);
         setResumeLabel("Impossible de charger les collectes");
-        setTachesCounts({ motos: 0, etatCivil: 0, urbanisme: 0, marche: 0 });
+        setTachesCounts({ motos: 0, urbanisme: 0, marche: 0 });
       } finally {
         setLoading(false);
       }
@@ -137,9 +133,8 @@ export default function AgentDashboard() {
 
   const tachesEnCours = [
     { icon: 'ri-motorbike-line', label: 'Motos en retard de paiement', count: tachesCounts.motos, color: 'text-red-600 bg-red-50', link: '/motos' },
-    { icon: 'ri-file-text-line', label: 'Demandes état civil à traiter', count: tachesCounts.etatCivil, color: 'text-amber-600 bg-amber-50', link: '/etat-civil' },
     { icon: 'ri-building-line', label: 'Dossiers urbanisme en attente', count: tachesCounts.urbanisme, color: 'text-sky-600 bg-sky-50', link: '/urbanisme' },
-    { icon: 'ri-store-2-line', label: 'Paiements marché à encaisser', count: tachesCounts.marche, color: 'text-teal-600 bg-teal-50', link: '/marche' },
+    { icon: 'ri-store-2-line', label: 'Paiements marché à encaisser', count: tachesCounts.marche, color: 'text-emerald-600 bg-emerald-50', link: '/marche' },
   ];
 
   const objectifJour = 80000;
@@ -162,7 +157,7 @@ export default function AgentDashboard() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-gray-600">Chargement des données...</p>
         </div>
       </div>
@@ -212,7 +207,7 @@ export default function AgentDashboard() {
                 <h3 className="text-2xl font-bold text-gray-900">{nombreJour.toLocaleString('fr-FR')}</h3>
                 <p className="text-xs text-gray-500 mt-1">aujourd'hui</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <i className="ri-file-list-3-line text-2xl"></i>
               </div>
             </div>
@@ -286,7 +281,7 @@ export default function AgentDashboard() {
                 <Link
                   key={idx}
                   to={tache.link}
-                  className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-teal-300 hover:shadow-sm transition-all cursor-pointer group"
+                  className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer group"
                 >
                   <div className={`w-11 h-11 rounded-lg ${tache.color} flex items-center justify-center flex-shrink-0`}>
                     <i className={`${tache.icon} text-xl`}></i>
@@ -295,7 +290,7 @@ export default function AgentDashboard() {
                     <p className="text-sm font-medium text-gray-900 truncate">{tache.label}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{tache.count} élément{tache.count > 1 ? 's' : ''}</p>
                   </div>
-                  <i className="ri-arrow-right-s-line text-gray-400 group-hover:text-teal-600 text-lg"></i>
+                  <i className="ri-arrow-right-s-line text-gray-400 group-hover:text-emerald-600 text-lg"></i>
                 </Link>
               ))}
             </div>
@@ -312,7 +307,7 @@ export default function AgentDashboard() {
               </div>
               <Link
                 to="/recettes"
-                className="px-4 py-2 text-sm font-medium text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                className="px-4 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
               >
                 Voir tout
               </Link>
@@ -343,7 +338,7 @@ export default function AgentDashboard() {
                         <span className="text-sm font-medium text-gray-900">{collecte.id}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
                           {collecte.type}
                         </span>
                       </td>
@@ -359,7 +354,7 @@ export default function AgentDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <button 
                           onClick={() => handlePrintRecu(collecte)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
+                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
                           title="Générer reçu PDF"
                         >
                           <i className="ri-printer-line text-lg"></i>

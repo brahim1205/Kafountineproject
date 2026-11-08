@@ -118,9 +118,9 @@ export default function DetailFormation({
                   <p className="text-xs text-emerald-600">Inscrits</p>
                 </div>
 
-                <div className="bg-teal-50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-teal-700">{certifies}</p>
-                  <p className="text-xs text-teal-600">Certifiés</p>
+                <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-emerald-700">{certifies}</p>
+                  <p className="text-xs text-emerald-600">Certifiés</p>
                 </div>
 
                 <div className="bg-cyan-50 rounded-lg p-3 text-center">

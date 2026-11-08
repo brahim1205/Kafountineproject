@@ -198,7 +198,7 @@ export default function ServiceFinancesDashboard() {
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowModalBudget(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
           >
             <i className="ri-add-line"></i>
             Nouvelle Ligne
@@ -220,7 +220,7 @@ export default function ServiceFinancesDashboard() {
           onClick={() => setActiveTab('budget')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
             activeTab === 'budget' 
-              ? 'bg-teal-100 text-teal-700 border-b-2 border-teal-600' 
+              ? 'bg-emerald-100 text-emerald-700 border-b-2 border-emerald-600' 
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
@@ -231,7 +231,7 @@ export default function ServiceFinancesDashboard() {
           onClick={() => setActiveTab('depenses')}
           className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
             activeTab === 'depenses' 
-              ? 'bg-teal-100 text-teal-700 border-b-2 border-teal-600' 
+              ? 'bg-emerald-100 text-emerald-700 border-b-2 border-emerald-600' 
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
@@ -242,13 +242,13 @@ export default function ServiceFinancesDashboard() {
 
       {/* Résumé budgétaire */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl p-5 text-white">
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-5 text-white">
           <div className="flex items-center justify-between mb-2">
             <i className="ri-wallet-3-line text-2xl"></i>
           </div>
-          <p className="text-sm text-teal-100 mb-1">Budget Prévisionnel</p>
+          <p className="text-sm text-emerald-100 mb-1">Budget Prévisionnel</p>
           <h3 className="text-2xl font-bold">{totalPrevu.toLocaleString()} FCFA</h3>
-          <p className="text-xs text-teal-200 mt-1">Annuel</p>
+          <p className="text-xs text-emerald-200 mt-1">Annuel</p>
         </div>
         <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white">
           <div className="flex items-center justify-between mb-2">
@@ -325,7 +325,7 @@ export default function ServiceFinancesDashboard() {
                           <div className="flex items-center justify-center gap-2">
                             <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
                               <div 
-                                className={`h-2 rounded-full ${realise > 100 ? 'bg-red-500' : realise > 90 ? 'bg-amber-500' : 'bg-teal-500'}`}
+                                className={`h-2 rounded-full ${realise > 100 ? 'bg-red-500' : realise > 90 ? 'bg-amber-500' : 'bg-emerald-500'}`}
                                 style={{ width: `${Math.min(realise, 100)}%` }}
                               ></div>
                             </div>
@@ -451,7 +451,7 @@ export default function ServiceFinancesDashboard() {
                     value={newLigneBudget.code}
                     onChange={(e) => setNewLigneBudget({ ...newLigneBudget, code: e.target.value })}
                     placeholder="Ex: 601"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
                   />
                 </div>
                 <div>
@@ -462,7 +462,7 @@ export default function ServiceFinancesDashboard() {
                     value={newLigneBudget.libelle}
                     onChange={(e) => setNewLigneBudget({ ...newLigneBudget, libelle: e.target.value })}
                     placeholder="Ex: Salaires & Indemnités"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
                   />
                 </div>
                 <div>
@@ -474,7 +474,7 @@ export default function ServiceFinancesDashboard() {
                     value={newLigneBudget.prevu || ''}
                     onChange={(e) => setNewLigneBudget({ ...newLigneBudget, prevu: parseInt(e.target.value) || 0 })}
                     placeholder="Ex: 5000000"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
@@ -487,7 +487,7 @@ export default function ServiceFinancesDashboard() {
                   </button>
                   <button 
                     type="submit"
-                    className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
                   >
                     Enregistrer
                   </button>
@@ -525,7 +525,6 @@ export default function ServiceFinancesDashboard() {
                   >
                     <option value="">Sélectionner un service</option>
                     <option value="Urbanisme">Urbanisme</option>
-                    <option value="État Civil">État Civil</option>
                     <option value="Motos">Motos</option>
                     <option value="Marché">Marché</option>
                     <option value="Formations">Formations</option>

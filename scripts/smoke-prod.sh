@@ -38,6 +38,5 @@ echo "== Kafontine production smoke test =="
 check_url "frontend" "$BASE_URL/"
 check_url "health" "$BASE_URL/health"
 check_url "ready" "$BASE_URL/ready"
-check_url "portal home" "$BASE_URL/portal"
 
 echo "Smoke test passed for $BASE_URL"

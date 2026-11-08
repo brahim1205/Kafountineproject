@@ -68,7 +68,7 @@ public class ContribuablesController {
   }
 
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "ETAT_CIVIL", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     Map<String, Object> data = new LinkedHashMap<>();
@@ -92,7 +92,7 @@ public class ContribuablesController {
   }
 
   @PutMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "ETAT_CIVIL", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     Input input = Input.body(body);
     Map<String, Object> data = new LinkedHashMap<>();
@@ -110,7 +110,7 @@ public class ContribuablesController {
   }
 
   @DeleteMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
     service.delete(RequestContext.actor(), id);
     return Api.message("Contribuable supprimé avec succès");

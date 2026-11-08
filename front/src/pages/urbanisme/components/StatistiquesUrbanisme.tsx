@@ -91,7 +91,7 @@ export default function StatistiquesUrbanisme() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
       </div>
     );
   }
@@ -105,9 +105,9 @@ export default function StatistiquesUrbanisme() {
       )}
       {/* Message de succès */}
       {showSuccessMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-teal-200 p-4 flex items-center gap-3 animate-fade-in">
-          <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
-            <i className="ri-check-line text-teal-600 text-xl"></i>
+        <div className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-emerald-200 p-4 flex items-center gap-3 animate-fade-in">
+          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+            <i className="ri-check-line text-emerald-600 text-xl"></i>
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900">Export réussi !</p>
@@ -154,7 +154,7 @@ export default function StatistiquesUrbanisme() {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Taux de validation: {tauxValidation}%</h3>
         <div className="w-full bg-gray-200 rounded-full h-4">
           <div 
-            className="bg-teal-500 h-4 rounded-full transition-all"
+            className="bg-emerald-500 h-4 rounded-full transition-all"
             style={{ width: `${Math.min(tauxValidation, 100)}%` }}
           ></div>
         </div>

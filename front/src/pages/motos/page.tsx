@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { MotoPayment } from '../../services/motos';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import RecuPDF from '../../components/feature/RecuPDF';
 import { getMotoConfiguration, getMotosStats, listMotoPayments, listMotos, type MotoStats } from '../../services/motos';
@@ -15,7 +16,7 @@ import {
   FULL_DATE,
   SHORT_TIME,
   toUiMoto,
-  toUiMotoPayment,
+  toUiMotoPayment, libellePaiement,
   type MotoConfig,
   type ReceiptData,
   type UiMoto,
@@ -26,15 +27,15 @@ type Tab = 'liste' | 'paiements' | 'retards';
 type Modal = { type: 'enregistrement' } | { type: 'paiement' | 'changement'; moto: UiMoto } | null;
 
 const EMPTY_STATS: MotoStats = { totalMotos: 0, paiementsMois: 0, enRetard: 0, recettesMois: 0 };
-const EMPTY_CONFIG: MotoConfig = { tarifMensuel: 0, penaliteRetard: 0 };
+const EMPTY_CONFIG: MotoConfig = { droitAdhesion: 0, tarifMensuel: 0, penaliteRetard: 0, amendePolice: 0 };
 
 export default function MotosPage() {
   const { selectedYear } = useYear();
   const isCurrentYear = selectedYear === new Date().getFullYear();
   const userRole = getStoredUserRole() || 'admin';
-  const canManage = userRole !== 'super_admin' && userRole !== 'comptable' && canWriteData(userRole) && isCurrentYear;
+  const canManage = canWriteData(userRole) && isCurrentYear;
 
-  const [activeTab, setActiveTab] = useState<Tab>('liste');
+  const [activeTab, setActiveTab] = useState<Tab>(userRole === 'admin' ? 'paiements' : 'liste');
   const [modal, setModal] = useState<Modal>(null);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
@@ -93,6 +94,13 @@ export default function MotosPage() {
     showSuccess('Paiement enregistré avec succès !', () => setReceipt(paymentReceipt));
   };
 
+  // À l'enregistrement, le reçu du droit d'adhésion s'ouvre directement.
+  const afterRegistration = async (adhesion?: MotoPayment) => {
+    setModal(null);
+    await loadData();
+    showSuccess('Moto enregistrée, droit d’adhésion encaissé !', adhesion ? () => imprimerRecu(toUiMotoPayment(adhesion)) : undefined);
+  };
+
   const imprimerRecu = (paiement: UiMotoPayment) => {
     const date = paiement.datePaiement ? new Date(paiement.datePaiement) : new Date();
     setReceipt({
@@ -100,14 +108,14 @@ export default function MotosPage() {
       date: date.toLocaleDateString('fr-FR', FULL_DATE),
       heure: date.toLocaleTimeString('fr-FR', SHORT_TIME),
       contribuable: paiement.proprietaire,
-      type: `Taxe moto Jakarta - ${paiement.mois}`,
+      type: libellePaiement(paiement),
       montant: paiement.montant,
       agent: paiement.agent,
     });
   };
 
   const tabs: Array<{ id: Tab; label: string; icon: string }> = [
-    { id: 'liste', label: 'Liste des motos', icon: 'ri-list-check' },
+    ...(userRole === 'admin' ? [] : [{ id: 'liste' as const, label: 'Liste des motos', icon: 'ri-list-check' }]),
     { id: 'paiements', label: 'Paiements récents', icon: 'ri-money-dollar-circle-line' },
     { id: 'retards', label: `Retards (${motosRetard.length})`, icon: 'ri-alarm-warning-line' },
   ];
@@ -149,7 +157,7 @@ export default function MotosPage() {
 
         <div className="bg-white rounded-xl border border-gray-100">
           <div className="border-b border-gray-200 px-6">
-            <div className="flex gap-6">
+            <div className="flex gap-6 overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -192,14 +200,14 @@ export default function MotosPage() {
           <EnregistrementMotoModal
             selectedYear={selectedYear}
             onClose={() => setModal(null)}
-            onSaved={afterSave('Moto enregistrée avec succès !')}
+            droitAdhesion={motoConfig.droitAdhesion}
+            onSaved={afterRegistration}
           />
         )}
         {canManage && modal?.type === 'paiement' && (
           <PaiementMotoModal
             moto={modal.moto}
             motoConfig={motoConfig}
-            selectedYear={selectedYear}
             onClose={() => setModal(null)}
             onPaid={afterPayment}
           />

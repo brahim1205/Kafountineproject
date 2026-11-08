@@ -30,7 +30,7 @@ export default function DossiersTable({ dossiers, types, loading, onView }: Doss
                 <td colSpan={COLUMNS.length + 1} className="px-4 py-8 text-center text-gray-500">
                   {loading ? (
                     <span className="inline-flex items-center gap-2">
-                      <i className="ri-loader-4-line animate-spin text-teal-500"></i>
+                      <i className="ri-loader-4-line animate-spin text-emerald-500"></i>
                       Chargement des dossiers...
                     </span>
                   ) : (
@@ -50,14 +50,14 @@ export default function DossiersTable({ dossiers, types, loading, onView }: Doss
                     <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{typeLabel(dossier, types)}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{dossier.localisation || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatSurface(dossier.surface)}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-teal-600 whitespace-nowrap">{dossier.montant.toLocaleString('fr-FR')} FCFA</td>
+                    <td className="px-4 py-3 text-sm font-medium text-emerald-600 whitespace-nowrap">{dossier.montant.toLocaleString('fr-FR')} FCFA</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge}`}>{label}</span>
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       <button
                         onClick={() => onView(dossier)}
-                        className="w-8 h-8 inline-flex items-center justify-center text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                        className="w-8 h-8 inline-flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                         title="Voir les détails"
                         aria-label={`Détails du dossier ${dossier.numero}`}
                       >

@@ -33,13 +33,13 @@ public class DashboardController {
   }
 
   @GetMapping("/statistiques")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> statistics(HttpServletRequest request) {
     return Api.ok(service.statistics(query(request).year()));
   }
 
   @GetMapping("/top-contribuables")
-  @Roles({"ADMIN", "SUPER_ADMIN", "COMPTABLE", "SERVICE_FINANCES", "AGENT"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "SERVICE_FINANCES", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> topContribuables(HttpServletRequest request) {
     Query query = query(request);
     return Api.ok(service.topContribuables(query.year(), query.limit() == null || query.limit() == 0 ? 10 : query.limit()));

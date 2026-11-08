@@ -136,7 +136,7 @@ export default function StatistiquesFormations({ stats }: StatistiquesFormations
                 </div>
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-500 rounded-full"
                     style={{ width: `${Math.min((item.nombre / maxEvolutionAnnuelle) * 100, 100)}%` }}
                   ></div>
                 </div>
@@ -147,7 +147,7 @@ export default function StatistiquesFormations({ stats }: StatistiquesFormations
       </div>
 
       {/* Impact social */}
-      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg border border-emerald-200 p-6">
+      <div className="bg-gradient-to-br from-emerald-50 to-emerald-50 rounded-lg border border-emerald-200 p-6">
         <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <i className="ri-heart-line text-emerald-600"></i>
           Impact social
@@ -158,7 +158,7 @@ export default function StatistiquesFormations({ stats }: StatistiquesFormations
             <p className="text-sm text-gray-700">Jeunes certifiés et prêts pour l'emploi</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-teal-600 mb-1">{stats?.totalFormations || 0}</p>
+            <p className="text-3xl font-bold text-emerald-600 mb-1">{stats?.totalFormations || 0}</p>
             <p className="text-sm text-gray-700">Formations gratuites organisées</p>
           </div>
           <div className="text-center">

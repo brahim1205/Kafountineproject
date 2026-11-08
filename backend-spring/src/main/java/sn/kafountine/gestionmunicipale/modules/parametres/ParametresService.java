@@ -29,12 +29,11 @@ public class ParametresService {
   private static final List<String> PERMISSION_MODULES = List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "Utilisateurs", "Audit", "Budget",
       "État civil", "Urbanisme", "Marché", "Motos", "Formations", "Quai de pêche", "Paramètres");
   private static final Map<String, List<String>> ROLE_MODULES = new LinkedHashMap<>();
-  private static final List<String> ASSIGNABLE_ROLES = List.of("AGENT", "SUPERVISEUR", "COMPTABLE", "ADMIN", "SUPER_ADMIN");
+  private static final List<String> ASSIGNABLE_ROLES = List.of("AGENT", "SUPERVISEUR", "ADMIN", "SUPER_ADMIN");
 
   static {
     ROLE_MODULES.put("AGENT", List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "État civil", "Urbanisme", "Marché", "Motos", "Formations", "Quai de pêche"));
     ROLE_MODULES.put("SUPERVISEUR", List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "État civil", "Urbanisme"));
-    ROLE_MODULES.put("COMPTABLE", List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "Budget", "Marché"));
     ROLE_MODULES.put("ADMIN", null);
     ROLE_MODULES.put("SUPER_ADMIN", null);
   }
@@ -197,45 +196,6 @@ public class ParametresService {
     auditTrail.record(actor, "Suppression pénalité", "Paramètres", "Pénalité " + existing.get("type") + " supprimée", "warning");
   }
 
-  // --- Permissions -------------------------------------------------------------------------------
-
-  public List<Map<String, Object>> listPermissions() {
-    Map<String, Map<String, Object>> grouped = new LinkedHashMap<>();
-    for (Map<String, Object> row : db.list("SELECT * FROM \"AppSettingPermission\" ORDER BY \"module\" ASC, \"role\" ASC")) {
-      String module = Db.str(row, "module");
-      Map<String, Object> current = grouped.computeIfAbsent(module, m -> Api.map("module", m, "agent", false, "superviseur", false, "comptable", false, "admin", false));
-      switch (Db.str(row, "role")) {
-        case "AGENT" -> current.put("agent", row.get("enabled"));
-        case "SUPERVISEUR" -> current.put("superviseur", row.get("enabled"));
-        case "COMPTABLE" -> current.put("comptable", row.get("enabled"));
-        case "ADMIN" -> current.put("admin", row.get("enabled"));
-        default -> { }
-      }
-    }
-    Collator collator = Collator.getInstance(Locale.FRENCH);
-    List<Map<String, Object>> result = new ArrayList<>(grouped.values());
-    result.sort((a, b) -> collator.compare((String) a.get("module"), (String) b.get("module")));
-    return result;
-  }
-
-  @Transactional
-  public void updatePermission(Actor actor, String module, String role, boolean enabled) {
-    String normalizedRole = role == null ? "" : role.strip().toUpperCase(Locale.ROOT);
-    String moduleName = module == null ? "" : module.strip();
-    if (moduleName.isEmpty() || !ASSIGNABLE_ROLES.contains(normalizedRole)) throw AppException.validation("Le module et le rôle sont requis.");
-    Map<String, Object> existing = db.one("SELECT * FROM \"AppSettingPermission\" WHERE \"module\" = :module AND \"role\" = :role LIMIT 1",
-        Db.params("module", moduleName, "role", normalizedRole));
-    if (existing != null) {
-      db.update("UPDATE \"AppSettingPermission\" SET \"enabled\" = :enabled, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"module\" = :module AND \"role\" = :role",
-          Db.params("enabled", enabled, "module", moduleName, "role", normalizedRole));
-    } else {
-      db.update("INSERT INTO \"AppSettingPermission\" (\"id\", \"module\", \"role\", \"enabled\", \"createdAt\", \"updatedAt\")"
-          + " VALUES (:id, :module, :role, :enabled, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", Db.params("id", Db.uuid(), "module", moduleName, "role", normalizedRole, "enabled", enabled));
-    }
-    auditTrail.record(actor, "Mise à jour permission", "Paramètres",
-        "Permission " + normalizedRole + " / " + moduleName + " définie à " + (enabled ? "activée" : "désactivée"));
-  }
-
   // --- Sauvegardes -------------------------------------------------------------------------------
 
   /** Valeurs par défaut des anciennes tables de paramètres, créées avant la première sauvegarde. */
@@ -252,7 +212,7 @@ public class ParametresService {
       String[][] penalties = {
           {"Retard paiement marché", "Majoration appliquée après échéance mensuelle", "1500", "5 jours après échéance"},
           {"Retard dossier urbanisme", "Frais complémentaires en cas de dossier incomplet prolongé", "5000", "10 jours après notification"},
-          {"Retard moto-taxi", "Pénalité standard de régularisation", "250", "Immédiatement après échéance"}};
+          {"Retard moto-taxi", "Pénalité standard de régularisation", "10000", "Immédiatement après échéance"}};
       insertDefaults("AppSettingPenalty", "\"type\", \"description\", \"montant\", \"delai\"", penalties);
     }
     if (db.count("SELECT COUNT(*)::bigint AS count FROM \"AppSettingPermission\"", Db.params()) == 0) {

@@ -60,7 +60,7 @@ export default function TarifModal({ tarif, categories, onClose, onSaved, onErro
       onClose={onClose}
       title={
         <>
-          <i className="ri-price-tag-3-line mr-2 text-teal-600"></i>
+          <i className="ri-price-tag-3-line mr-2 text-emerald-600"></i>
           {tarif ? 'Modifier le tarif' : 'Nouveau tarif municipal'}
         </>
       }
@@ -135,7 +135,7 @@ export default function TarifModal({ tarif, categories, onClose, onSaved, onErro
             type="checkbox"
             name="actif"
             defaultChecked={tarif ? tarif.actif : true}
-            className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+            className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
           />
           Tarif actif
         </label>

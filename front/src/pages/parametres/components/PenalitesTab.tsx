@@ -52,7 +52,7 @@ export default function PenalitesTab({ penalites, onAdd, onEdit, onToggle, onDel
               aria-label={`Activer ${penalite.type}`}
               onClick={() => onToggle(penalite)}
               disabled={readOnly}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${penalite.actif ? 'bg-teal-600' : 'bg-gray-300'}`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${penalite.actif ? 'bg-emerald-600' : 'bg-gray-300'}`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${penalite.actif ? 'translate-x-6' : 'translate-x-1'}`}
@@ -60,7 +60,7 @@ export default function PenalitesTab({ penalites, onAdd, onEdit, onToggle, onDel
             </button>
             {!readOnly && (
             <div className="ml-4 flex items-center gap-3">
-              <button onClick={() => onEdit(penalite)} className="text-teal-600 hover:text-teal-700" aria-label={`Modifier ${penalite.type}`}>
+              <button onClick={() => onEdit(penalite)} className="text-emerald-600 hover:text-emerald-700" aria-label={`Modifier ${penalite.type}`}>
                 <i className="ri-edit-line"></i>
               </button>
               <button onClick={() => onDelete(penalite)} className="text-red-600 hover:text-red-700" aria-label={`Supprimer ${penalite.type}`}>

@@ -17,12 +17,12 @@ export default function UrbanismePage() {
         </div>
 
         {/* Onglets */}
-        <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1">
+        <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1 max-w-full overflow-x-auto">
           <button
             onClick={() => setActiveTab('dossiers')}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               activeTab === 'dossiers'
-                ? 'bg-teal-500 text-white'
+                ? 'bg-emerald-500 text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -33,7 +33,7 @@ export default function UrbanismePage() {
             onClick={() => setActiveTab('validation')}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               activeTab === 'validation'
-                ? 'bg-teal-500 text-white'
+                ? 'bg-emerald-500 text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -44,7 +44,7 @@ export default function UrbanismePage() {
             onClick={() => setActiveTab('statistiques')}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
               activeTab === 'statistiques'
-                ? 'bg-teal-500 text-white'
+                ? 'bg-emerald-500 text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >

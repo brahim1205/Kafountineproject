@@ -47,7 +47,6 @@ export interface GlobalStats {
   totalUsers?: number;
   totalAdmins?: number;
   totalAgents?: number;
-  totalComptables?: number;
   alertes?: Array<{
     message: string;
     type?: string;

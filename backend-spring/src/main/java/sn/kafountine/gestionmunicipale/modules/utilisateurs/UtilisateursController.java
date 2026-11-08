@@ -22,7 +22,7 @@ import sn.kafountine.gestionmunicipale.shared.web.RequestContext;
 @RestController
 @RequestMapping("/api/v1/users")
 public class UtilisateursController {
-  private static final String[] ROLES = {"ADMIN", "SUPER_ADMIN", "AGENT", "COMPTABLE", "SERVICE_FINANCES", "QUAI_PECHE"};
+  private static final String[] ROLES = {"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "ETAT_CIVIL", "REGISSEUR"};
   private final UtilisateurService service;
 
   public UtilisateursController(UtilisateurService service) {
@@ -30,14 +30,14 @@ public class UtilisateursController {
   }
 
   @GetMapping
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> list(HttpServletRequest request) {
     String search = request.getParameter("search");
-    return Api.ok(service.list(search == null ? "" : search));
+    return Api.ok(service.list(search == null ? "" : search, RequestContext.actor().role()));
   }
 
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String email = input.str("email").trimmed(5, 254, "Email invalide").email("Email invalide").lower().required();
@@ -52,7 +52,7 @@ public class UtilisateursController {
   }
 
   @PutMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String userId = Common.id(id);
     Input input = Input.body(body);
@@ -69,7 +69,7 @@ public class UtilisateursController {
   }
 
   @DeleteMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
     return Api.message(service.delete(RequestContext.actor(), Common.id(id)));
   }

@@ -17,9 +17,9 @@ export default function TaxesPage() {
   const isCurrentYear = selectedYear === currentYear;
   const userRole = getStoredUserRole();
   // L'administrateur est en consultation seule.
-  const canManage = userRole === 'agent' && isCurrentYear;
+  const canManage = (userRole === 'agent' || userRole === 'regisseur' || userRole === 'super_admin') && isCurrentYear;
   // Même règle que l'API : les statistiques globales sont réservées à l'encadrement et aux finances.
-  const canSeeStats = userRole === 'admin' || userRole === 'super_admin' || userRole === 'comptable' || userRole === 'service_finances';
+  const canSeeStats = userRole === 'admin' || userRole === 'super_admin' || userRole === 'service_finances' || userRole === 'regisseur';
   const [periode, setPeriode] = useState<'aujourdhui' | 'mois' | 'annee'>('annee');
   const [categories, setCategories] = useState<TaxCategory[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
@@ -38,7 +38,8 @@ export default function TaxesPage() {
       .then((cats) => {
         if (!mounted) return;
         setErrorMsg('');
-        setCategories(cats || []);
+        // L'état civil n'est pas du ressort du régisseur.
+        setCategories((cats || []).filter((cat) => userRole !== 'regisseur' || cat.id !== 'etat-civil'));
       })
       .catch(() => {
         if (!mounted) return;
@@ -81,7 +82,7 @@ export default function TaxesPage() {
           {canManage && (
             <button
               onClick={() => navigate('/taxes/nouvelle-transaction')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap"
             >
               <i className="ri-add-line text-lg"></i>
               Nouvelle transaction
@@ -94,7 +95,7 @@ export default function TaxesPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Statistiques des recettes</h2>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setPeriode('annee')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
@@ -130,7 +131,7 @@ export default function TaxesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-emerald-50 rounded-lg">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Total des recettes</p>
                     <p className="text-3xl font-bold text-emerald-700">{Number(selectedStats.total || 0).toLocaleString()} FCFA</p>
@@ -161,7 +162,7 @@ export default function TaxesPage() {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all"
+                          className="bg-gradient-to-r from-emerald-500 to-emerald-500 h-2 rounded-full transition-all"
                           style={{ width: `${Math.min(cat.pourcentage, 100)}%` }}
                         ></div>
                       </div>

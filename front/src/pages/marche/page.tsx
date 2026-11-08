@@ -17,7 +17,7 @@ export default function MarchePage() {
         </div>
 
         {/* Onglets */}
-        <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1">
+        <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1 max-w-full overflow-x-auto">
           <button
             onClick={() => setActiveTab('attribution')}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${

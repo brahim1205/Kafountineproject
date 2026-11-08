@@ -30,10 +30,6 @@ required_keys=(
   TRUST_PROXY
   COOKIE_SAME_SITE
   CORS_ORIGIN
-  PORTAL_URL
-  PORTAL_OTP_DELIVERY_MODE
-  PORTAL_OTP_WEBHOOK_URL
-  PORTAL_OTP_WEBHOOK_TOKEN
   ENABLE_API_DOCS
   ENABLE_METRICS
   METRICS_BEARER_TOKEN
@@ -98,9 +94,6 @@ jwt_refresh_secret="$(get_value JWT_REFRESH_SECRET || true)"
 trust_proxy="$(get_value TRUST_PROXY || true)"
 cookie_same_site="$(get_value COOKIE_SAME_SITE || true)"
 cors_origin="$(get_value CORS_ORIGIN || true)"
-portal_url="$(get_value PORTAL_URL || true)"
-portal_otp_delivery_mode="$(get_value PORTAL_OTP_DELIVERY_MODE || true)"
-portal_otp_webhook_url="$(get_value PORTAL_OTP_WEBHOOK_URL || true)"
 enable_api_docs="$(get_value ENABLE_API_DOCS || true)"
 enable_metrics="$(get_value ENABLE_METRICS || true)"
 metrics_bearer_token="$(get_value METRICS_BEARER_TOKEN || true)"
@@ -154,21 +147,6 @@ esac
 
 if [[ "$cors_origin" == *"*"* ]]; then
   echo "CORS_ORIGIN must not contain wildcard origins in production" >&2
-  failures=1
-fi
-
-if [[ "$portal_url" != https://* ]]; then
-  echo "PORTAL_URL must use HTTPS in production" >&2
-  failures=1
-fi
-
-if [[ "$portal_otp_delivery_mode" != "webhook" ]]; then
-  echo "PORTAL_OTP_DELIVERY_MODE must be webhook in production" >&2
-  failures=1
-fi
-
-if [[ "$portal_otp_webhook_url" != https://* ]]; then
-  echo "PORTAL_OTP_WEBHOOK_URL must use HTTPS in production" >&2
   failures=1
 fi
 

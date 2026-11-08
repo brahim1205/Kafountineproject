@@ -2,7 +2,7 @@
 
 Plateforme web de gestion municipale pour la commune de Kafountine.
 
-Le projet regroupe un frontend React/Vite, un backend Node.js/Express en TypeScript, une base PostgreSQL, Redis, ainsi qu'une pile de déploiement Kubernetes avec Traefik. L'objectif est de centraliser les opérations municipales autour des contribuables, des taxes, des recettes et de plusieurs services métiers.
+Le projet regroupe un frontend React/Vite, un backend Java Spring Boot (`backend-spring/`), une base PostgreSQL, Redis, ainsi qu'une pile de déploiement Kubernetes avec Traefik. L'objectif est de centraliser les opérations municipales autour des contribuables, des taxes, des recettes et de plusieurs services métiers.
 
 ## Fonctionnalités principales
 
@@ -16,7 +16,6 @@ Le projet regroupe un frontend React/Vite, un backend Node.js/Express en TypeScr
 - Formations
 - Gestion du marché
 - Quai de pêche
-- Portail contribuable
 - Audit et paramètres
 
 ## Architecture
@@ -24,7 +23,8 @@ Le projet regroupe un frontend React/Vite, un backend Node.js/Express en TypeScr
 ```text
 .
 ├── front/                  # Application frontend React + Vite
-├── backend/                # API REST Express + Prisma
+├── backend-spring/         # API REST Java Spring Boot
+├── database/               # Migrations Prisma, jeu de démonstration et tests d'API
 ├── infra/terraform/        # Infrastructure as code
 ├── traefik/                # Reverse proxy et configuration edge
 ├── scripts/                # Scripts de validation et de smoke tests
@@ -43,22 +43,20 @@ Le projet regroupe un frontend React/Vite, un backend Node.js/Express en TypeScr
 
 ### Backend
 
-- Node.js + TypeScript
-- Express
-- Prisma ORM
+- Java 17 + Spring Boot 3.3
+- Prisma (migrations uniquement)
 - PostgreSQL
 - Redis
 - JWT
-- Swagger
 
-Le backend suit une architecture modulaire avec séparation `domain`, `application`, `infrastructure` et `presentation`.
+Le backend est organisé par modules métier.
 
 ## Démarrage rapide
 
 ### Prérequis
 
-- Node.js 20+
-- npm
+- Java 17 et Maven
+- Node.js 22 et npm
 - Docker et Docker Compose
 
 ### 1. Cloner et préparer l'environnement
@@ -76,7 +74,7 @@ make backend-local
 
 Cette commande :
 - démarre PostgreSQL et Redis en mode développement
-- prépare Prisma
+- applique les migrations
 - injecte les données de seed
 - lance l'API backend
 
@@ -129,9 +127,13 @@ npm run e2e
 ### Backend
 
 ```bash
-cd backend
-npm install
-npm run check
+cd backend-spring
+mvn -Dmaven.test.skip=true package
+
+# Tests d'API, backend démarré
+cd ../database
+npm ci
+RUN_INTEGRATION_TESTS=true API_BASE_URL=http://127.0.0.1:3000 npm run test:api
 ```
 
 ## Endpoints utiles
@@ -146,10 +148,6 @@ Seed backend :
 
 - `admin@kafountine.gouv.sn`
 - mot de passe défini par `SEED_DEFAULT_PASSWORD` dans l'environnement local
-
-Contribuable portail seed :
-
-- `NIN-TEST-0001`
 
 ## Déploiement et exploitation
 

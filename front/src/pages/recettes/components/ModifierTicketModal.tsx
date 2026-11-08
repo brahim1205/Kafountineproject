@@ -50,8 +50,8 @@ export default function ModifierTicketModal({ row, onClose, onSaved }: ModifierT
   };
 
   const handleDelete = () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette transaction définitivement ? Cette action est irréversible.')) return;
-    run(() => deleteTransaction(row.id), 'Transaction supprimée avec succès.', 'Erreur lors de la suppression.');
+    if (!window.confirm('Êtes-vous sûr de vouloir annuler cette transaction ?')) return;
+    run(() => deleteTransaction(row.id), 'Transaction annulée.', 'Erreur lors de l’annulation.');
   };
 
   const initial = row.contribuableId
@@ -79,7 +79,7 @@ export default function ModifierTicketModal({ row, onClose, onSaved }: ModifierT
             className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60"
           >
             <i className="ri-delete-bin-line"></i>
-            Supprimer la recette
+            Annuler la recette
           </button>
           <div className="flex items-center gap-3">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
@@ -88,7 +88,7 @@ export default function ModifierTicketModal({ row, onClose, onSaved }: ModifierT
             <button
               type="submit"
               disabled={busy}
-              className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-60"
+              className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-60"
             >
               <i className="ri-save-line"></i>
               Enregistrer

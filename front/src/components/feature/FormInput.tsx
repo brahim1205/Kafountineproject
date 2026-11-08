@@ -87,10 +87,10 @@ export default function FormInput({
     }
   };
 
-  const baseInputClass = `w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-colors ${
+  const baseInputClass = `w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-colors ${
     error
       ? 'border-red-300 bg-red-50 focus:ring-red-500'
-      : 'border-gray-300 focus:border-teal-500'
+      : 'border-gray-300 focus:border-emerald-500'
   } ${className}`;
 
   return (

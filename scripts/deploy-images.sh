@@ -6,9 +6,12 @@ app_dir=${1:?Application directory required}
 backend_image=${2:?Backend image required}
 frontend_image=${3:?Frontend image required}
 operation=${4:-deploy}
+# Image Node contenant Prisma : les migrations restent gérées par Prisma quel que soit le backend.
+migrator_image=${5:-}
 [[ "$backend_image" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/:@-]+$ ]]
 [[ "$frontend_image" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/:@-]+$ ]]
 [[ "$operation" == deploy || "$operation" == rollback ]]
+[[ -z "$migrator_image" || "$migrator_image" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/:@-]+$ ]]
 cd "$app_dir"
 exec 9>.production.lock
 flock -w 300 9
@@ -31,6 +34,15 @@ services:
   $front_service:
     image: $frontend_image
 EOF
+if [[ -n "$migrator_image" ]]; then
+  cat >> "$override" <<EOF
+  migrator:
+    image: $migrator_image
+    profiles: [tools]
+    environment:
+      DATABASE_URL: \${DATABASE_URL}
+EOF
+fi
 compose=("${base[@]}" -f "$override")
 "${compose[@]}" pull backend "$front_service" </dev/null
 "${compose[@]}" up -d postgres redis </dev/null
@@ -38,11 +50,17 @@ if grep -qx otel-collector <<< "$services"; then
   "${compose[@]}" up -d otel-collector </dev/null
 fi
 if [[ "$operation" == deploy ]]; then
-  "${compose[@]}" run --rm -T backend npx prisma migrate deploy </dev/null
+  if [[ -n "$migrator_image" ]]; then
+    "${compose[@]}" pull migrator </dev/null
+    "${compose[@]}" run --rm -T migrator npx prisma migrate deploy </dev/null
+  else
+    "${compose[@]}" run --rm -T backend npx prisma migrate deploy </dev/null
+  fi
 fi
 "${compose[@]}" up -d --no-build --no-deps backend "$front_service" </dev/null
-for attempt in {1..30}; do
-  if "${compose[@]}" exec -T backend node -e 'fetch("http://127.0.0.1:3000/ready", {signal: AbortSignal.timeout(5000)}).then(r => {if (!r.ok) process.exit(1);}).catch(() => process.exit(1))' </dev/null; then
+for attempt in {1..60}; do
+  # Contrôle depuis le frontend : indépendant de la technologie du backend.
+  if "${compose[@]}" exec -T "$front_service" wget -q -O /dev/null http://backend:3000/ready </dev/null; then
     if [[ -f .compose-images.yml ]]; then
       cp .compose-images.yml .compose-images.previous.yml
     fi
@@ -53,4 +71,9 @@ for attempt in {1..30}; do
   sleep 2
 done
 echo 'Backend readiness failed after deployment; inspect container logs' >&2
+"${compose[@]}" logs --tail 80 backend </dev/null >&2 || true
+if [[ "$operation" == deploy && -f .compose-images.yml ]]; then
+  echo 'Restoring the previous release' >&2
+  "${base[@]}" -f .compose-images.yml up -d --no-build --no-deps backend "$front_service" </dev/null
+fi
 exit 1

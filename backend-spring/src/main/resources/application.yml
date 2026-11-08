@@ -1,6 +1,7 @@
 # Configuration lue à partir des MÊMES variables d'environnement que le backend Node
 # (DATABASE_URL, REDIS_URL, JWT_SECRET…) : voir shared/config/Env.java.
 server:
+  shutdown: graceful
   port: ${PORT:3000}
   forward-headers-strategy: none
   error:

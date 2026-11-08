@@ -84,9 +84,29 @@ public final class Env {
     if (CORS_ORIGIN.isEmpty() || CORS_ORIGIN.contains("*")) {
       throw new IllegalStateException("CORS_ORIGIN doit lister des origines explicites en production.");
     }
-    if (PORTAL_OTP_DELIVERY_MODE.equals("webhook") && !PORTAL_OTP_WEBHOOK_URL.startsWith("https://")) {
+    if (!trustProxyAllowed(TRUST_PROXY)) {
+      throw new IllegalStateException("TRUST_PROXY doit valoir false, loopback/linklocal/uniquelocal ou une liste IP/CIDR explicite en production.");
+    }
+    if (!PORTAL_URL.startsWith("https://")) throw new IllegalStateException("PORTAL_URL doit utiliser HTTPS en production.");
+    if (!PORTAL_OTP_DELIVERY_MODE.equals("webhook") || !PORTAL_OTP_WEBHOOK_URL.startsWith("https://")) {
       throw new IllegalStateException("PORTAL_OTP_DELIVERY_MODE=webhook et PORTAL_OTP_WEBHOOK_URL HTTPS sont requis en production.");
     }
+    if (PORTAL_OTP_WEBHOOK_TOKEN.isEmpty()) throw new IllegalStateException("PORTAL_OTP_WEBHOOK_TOKEN est requis en production.");
+    if (ENABLE_API_DOCS) throw new IllegalStateException("ENABLE_API_DOCS doit être désactivé en production.");
+    if (ENABLE_METRICS && METRICS_BEARER_TOKEN.length() < 32) {
+      throw new IllegalStateException("METRICS_BEARER_TOKEN doit contenir au moins 32 caractères quand ENABLE_METRICS=true en production.");
+    }
+  }
+
+  private static boolean trustProxyAllowed(String value) {
+    if (value.equals("false")) return true;
+    if (value.equals("true") || value.matches("^\\d+$")) return false;
+    for (String raw : value.split(",")) {
+      String entry = raw.trim();
+      if (entry.isEmpty()) return false;
+      if (!List.of("loopback", "linklocal", "uniquelocal").contains(entry) && !entry.matches("^[0-9a-fA-F:.]+(/\\d{1,3})?$")) return false;
+    }
+    return true;
   }
 
   /** « 15m », « 7d »… en secondes (même règle que parseExpiresIn côté Node). */

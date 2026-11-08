@@ -26,12 +26,16 @@ public class DataConfig {
     String database = uri.getPath() == null ? "" : uri.getPath().replaceFirst("^/", "");
     String schema = "public";
     StringBuilder extra = new StringBuilder();
+    int poolSize = Math.max(2, Env.DB_POOL_SIZE);
+    long poolTimeoutMs = 10_000;
     if (uri.getRawQuery() != null) {
       for (String pair : uri.getRawQuery().split("&")) {
         String[] kv = pair.split("=", 2);
         String key = decode(kv[0]);
         String value = kv.length > 1 ? decode(kv[1]) : "";
         if (key.equals("schema")) schema = value;
+        else if (key.equals("connection_limit")) poolSize = Math.max(2, Integer.parseInt(value));
+        else if (key.equals("pool_timeout")) poolTimeoutMs = Math.max(250, Long.parseLong(value) * 1000);
         else if (key.equals("sslmode")) extra.append("&sslmode=").append(value);
       }
     }
@@ -40,7 +44,8 @@ public class DataConfig {
         + "?currentSchema=" + schema + "&stringtype=unspecified" + extra);
     if (userInfo.length > 0) config.setUsername(decode(userInfo[0]));
     if (userInfo.length > 1) config.setPassword(decode(userInfo[1]));
-    config.setMaximumPoolSize(Math.max(2, Env.DB_POOL_SIZE));
+    config.setMaximumPoolSize(poolSize);
+    config.setConnectionTimeout(poolTimeoutMs);
     config.setPoolName("kafountine");
     return new HikariDataSource(config);
   }

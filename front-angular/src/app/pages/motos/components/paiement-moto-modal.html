@@ -64,6 +64,7 @@
             <input id="reference-amende" name="reference" [maxLength]="120" [class]="INPUT_CLASS" />
           </div>
         }
+        <app-mode-paiement [(value)]="modePaiement"></app-mode-paiement>
         <div class="flex gap-3 pt-4">
           <button type="button" (click)="closed.emit()" [disabled]="isSubmitting()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer disabled:opacity-50">Annuler</button>
           <button type="submit" [disabled]="isSubmitting()" [class]="`flex-1 px-4 py-2 text-white rounded-lg whitespace-nowrap cursor-pointer ${isSubmitting() ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 transition-colors'}`">

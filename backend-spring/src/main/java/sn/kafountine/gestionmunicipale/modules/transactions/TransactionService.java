@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.ZoneId;
+import sn.kafountine.gestionmunicipale.shared.validation.Common;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -18,6 +19,7 @@ import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import sn.kafountine.gestionmunicipale.modules.caisse.CaisseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
@@ -67,7 +69,10 @@ public class TransactionService {
   private final NumeroSequence numeros;
   private final AuditTrail auditTrail;
 
-  public TransactionService(Db db, TaxCatalog catalog, CategoryLabels labels, NumeroSequence numeros, AuditTrail auditTrail) {
+  private final CaisseService caisse;
+
+  public TransactionService(Db db, TaxCatalog catalog, CategoryLabels labels, NumeroSequence numeros, AuditTrail auditTrail, CaisseService caisse) {
+    this.caisse = caisse;
     this.db = db;
     this.catalog = catalog;
     this.labels = labels;
@@ -355,6 +360,7 @@ public class TransactionService {
   @Transactional
   public Map<String, Object> create(Actor actor, CreateInput input) {
     int year = Year.now().getValue();
+    if ("PAYE".equals(input.statut())) caisse.assertOuverte(actor.userId(), Instant.now());
     String categorie = firstNonEmpty(input.categorie(), input.type(), "TAXE");
     String service = firstNonEmpty(input.service(), input.categorie(), input.type(), "Taxe");
     int quantite = input.quantite() == null || input.quantite() == 0 ? 1 : input.quantite();
@@ -390,10 +396,19 @@ public class TransactionService {
     return db.one("SELECT \"numero\", \"montant\", \"service\" FROM \"Transaction\" WHERE \"id\" = :id", Db.params("id", id));
   }
 
+  /** Année close ou caisse clôturée : le ticket est arrêté. */
+  private void assertModifiable(String id) {
+    Map<String, Object> row = db.one("SELECT \"year\", \"agentId\", \"createdAt\" FROM \"Transaction\" WHERE \"id\" = :id", Db.params("id", id));
+    if (row == null) return;
+    Common.assertRecordYearOpen((int) Db.num(row, "year"));
+    caisse.assertOuverte(Db.str(row, "agentId"), Db.date(row, "createdAt"));
+  }
+
   @Transactional
   public Map<String, Object> update(Actor actor, String id, UpdateInput input) {
     Map<String, Object> before = summary(id);
     if (before == null) throw AppException.notFound("Transaction introuvable.");
+    assertModifiable(id);
     Map<String, Object> changes = new LinkedHashMap<>();
     if (input.contribuableId() != null) changes.put("contribuableId", input.contribuableId());
     // input.service || input.categorie || input.type (categorie n'est pas accepté par le schéma).
@@ -424,6 +439,7 @@ public class TransactionService {
   public void delete(Actor actor, String id) {
     Map<String, Object> existing = summary(id);
     if (existing == null) throw AppException.notFound("Transaction introuvable.");
+    assertModifiable(id);
     // Une recette n'est jamais effacée : elle est annulée et sort des totaux, sa trace reste.
     if (db.update("UPDATE \"Transaction\" SET \"statut\" = 'ANNULE', \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id AND \"statut\" <> 'ANNULE'", Db.params("id", id)) == 0) {
       throw AppException.conflict("Cette recette est déjà annulée.");

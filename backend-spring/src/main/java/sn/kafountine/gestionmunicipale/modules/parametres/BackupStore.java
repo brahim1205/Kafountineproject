@@ -34,15 +34,15 @@ public class BackupStore {
   static final List<String> BACKUP_TABLES = List.of("User", "Contribuable", "Transaction", "BudgetLine", "BudgetRequest", "AuditLog", "EtatCivilRequest",
       "UrbanismeCase", "MarketPlace", "MarketPayment", "MotoRegistration", "MotoPayment", "TrainingProgram", "YouthProfile", "YouthEnrollment",
       "Fisherman", "FishingBoat", "FishCommission", "RefrigeratedTruck", "ShippingExpedition", "AppSettingTariff", "AppSettingPenalty",
-      "AppSettingPermission", "NumeroCounter");
-  private static final List<String> DELETE_ORDER = List.of("NumeroCounter", "Transaction", "BudgetRequest", "AuditLog", "EtatCivilRequest", "UrbanismeCase",
+      "AppSettingPermission", "NumeroCounter", "CashClosure");
+  private static final List<String> DELETE_ORDER = List.of("CashClosure", "NumeroCounter", "Transaction", "BudgetRequest", "AuditLog", "EtatCivilRequest", "UrbanismeCase",
       "MarketPayment", "MarketPlace", "MotoPayment", "MotoRegistration", "YouthEnrollment", "FishingBoat", "FishCommission", "ShippingExpedition",
       "TrainingProgram", "YouthProfile", "Fisherman", "RefrigeratedTruck", "AppSettingTariff", "AppSettingPenalty", "AppSettingPermission", "BudgetLine",
       "Contribuable", "User");
   private static final List<String> INSERT_ORDER = List.of("NumeroCounter", "User", "Contribuable", "BudgetLine", "AppSettingTariff", "AppSettingPenalty",
       "AppSettingPermission", "TrainingProgram", "YouthProfile", "Fisherman", "RefrigeratedTruck", "MarketPlace", "MotoRegistration", "BudgetRequest",
       "AuditLog", "EtatCivilRequest", "UrbanismeCase", "Transaction", "MarketPayment", "MotoPayment", "YouthEnrollment", "FishingBoat", "FishCommission",
-      "ShippingExpedition");
+      "ShippingExpedition", "CashClosure");
   private static final Pattern IDENTIFIER = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
   /** PostgreSQL accepte au plus 65 535 paramètres par requête (32 767 avec le pilote JDBC). */
   private static final int MAX_PARAMETERS = 30000;
@@ -77,6 +77,7 @@ public class BackupStore {
   /** Valeur d'une colonne telle que $queryRawUnsafe la rend puis JSON.stringify l'écrit. */
   private static Object jsonValue(Object value) {
     if (value instanceof Timestamp timestamp) return JacksonConfig.iso(timestamp.toInstant());
+    if (value instanceof java.sql.Date date) return date.toString();
     if (value instanceof BigDecimal decimal) {
       String plain = decimal.stripTrailingZeros().toPlainString();
       return plain.equals("0.0") ? "0" : plain;

@@ -1,12 +1,16 @@
 package sn.kafountine.gestionmunicipale.modules.urbanisme;
 
 import java.time.Year;
+import java.sql.Timestamp;
+import java.time.Instant;
+import sn.kafountine.gestionmunicipale.shared.validation.Common;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import sn.kafountine.gestionmunicipale.modules.caisse.CaisseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
@@ -58,7 +62,10 @@ public class UrbanismeService {
   private final AuditTrail auditTrail;
   private final NumeroSequence numeros;
 
-  public UrbanismeService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, NumeroSequence numeros) {
+  private final CaisseService caisse;
+
+  public UrbanismeService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, NumeroSequence numeros, CaisseService caisse) {
+    this.caisse = caisse;
     this.db = db;
     this.contribuables = contribuables;
     this.auditTrail = auditTrail;
@@ -97,8 +104,12 @@ public class UrbanismeService {
     return view(row);
   }
 
+  private static boolean recette(String statut) {
+    return "VALIDE".equals(statut);
+  }
+
   public record Input(String contribuableId, String type, String description, Double surface, String localisation, String nature, Double montant,
-      String statut, boolean descriptionProvided, boolean localisationProvided, boolean natureProvided) {}
+      String statut, boolean descriptionProvided, boolean localisationProvided, boolean natureProvided, String modePaiement) {}
 
   private static String trimmedOrNull(String value) {
     return value != null && !value.isEmpty() ? value.strip() : null;
@@ -122,14 +133,17 @@ public class UrbanismeService {
     String role = actor.role() == null ? "" : actor.role().strip().toUpperCase(Locale.ROOT);
     String defaultStatus = role.equals("ADMIN") || role.equals("SUPER_ADMIN") ? "VALIDE" : "EN_ATTENTE";
     String numero = numeros.next(NumeroSequence.Series.URBANISME, year);
+    String statut = input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : defaultStatus;
+    if (recette(statut)) caisse.assertOuverte(actor.userId(), Instant.now());
     Map<String, Object> row = db.one("""
-        INSERT INTO "UrbanismeCase" ("id", "numero", "contribuableId", "agentId", "type", "description", "surface", "localisation", "nature", "montant", "statut", "year", "createdAt", "updatedAt")
-        VALUES (:id, :numero, :contribuableId, :agentId, :type, :description, :surface, :localisation, :nature, :montant, :statut, :year, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        INSERT INTO "UrbanismeCase" ("id", "numero", "contribuableId", "agentId", "type", "description", "surface", "localisation", "nature", "montant", "statut", "year", "modePaiement", "encaisseLe", "encaissePar", "createdAt", "updatedAt")
+        VALUES (:id, :numero, :contribuableId, :agentId, :type, :description, :surface, :localisation, :nature, :montant, :statut, :year, :mode, :encaisseLe, :encaissePar, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING *
         """, Db.params("id", Db.uuid(), "numero", numero, "contribuableId", contribuable.get("id"), "agentId", actor.userId(), "type", urbanismeType.id(),
         "description", trimmedOrNull(input.description()), "surface", surface, "localisation", trimmedOrNull(input.localisation()),
         "nature", trimmedOrNull(input.nature()), "montant", montant,
-        "statut", input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : defaultStatus, "year", year));
+        "statut", statut, "year", year, "mode", input.modePaiement() == null ? "ESPECE" : input.modePaiement(),
+        "encaisseLe", recette(statut) ? Timestamp.from(Instant.now()) : null, "encaissePar", recette(statut) ? actor.userId() : null));
     row.put("contribuableNom", contribuable.get("nom"));
     row.put("contribuablePrenom", contribuable.get("prenom"));
     row.put("contribuableNin", contribuable.get("nin"));
@@ -151,20 +165,33 @@ public class UrbanismeService {
   public Map<String, Object> update(Actor actor, String id, Input input) {
     Map<String, Object> existing = findById(id);
     if (existing == null) throw AppException.notFound("Dossier d'urbanisme introuvable.");
+    Common.assertRecordYearOpen((int) Db.num(existing, "year"));
     Object surface = input.surface() != null ? input.surface() : existing.get("surface");
     if (input.surface() != null && input.surface() < 0) throw AppException.validation("La surface du dossier d'urbanisme est invalide.");
     Object montant = input.montant() != null ? input.montant() : existing.get("montant");
     if (input.montant() != null && input.montant() < 0) throw AppException.validation("Le montant du dossier d'urbanisme est invalide.");
+    Object statut = input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : existing.get("statut");
+    boolean etaitRecette = recette(Db.str(existing, "statut"));
+    Object encaisseLe = existing.get("encaisseLe");
+    Object encaissePar = existing.get("encaissePar");
+    if (recette(String.valueOf(statut)) != etaitRecette) {
+      caisse.assertOuverte(etaitRecette ? Db.str(existing, "encaissePar") : actor.userId(), etaitRecette ? Db.date(existing, "encaisseLe") : Instant.now());
+      encaisseLe = etaitRecette ? null : Timestamp.from(Instant.now());
+      encaissePar = etaitRecette ? null : actor.userId();
+    } else if (etaitRecette && input.montant() != null && input.montant() != Db.num(existing, "montant")) {
+      caisse.assertOuverte(Db.str(existing, "encaissePar"), Db.date(existing, "encaisseLe"));
+    }
     Map<String, Object> row = db.one("""
         UPDATE "UrbanismeCase" SET "numero" = :numero, "type" = :type, "description" = :description, "surface" = :surface,
-          "localisation" = :localisation, "nature" = :nature, "montant" = :montant, "statut" = :statut, "updatedAt" = CURRENT_TIMESTAMP
+          "localisation" = :localisation, "nature" = :nature, "montant" = :montant, "statut" = :statut, "encaisseLe" = :encaisseLe, "encaissePar" = :encaissePar,
+          "modePaiement" = COALESCE(:mode, "modePaiement"), "updatedAt" = CURRENT_TIMESTAMP
         WHERE "id" = :id RETURNING *
         """, Db.params("id", id, "numero", existing.get("numero"),
         "type", input.type() != null && !input.type().isEmpty() ? resolveType(input.type()).id() : existing.get("type"),
         "description", keepOrClear(input.descriptionProvided(), input.description(), existing.get("description")), "surface", surface,
         "localisation", keepOrClear(input.localisationProvided(), input.localisation(), existing.get("localisation")),
         "nature", keepOrClear(input.natureProvided(), input.nature(), existing.get("nature")), "montant", montant,
-        "statut", input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : existing.get("statut")));
+        "statut", statut, "encaisseLe", encaisseLe, "encaissePar", encaissePar, "mode", input.modePaiement()));
     for (String key : DISPLAY) row.put(key, existing.get(key));
     auditTrail.record(actor, "Mise à jour dossier urbanisme", "Urbanisme", "Dossier " + row.get("numero") + " mis à jour (" + row.get("statut") + ")",
         "REJETE".equals(row.get("statut")) ? "warning" : "success");
@@ -175,6 +202,8 @@ public class UrbanismeService {
   public void delete(Actor actor, String id) {
     Map<String, Object> existing = findById(id);
     if (existing == null) throw AppException.notFound("Dossier d'urbanisme introuvable.");
+    Common.assertRecordYearOpen((int) Db.num(existing, "year"));
+    if (recette(Db.str(existing, "statut"))) throw AppException.conflict("Ce dossier est validé et compte dans les recettes : rejetez-le au lieu de le supprimer.");
     db.update("DELETE FROM \"UrbanismeCase\" WHERE \"id\" = :id", Db.params("id", id));
     auditTrail.record(actor, "Suppression dossier urbanisme", "Urbanisme",
         "Suppression du dossier " + existing.get("numero") + " (" + existing.get("type") + ")", "warning");
@@ -186,9 +215,13 @@ public class UrbanismeService {
     long valide = rows.stream().filter(r -> "VALIDE".equals(r.get("statut"))).count();
     long rejete = rows.stream().filter(r -> "REJETE".equals(r.get("statut"))).count();
     double total = 0;
-    for (Map<String, Object> row : rows) total += Db.num(row, "montant");
+    double recettes = 0;
+    for (Map<String, Object> row : rows) {
+      total += Db.num(row, "montant");
+      if (recette(Db.str(row, "statut"))) recettes += Db.num(row, "montant");
+    }
     return Api.map("total", rows.size(), "enAttente", enAttente, "valide", valide, "rejete", rejete, "montantTotal", total,
-        "totalDossiers", rows.size(), "dossiersEnAttente", enAttente, "dossiersValides", valide, "dossiersRejetes", rejete, "recettes", total);
+        "totalDossiers", rows.size(), "dossiersEnAttente", enAttente, "dossiersValides", valide, "dossiersRejetes", rejete, "recettes", recettes);
   }
 
   private static void putIfPresent(Map<String, Object> target, String key, Object value) {

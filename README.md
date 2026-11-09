@@ -30,6 +30,20 @@ Production : <https://orbyteconsulting.tech>
 | `quai_peche` | Quai de pêche |
 | `etat_civil` | État civil et ses taxes |
 
+## Qui voit quoi
+
+| Rôle | Accès |
+|---|---|
+| Super administrateur | Tous les modules, sauvegardes, journal d'audit, annulation des paiements |
+| Administrateur | Consultation de tous les modules, sans écriture |
+| Agent | Tickets, taxes, urbanisme, marché, motos, sa caisse |
+| Régisseur | Comme l'agent, quai de pêche et équipes, annulation des paiements, validation des caisses (hors état civil) |
+| Service finances | Recettes, budget, validation des caisses, impayés |
+| État civil | Ses demandes et tickets, sa caisse |
+| Quai de pêche | Son module, consultation des motos, du marché et des impayés |
+
+Un encaissement porte son mode de paiement et la personne qui l'a reçu. Une recette n'est jamais effacée : elle est annulée ou rejetée, et la trace reste au journal. Une année close ou une caisse clôturée ne se modifie plus.
+
 ## Architecture
 
 ```text

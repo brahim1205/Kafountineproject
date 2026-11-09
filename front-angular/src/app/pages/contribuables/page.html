@@ -1,0 +1,65 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Contribuables</h1>
+    <p class="text-sm text-gray-600 mt-1">Ce que chaque contribuable a payé et ce qu'il doit - Année {{ yearService.selectedYear() }}</p>
+  </div>
+  @if (erreur()) {
+    <div role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ erreur() }}</div>
+  }
+
+  @if (situation(); as s) {
+    <section class="space-y-4">
+      <button type="button" (click)="selectionId.set(null)" class="text-sm text-cyan-700 hover:underline cursor-pointer"><i class="ri-arrow-left-line mr-1"></i>Retour à la liste</button>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 class="text-lg font-semibold text-gray-900">{{ s.contribuable.prenom }}&ngsp;{{ s.contribuable.nom }}</h2>
+        <p class="text-sm text-gray-600 mt-1">NIN {{ s.contribuable.nin }} · {{ s.contribuable.telephone || 'Téléphone non renseigné' }} · {{ s.contribuable.adresse || 'Adresse non renseignée' }}</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+          <p class="text-sm text-gray-600">Payé</p><p class="text-2xl font-bold text-emerald-700 mt-1">{{ montant(s.totalPaye) }}</p>
+          @for (ligne of sources(); track ligne[0]) {
+            <p class="flex justify-between text-sm mt-1"><span class="text-gray-600">{{ ligne[0] }}</span><span>{{ montant(ligne[1]) }}</span></p>
+          }
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+          <p class="text-sm text-gray-600">Reste dû</p><p class="text-2xl font-bold mt-1" [class.text-red-600]="s.totalDu > 0" [class.text-gray-900]="s.totalDu === 0">{{ montant(s.totalDu) }}</p>
+          @for (ligne of s.impayes; track ligne.type + ligne.id) {
+            <p class="flex justify-between text-sm mt-1"><span class="text-gray-600">{{ ligne.reference }} : {{ ligne.libelle }}</span><span>{{ montant(ligne.montant) }}</span></p>
+          }
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <h3 class="font-semibold text-gray-900 mb-3">Paiements de l'année</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead><tr class="border-b border-gray-200 text-left text-gray-700"><th class="py-2 px-3">Date</th><th class="py-2 px-3">Service</th><th class="py-2 px-3">N°</th><th class="py-2 px-3">Objet</th><th class="py-2 px-3 text-right">Montant</th></tr></thead>
+            <tbody>
+              @for (op of s.operations; track op.source + op.numero) {
+                <tr class="border-b border-gray-100"><td class="py-2 px-3">{{ date(op.date) }}</td><td class="py-2 px-3">{{ op.source }}</td><td class="py-2 px-3 text-gray-900">{{ op.numero }}</td><td class="py-2 px-3">{{ op.libelle }}</td><td class="py-2 px-3 text-right font-medium">{{ montant(op.montant) }}</td></tr>
+              } @empty {
+                <tr><td colspan="5" class="py-4 px-3 text-center text-gray-500">Aucun paiement cette année.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  } @else if (!selectionId()) {
+    <section class="bg-white rounded-xl border border-gray-200 p-5">
+      <input aria-label="Rechercher un contribuable" type="text" placeholder="Nom, NIN ou téléphone" [value]="list.search()" (input)="list.search.set($any($event.target).value)" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-gray-200 text-left text-gray-700"><th class="py-2 px-3">Nom</th><th class="py-2 px-3">NIN</th><th class="py-2 px-3">Téléphone</th><th class="py-2 px-3 text-right">Situation</th></tr></thead>
+          <tbody>
+            @for (c of list.items(); track c.id) {
+              <tr class="border-b border-gray-100"><td class="py-2 px-3 text-gray-900">{{ c.prenom }}&ngsp;{{ c.nom }}</td><td class="py-2 px-3">{{ c.nin }}</td><td class="py-2 px-3">{{ c.telephone }}</td><td class="py-2 px-3 text-right"><button type="button" (click)="selectionId.set(c.id)" class="text-cyan-700 hover:underline cursor-pointer">Voir</button></td></tr>
+            } @empty {
+              <tr><td colspan="4" class="py-4 px-3 text-center text-gray-500">Aucun contribuable.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pagination [page]="list.page()" [totalPages]="list.totalPages()" [total]="list.meta().total" unit="contribuable" (pageChange)="list.page.set($event)"></app-pagination>
+    </section>
+  }
+</div>

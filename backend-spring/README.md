@@ -4,7 +4,7 @@ Backend en production. Il expose l'API de l'application, sur la base PostgreSQL 
 Le schéma reste géré par les migrations Prisma de `database/prisma` : au déploiement, l'image `migrator` les applique.
 
 Stack : Java 17, Spring Boot 3.3, JDBC (`NamedParameterJdbcTemplate`), filtres et intercepteur reproduisant l'ordre des middlewares Express.
-Configuration : variables d'environnement (`DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CORS_ORIGIN`, `PORTAL_URL`, etc.).
+Configuration : variables d'environnement (`DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `CORS_ORIGIN`, etc.).
 Port par défaut : `3000` (`PORT`).
 
 ## Construire et lancer

@@ -38,7 +38,7 @@ public class QuaiPecheController {
   }
 
   @GetMapping("/" + COLLECTIONS)
-  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "AGENT", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> list(@PathVariable String collection, HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());
     Integer year = Common.year(query);
@@ -56,7 +56,7 @@ public class QuaiPecheController {
   }
 
   @GetMapping("/" + COLLECTIONS + "/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "AGENT", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> get(@PathVariable String collection, @PathVariable String id) {
     return Api.ok(service.get(Collection.valueOf(collection), Common.id(id)));
   }

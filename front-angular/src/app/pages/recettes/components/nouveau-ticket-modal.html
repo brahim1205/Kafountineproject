@@ -27,6 +27,7 @@
       <app-field label="Montant (FCFA)">
         <input type="number" name="amount" data-required="true" min="1" [class]="INPUT_CLASS" />
       </app-field>
+      <app-mode-paiement [(value)]="modePaiement"></app-mode-paiement>
       <div class="flex items-center justify-end gap-3 pt-4">
         <button type="button" (click)="closed.emit()" [class]="BUTTON_SECONDARY">Annuler</button>
         <button type="submit" [disabled]="submitting()" [class]="BUTTON_PRIMARY">

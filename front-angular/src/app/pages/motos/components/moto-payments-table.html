@@ -23,11 +23,17 @@
                 FCFA</td>
               <td class="py-3 px-4 text-sm text-gray-700">{{ formatDate(paiement.datePaiement, 'N/A') }}</td>
               <td class="py-3 px-4 text-sm text-gray-700">{{ paiement.agent }}</td>
+              <td class="py-3 px-4 text-sm" [class.text-red-600]="paiement.statut === 'Annulé'">{{ paiement.statut }}</td>
               @if (canManage()) {
                 <td class="py-3 px-4 text-center">
                   <button (click)="imprimerRecu.emit(paiement)" class="p-2 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" title="Imprimer le reçu">
                     <i class="ri-printer-line text-lg"></i>
                   </button>
+                  @if (peutAnnuler() && paiement.statut === 'Payé') {
+                    <button type="button" (click)="aAnnuler.set(paiement)" aria-label="Annuler ce paiement" title="Annuler ce paiement" class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
+                      <i class="ri-close-circle-line text-lg"></i>
+                    </button>
+                  }
                 </td>
               }
             </tr>
@@ -36,4 +42,7 @@
       </table>
     </div>
     <app-pagination [page]="list.page()" [totalPages]="list.totalPages()" [total]="list.meta().total" unit="paiement" (pageChange)="list.page.set($event)"></app-pagination>
+    @if (aAnnuler(); as paiement) {
+      <app-annulation-modal titre="Annuler ce paiement" [description]="'Reçu ' + paiement.numeroRecu + ' de la moto ' + paiement.matricule + '. Le paiement sort des recettes et la trace reste au journal.'" action="Annuler le paiement" [busy]="busy()" (closed)="aAnnuler.set(null)" (confirmed)="annuler($event)"></app-annulation-modal>
+    }
   </div>

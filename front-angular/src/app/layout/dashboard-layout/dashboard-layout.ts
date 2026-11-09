@@ -52,6 +52,9 @@ export class DashboardLayout {
   protected readonly showNotifications = signal(false);
   protected readonly showUserMenu = signal(false);
   protected readonly searchQuery = signal('');
+
+  /** La recherche porte sur les tickets : le quai de pêche n'y a pas accès. */
+  protected readonly canSearch = computed(() => this.auth.role() !== 'quai_peche');
   protected readonly searchResults = signal<SearchResult[]>([]);
   protected readonly showSearchDropdown = signal(false);
   protected readonly unread = signal(0);

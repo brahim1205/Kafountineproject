@@ -61,6 +61,7 @@ export type MotoPayment = {
   datePaiement?: string | null;
   mois?: string;
   numeroRecu?: string;
+  modePaiement?: string;
   moto?: Moto | null;
   agent?: string;
 };
@@ -185,7 +186,11 @@ export class MotosApi {
   });
 }
 
-  async createMotoPayment(payload: { motoId: string; type?: 'COTISATION' | 'AMENDE_POLICE'; reference?: string }) {
+  async annulerMotoPayment(id: string, motif: string): Promise<unknown> {
+  return this.api.request(`/motos/paiements/${id}/annuler`, { method: 'POST', body: JSON.stringify({ motif }) });
+}
+
+  async createMotoPayment(payload: { motoId: string; type?: 'COTISATION' | 'AMENDE_POLICE'; reference?: string; modePaiement?: string }) {
   return this.api.request<MotoPayment>('/motos/paiements', {
     method: 'POST',
     headers: {

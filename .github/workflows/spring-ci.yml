@@ -10,6 +10,19 @@ permissions:
   contents: read
 
 jobs:
+  unit-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: mvn -B -q test
+        working-directory: backend-spring
+
   image:
     runs-on: ubuntu-24.04
     timeout-minutes: 20

@@ -26,6 +26,9 @@ model User {
   budgetApprovals   BudgetRequest[]    @relation("BudgetRequestApprover")
   etatCivilRequests EtatCivilRequest[] @relation("EtatCivilAgent")
   urbanismeCases    UrbanismeCase[]    @relation("UrbanismeAgent")
+  marketPayments    MarketPayment[]    @relation("MarketPaymentAgent")
+  motoPayments      MotoPayment[]      @relation("MotoPaymentAgent")
+  cashClosures      CashClosure[]
 }
 
 model Contribuable {
@@ -163,6 +166,9 @@ model EtatCivilRequest {
   statut         String   @default("EN_ATTENTE")
   observations   String?
   year           Int
+  modePaiement String    @default("ESPECE")
+  encaisseLe   DateTime?
+  encaissePar  String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now()) @updatedAt
 
@@ -174,6 +180,7 @@ model EtatCivilRequest {
   @@index([typeDocument])
   @@index([contribuableId])
   @@index([agentId])
+  @@index([encaissePar, encaisseLe])
 }
 
 model UrbanismeCase {
@@ -189,6 +196,9 @@ model UrbanismeCase {
   montant        Decimal  @default(0) @db.Decimal(14, 2)
   statut         String   @default("EN_ATTENTE")
   year           Int
+  modePaiement String    @default("ESPECE")
+  encaisseLe   DateTime?
+  encaissePar  String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @default(now()) @updatedAt
 
@@ -200,6 +210,7 @@ model UrbanismeCase {
   @@index([type])
   @@index([contribuableId])
   @@index([agentId])
+  @@index([encaissePar, encaisseLe])
 }
 
 model MarketPlace {
@@ -236,6 +247,9 @@ model MarketPayment {
   statut       String    @default("PAYE")
   datePaiement DateTime?
   year         Int
+  agentId      String?
+  numeroRecu   String?  @unique
+  modePaiement String   @default("ESPECE")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now()) @updatedAt
 
@@ -244,6 +258,9 @@ model MarketPayment {
   @@index([year])
   @@index([statut])
   @@index([placeId])
+  agent User? @relation("MarketPaymentAgent", fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([agentId, datePaiement])
 }
 
 model MotoRegistration {
@@ -288,6 +305,8 @@ model MotoPayment {
   numeroRecu   String?
   agent        String?
   year         Int
+  agentId      String?
+  modePaiement String   @default("ESPECE")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now()) @updatedAt
 
@@ -296,6 +315,9 @@ model MotoPayment {
   @@index([year])
   @@index([statut])
   @@index([motoId])
+  agentUser User? @relation("MotoPaymentAgent", fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([agentId, datePaiement])
 }
 
 model TrainingProgram {
@@ -576,4 +598,26 @@ model IdempotencyKey {
   createdAt   DateTime @default(now())
 
   @@index([createdAt])
+}
+
+model CashClosure {
+  id             String    @id @default(uuid())
+  jour           DateTime  @db.Date
+  agentId        String
+  montantAttendu Decimal   @db.Decimal(14, 2)
+  montantCompte  Decimal   @db.Decimal(14, 2)
+  ecart          Decimal   @db.Decimal(14, 2)
+  nombre         Int
+  observations   String?
+  statut         String    @default("CLOTUREE")
+  cloturePar     String?
+  validePar      String?
+  valideLe       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+
+  agent User @relation(fields: [agentId], references: [id], onDelete: Restrict)
+
+  @@unique([jour, agentId])
+  @@index([statut])
 }

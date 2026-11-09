@@ -5,12 +5,13 @@ import { FULL_DATE, SHORT_TIME, libellePaiement, montantDu, MotoConfig, ReceiptD
 import { INPUT_CLASS } from './field';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { MotosApi } from '../../../services/motos';
+import { ModePaiement } from '../../../shared/ui/mode-paiement/mode-paiement';
 
 @Component({
   selector: 'app-paiement-moto-modal',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MotoPhoto],
+  imports: [MotoPhoto, ModePaiement],
   templateUrl: './paiement-moto-modal.html',
 })
 export class PaiementMotoModal {
@@ -28,6 +29,8 @@ export class PaiementMotoModal {
 
   protected readonly isSubmitting = signal(false);
 
+  protected readonly modePaiement = signal('ESPECE');
+
   protected readonly type = signal<'COTISATION' | 'AMENDE_POLICE'>('COTISATION');
 
   protected readonly now = computed(() => new Date());
@@ -39,7 +42,7 @@ export class PaiementMotoModal {
     this.isSubmitting.set(true);
     const reference = String(new FormData((e.currentTarget as HTMLFormElement)).get('reference') || '').trim();
     try {
-    const payment = await this.motosApi.createMotoPayment({ motoId: this.moto().id, type: this.type(), reference: reference || undefined });
+    const payment = await this.motosApi.createMotoPayment({ motoId: this.moto().id, type: this.type(), modePaiement: this.modePaiement(), reference: reference || undefined });
     await this.paid.emit({
     numero: payment.numeroRecu || '',
     date: this.now().toLocaleDateString('fr-FR', FULL_DATE),

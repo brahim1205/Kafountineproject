@@ -76,10 +76,11 @@ public class EtatCivilController {
     String statut = input.str("statut").oneOf(STATUTS).optional();
     String observations = input.str("observations").max(500).optional();
     Common.year(input);
+    String mode = input.str("modePaiement").oneOf(Common.MODES_PAIEMENT).optional();
     input.check();
     Actor actor = RequestContext.actor();
     Map<String, Object> created = service.create(actor, new EtatCivilService.Input(contribuableId, typeDocument,
-        exemplaires == null ? null : exemplaires.intValue(), montant, statut, observations, observations != null));
+        exemplaires == null ? null : exemplaires.intValue(), montant, statut, observations, observations != null, mode));
     Map<String, Object> body2 = new LinkedHashMap<>(created);
     body2.put("agent", auditTrail.displayName(actor.userId()));
     return Api.created(body2);
@@ -96,9 +97,10 @@ public class EtatCivilController {
     Double montant = input.num("montant").min(0, "Valeur positive ou nulle requise").optional();
     String statut = input.str("statut").oneOf(STATUTS).optional();
     String observations = input.str("observations").max(500).optional();
+    String mode = input.str("modePaiement").oneOf(Common.MODES_PAIEMENT).optional();
     input.check();
     return Api.ok(service.update(RequestContext.actor(), requestId,
-        new EtatCivilService.Input(contribuableId, typeDocument, exemplaires, montant, statut, observations, observations != null)));
+        new EtatCivilService.Input(contribuableId, typeDocument, exemplaires, montant, statut, observations, observations != null, mode)));
   }
 
   @DeleteMapping("/{id}")

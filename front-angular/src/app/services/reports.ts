@@ -23,6 +23,7 @@ type ReportMarcheStats = {
   placesOccupees?: number;
   placesDisponibles?: number;
   recettesMois?: number;
+  recettesAnnee?: number;
   tauxOccupation?: number;
 };
 

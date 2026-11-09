@@ -3,13 +3,17 @@ package sn.kafountine.gestionmunicipale.modules.marche;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.Year;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import sn.kafountine.gestionmunicipale.modules.caisse.CaisseService;
 import org.springframework.stereotype.Service;
+import sn.kafountine.gestionmunicipale.shared.numbering.NumeroSequence;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
 import sn.kafountine.gestionmunicipale.shared.audit.AuditTrail;
@@ -36,7 +40,12 @@ public class MarcheService {
   private final ContribuableLookup contribuables;
   private final AuditTrail auditTrail;
 
-  public MarcheService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail) {
+  private final CaisseService caisse;
+  private final NumeroSequence numeros;
+
+  public MarcheService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, CaisseService caisse, NumeroSequence numeros) {
+    this.numeros = numeros;
+    this.caisse = caisse;
     this.db = db;
     this.contribuables = contribuables;
     this.auditTrail = auditTrail;
@@ -181,7 +190,7 @@ public class MarcheService {
       where.append(" AND (p.\"numeroPlace\" ILIKE :like OR c.\"nom\" ILIKE :like OR c.\"prenom\" ILIKE :like)");
       params.addValue("like", "%" + Sql.escapeLike(search) + "%");
     }
-    if ("RETARD".equals(statut)) where.append(" AND mp.\"statut\" NOT IN ('PAYE', 'EN_ATTENTE')");
+    if ("RETARD".equals(statut)) where.append(" AND mp.\"statut\" NOT IN ('PAYE', 'EN_ATTENTE', 'ANNULE')");
     else if (statut != null) {
       where.append(" AND mp.\"statut\" = :statut");
       params.addValue("statut", statut);
@@ -197,7 +206,7 @@ public class MarcheService {
       long n = ((Number) row.get("n")).longValue();
       if ("PAYE".equals(row.get("statut"))) paye += n;
       else if ("EN_ATTENTE".equals(row.get("statut"))) attente += n;
-      else retard += n;
+      else if (!"ANNULE".equals(row.get("statut"))) retard += n;
     }
     counts.put("PAYE", paye);
     counts.put("EN_ATTENTE", attente);
@@ -217,7 +226,7 @@ public class MarcheService {
         FROM "MarketPayment" mp
         INNER JOIN "MarketPlace" p ON p."id" = mp."placeId"
         LEFT JOIN "Contribuable" c ON c."id" = p."occupantId"
-        WHERE mp."year" = :year AND p."occupantId" IS NOT NULL
+        WHERE mp."year" = :year AND mp."statut" = 'PAYE' AND p."occupantId" IS NOT NULL
         GROUP BY p."occupantId" ORDER BY "montant" DESC LIMIT 5
         """, params)) {
       String nom = (nz(row.get("prenom")) + " " + nz(row.get("nom"))).strip();
@@ -228,7 +237,7 @@ public class MarcheService {
     for (Map<String, Object> row : db.list("""
         SELECT to_char(date_trunc('month', "datePaiement"), 'YYYY-MM') AS "mois", COUNT(DISTINCT "placeId")::bigint AS "places", SUM("montant") AS "montant"
         FROM "MarketPayment"
-        WHERE "year" = :year AND "datePaiement" IS NOT NULL
+        WHERE "year" = :year AND "statut" = 'PAYE' AND "datePaiement" IS NOT NULL
         GROUP BY 1
         """, params)) {
       mois.add(Api.map("mois", row.get("mois"), "places", ((Number) row.get("places")).longValue(), "montant", Db.num(row, "montant")));
@@ -240,7 +249,7 @@ public class MarcheService {
     return value == null ? "" : value.toString();
   }
 
-  public record PaymentInput(String placeId, Double montant, String reference, String periode, String statut, String datePaiement, Integer year) {}
+  public record PaymentInput(String placeId, Double montant, String reference, String periode, String statut, String datePaiement, Integer year, String modePaiement) {}
 
   /** Ligne de paiement complétée par la place (placeParams côté Node). */
   private static Map<String, Object> withPlace(Map<String, Object> payment, Map<String, Object> place) {
@@ -266,17 +275,24 @@ public class MarcheService {
     String reference = truthy(input.reference()) ? input.reference().strip() : null;
     if (placeId.isEmpty() || periode.isEmpty()) throw AppException.validation("La place et la période de paiement sont requises.");
     if (montant <= 0) throw AppException.validation("Le montant du paiement marché est invalide.");
+    // Une même période ne peut pas être encaissée deux fois, même à la même seconde.
+    db.one("SELECT \"id\" FROM \"MarketPlace\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", placeId));
     Map<String, Object> place = findPlace(placeId);
     if (place == null) throw AppException.notFound("Place de marché introuvable.");
+    // Seul un responsable peut encaisser un montant différent du tarif de la place.
+    if ("AGENT".equalsIgnoreCase(actor.role()) && Db.num(place, "tarif") > 0 && montant != Db.num(place, "tarif")) {
+      throw AppException.validation("Le montant doit correspondre au tarif de la place.");
+    }
     int year = input.year() != null && input.year() != 0 ? input.year() : Year.now().getValue();
     String statut = truthy(input.statut()) ? input.statut() : "PAYE";
-    Instant datePaiement;
-    if (truthy(input.datePaiement())) {
-      datePaiement = Js.parseDate(input.datePaiement());
-      if (datePaiement == null) throw new IllegalArgumentException("Invalid Date");
-    } else {
-      datePaiement = Instant.now();
-    }
+    boolean encaisse = statut.equals("PAYE");
+    // La date d'un encaissement est celle du serveur : elle ne se choisit pas.
+    Instant datePaiement = encaisse || !truthy(input.datePaiement()) ? Instant.now() : Js.parseDate(input.datePaiement());
+    if (datePaiement == null) throw new IllegalArgumentException("Invalid Date");
+    if (encaisse) caisse.assertOuverte(actor.userId(), datePaiement);
+    String numeroRecu = encaisse ? numeros.next(NumeroSequence.Series.RECU_MARCHE, year) : null;
+    String modePaiement = input.modePaiement() == null ? "ESPECE" : input.modePaiement();
+    String agentId = encaisse ? actor.userId() : null;
     List<Map<String, Object>> existing = db.list("""
         SELECT "id", "statut" FROM "MarketPayment" WHERE "placeId" = :placeId AND "periode" = :periode AND "year" = :year ORDER BY "createdAt" ASC
         """, Db.params("placeId", placeId, "periode", periode, "year", year)).stream().filter(item -> !"ANNULE".equals(item.get("statut"))).toList();
@@ -288,35 +304,52 @@ public class MarcheService {
     Map<String, Object> created;
     if (due != null) {
       created = db.one("""
-          UPDATE "MarketPayment" SET "montant" = :montant, "reference" = :reference, "statut" = 'PAYE', "datePaiement" = :datePaiement, "updatedAt" = CURRENT_TIMESTAMP
+          UPDATE "MarketPayment" SET "montant" = :montant, "reference" = :reference, "statut" = 'PAYE', "datePaiement" = :datePaiement, "numeroRecu" = :numeroRecu, "modePaiement" = :modePaiement, "agentId" = :agentId, "updatedAt" = CURRENT_TIMESTAMP
           WHERE "id" = :id RETURNING *
-          """, Db.params("id", due.get("id"), "montant", montant, "reference", reference, "datePaiement", datePaiement));
+          """, Db.params("id", due.get("id"), "montant", montant, "reference", reference, "datePaiement", datePaiement, "numeroRecu", numeroRecu, "modePaiement", modePaiement, "agentId", agentId));
     } else {
       created = db.one("""
-          INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "createdAt", "updatedAt")
-          VALUES (:id, :placeId, :montant, :reference, :periode, :statut, :datePaiement, :year, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          INSERT INTO "MarketPayment" ("id", "placeId", "montant", "reference", "periode", "statut", "datePaiement", "year", "numeroRecu", "modePaiement", "agentId", "createdAt", "updatedAt")
+          VALUES (:id, :placeId, :montant, :reference, :periode, :statut, :datePaiement, :year, :numeroRecu, :modePaiement, :agentId, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           RETURNING *
           """, Db.params("id", Db.uuid(), "placeId", placeId, "montant", montant, "reference", reference, "periode", periode, "statut", statut,
-          "datePaiement", datePaiement, "year", year));
+          "datePaiement", datePaiement, "year", year, "numeroRecu", numeroRecu, "modePaiement", modePaiement, "agentId", agentId));
     }
     withPlace(created, place);
     auditTrail.record(actor, "Paiement marché", "Marché", "Paiement enregistré pour la place " + place.get("numeroPlace") + " (" + Js.num(montant) + " FCFA)");
     return paymentView(created);
   }
 
+  @Transactional
+  public void cancelPayment(Actor actor, String id, String motif) {
+    Map<String, Object> payment = db.one("SELECT * FROM \"MarketPayment\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", id));
+    if (payment == null) throw AppException.notFound("Paiement introuvable.");
+    if ("ANNULE".equals(payment.get("statut"))) throw AppException.conflict("Ce paiement est déjà annulé.");
+    Common.assertRecordYearOpen((int) Db.num(payment, "year"));
+    caisse.assertOuverte(Db.str(payment, "agentId"), Db.date(payment, "datePaiement"));
+    db.update("UPDATE \"MarketPayment\" SET \"statut\" = 'ANNULE', \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id", Db.params("id", id));
+    auditTrail.record(actor, "Annulation paiement marché", "Marché", "Paiement " + payment.get("periode") + " annulé (" + Js.num(Db.num(payment, "montant")) + " FCFA) : " + motif, "warning");
+  }
+
   public Map<String, Object> stats(int year) {
     List<Map<String, Object>> places = db.list("SELECT \"statut\", \"occupantId\" FROM \"MarketPlace\" WHERE \"year\" = :year", Db.params("year", year));
-    List<Map<String, Object>> paiements = db.list("SELECT \"montant\", \"statut\" FROM \"MarketPayment\" WHERE \"year\" = :year", Db.params("year", year));
+    List<Map<String, Object>> paiements = db.list("SELECT \"montant\", \"statut\", \"datePaiement\" FROM \"MarketPayment\" WHERE \"year\" = :year", Db.params("year", year));
     long totales = places.size();
     long occupees = places.stream().filter(p -> "OCCUPEE".equals(p.get("statut"))).count();
     double payes = 0;
     double retard = 0;
+    double payesMois = 0;
+    YearMonth courant = YearMonth.now(ZoneOffset.UTC);
     for (Map<String, Object> p : paiements) {
-      if ("PAYE".equals(p.get("statut"))) payes += Db.num(p, "montant");
+      if ("PAYE".equals(p.get("statut"))) {
+        payes += Db.num(p, "montant");
+        Instant date = Db.date(p, "datePaiement");
+        if (date != null && YearMonth.from(date.atZone(ZoneOffset.UTC)).equals(courant)) payesMois += Db.num(p, "montant");
+      }
       else if (!"ANNULE".equals(p.get("statut"))) retard += Db.num(p, "montant");
     }
     return Api.map("placesTotales", totales, "placesOccupees", occupees, "placesDisponibles", Math.max(totales - occupees, 0),
-        "recettesMois", payes, "tauxOccupation", totales > 0 ? Math.round((double) occupees / totales * 100) : 0,
+        "recettesMois", payesMois, "recettesAnnee", payes, "tauxOccupation", totales > 0 ? Math.round((double) occupees / totales * 100) : 0,
         "nouveauxCommercants", places.stream().filter(p -> p.get("occupantId") != null && !p.get("occupantId").toString().isEmpty()).count(),
         "recettesEnRetard", retard);
   }
@@ -350,6 +383,8 @@ public class MarcheService {
     if (truthy(Db.str(row, "reference"))) view.put("reference", row.get("reference"));
     view.put("periode", row.get("periode"));
     view.put("statut", row.get("statut"));
+    if (truthy(Db.str(row, "numeroRecu"))) view.put("numeroRecu", row.get("numeroRecu"));
+    view.put("modePaiement", row.get("modePaiement") == null ? "ESPECE" : row.get("modePaiement"));
     Instant date = Db.date(row, "datePaiement");
     view.put("datePaiement", date == null ? null : JacksonConfig.iso(date));
     Map<String, Object> place = new LinkedHashMap<>();

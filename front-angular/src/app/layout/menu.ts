@@ -37,6 +37,9 @@ export const allMenuItems: MenuItem[] = [
   { path: '/budget-suivi', icon: 'ri-wallet-3-line', label: 'Suivi Budgétaire', roles: ['service_finances'] },
   { path: '/gestion-budget', icon: 'ri-money-dollar-circle-line', label: 'Gestion Budget', roles: ['service_finances'] },
   { path: '/service-finances', icon: 'ri-bank-card-line', label: 'Budget & dépenses', roles: ['admin', 'super_admin'] },
+  { path: '/caisse', icon: 'ri-safe-2-line', label: 'Caisse', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'] },
+  { path: '/impayes', icon: 'ri-error-warning-line', label: 'Impayés', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'quai_peche', 'regisseur'] },
+  { path: '/contribuables', icon: 'ri-group-line', label: 'Contribuables', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'] },
   { path: '/audit', icon: 'ri-file-list-3-line', label: 'Journal Audit', roles: ['super_admin'] },
 ];
 

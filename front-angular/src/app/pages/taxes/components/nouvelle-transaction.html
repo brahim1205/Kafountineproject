@@ -183,6 +183,7 @@
               </div>
             </div>
           }
+          <app-mode-paiement [(value)]="modePaiement"></app-mode-paiement>
           <div class="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
             <button type="button" (click)="handleBack()" class="inline-flex items-center gap-2 px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors whitespace-nowrap">
               <i class="ri-arrow-left-line"></i>{{ etape() === 1 ? 'Annuler' : 'Précédent' }}</button>

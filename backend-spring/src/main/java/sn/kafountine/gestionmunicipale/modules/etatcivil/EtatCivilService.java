@@ -1,12 +1,15 @@
 package sn.kafountine.gestionmunicipale.modules.etatcivil;
 
 import java.time.Year;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import sn.kafountine.gestionmunicipale.modules.caisse.CaisseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.modules.transactions.TaxCatalog;
@@ -54,7 +57,10 @@ public class EtatCivilService {
   private final NumeroSequence numeros;
   private final TaxCatalog catalog;
 
-  public EtatCivilService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, NumeroSequence numeros, TaxCatalog catalog) {
+  private final CaisseService caisse;
+
+  public EtatCivilService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, NumeroSequence numeros, TaxCatalog catalog, CaisseService caisse) {
+    this.caisse = caisse;
     this.db = db;
     this.contribuables = contribuables;
     this.auditTrail = auditTrail;
@@ -67,6 +73,10 @@ public class EtatCivilService {
     String normalized = typeDocument.strip().toLowerCase(Locale.ROOT);
     String[] known = DOCUMENT_CATALOG.get(normalized);
     return known != null ? known : new String[] {normalized.isEmpty() ? "document" : normalized, typeDocument.strip(), "1000"};
+  }
+
+  private static boolean recette(String statut) {
+    return "DELIVREE".equals(statut) || "VALIDE".equals(statut);
   }
 
   static String normalizeStatus(String status) {
@@ -119,7 +129,7 @@ public class EtatCivilService {
   }
 
   public record Input(String contribuableId, String typeDocument, Integer exemplaires, Double montant, String statut, String observations,
-      boolean observationsProvided) {}
+      boolean observationsProvided, String modePaiement) {}
 
   @Transactional
   public Map<String, Object> create(Actor actor, Input input) {
@@ -135,14 +145,16 @@ public class EtatCivilService {
     int year = Year.now().getValue();
     double montant = input.montant() == null ? Double.parseDouble(documentType[2]) * exemplaires : input.montant();
     if (montant < 0) throw AppException.validation("Le montant de la demande d'état civil est invalide.");
+    if (recette(statut)) caisse.assertOuverte(actor.userId(), Instant.now());
     String numero = numeros.next(NumeroSequence.Series.ETAT_CIVIL, year);
     Map<String, Object> row = db.one("""
-        INSERT INTO "EtatCivilRequest" ("id", "numero", "contribuableId", "agentId", "typeDocument", "exemplaires", "montant", "statut", "observations", "year", "createdAt", "updatedAt")
-        VALUES (:id, :numero, :contribuableId, :agentId, :typeDocument, :exemplaires, :montant, :statut, :observations, :year, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        INSERT INTO "EtatCivilRequest" ("id", "numero", "contribuableId", "agentId", "typeDocument", "exemplaires", "montant", "statut", "observations", "year", "modePaiement", "encaisseLe", "encaissePar", "createdAt", "updatedAt")
+        VALUES (:id, :numero, :contribuableId, :agentId, :typeDocument, :exemplaires, :montant, :statut, :observations, :year, :mode, :encaisseLe, :encaissePar, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING *
         """, Db.params("id", Db.uuid(), "numero", numero, "contribuableId", contribuable.get("id"), "agentId", actor.userId(),
         "typeDocument", DocumentLabels.label(documentType[1]), "exemplaires", exemplaires, "montant", montant, "statut", statut,
-        "observations", observations, "year", year));
+        "observations", observations, "year", year, "mode", input.modePaiement() == null ? "ESPECE" : input.modePaiement(),
+        "encaisseLe", recette(statut) ? Timestamp.from(Instant.now()) : null, "encaissePar", recette(statut) ? actor.userId() : null));
     row.put("contribuableNom", contribuable.get("nom"));
     row.put("contribuablePrenom", contribuable.get("prenom"));
     row.put("contribuableNin", contribuable.get("nin"));
@@ -157,6 +169,7 @@ public class EtatCivilService {
   public Map<String, Object> update(Actor actor, String id, Input input) {
     Map<String, Object> existing = findById(id);
     if (existing == null) throw AppException.notFound("Demande d'état civil introuvable.");
+    Common.assertRecordYearOpen((int) Db.num(existing, "year"));
     String nextContribuableId = input.contribuableId() != null && !input.contribuableId().isEmpty() ? input.contribuableId().strip() : Db.str(existing, "contribuableId");
     Map<String, Object> display = new LinkedHashMap<>(existing);
     if (!nextContribuableId.equals(Db.str(existing, "contribuableId"))) {
@@ -171,6 +184,17 @@ public class EtatCivilService {
     Object exemplaires = input.exemplaires() != null ? Math.max(1, input.exemplaires()) : existing.get("exemplaires");
     Object montant = input.montant() != null ? input.montant() : existing.get("montant");
     String statut = input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : Db.str(existing, "statut");
+    boolean etaitRecette = recette(Db.str(existing, "statut"));
+    Object encaisseLe = existing.get("encaisseLe");
+    Object encaissePar = existing.get("encaissePar");
+    if (recette(statut) != etaitRecette) {
+      // La recette entre ou sort de la caisse de la personne qui l'a encaissée.
+      caisse.assertOuverte(etaitRecette ? Db.str(existing, "encaissePar") : actor.userId(), etaitRecette ? Db.date(existing, "encaisseLe") : Instant.now());
+      encaisseLe = etaitRecette ? null : Timestamp.from(Instant.now());
+      encaissePar = etaitRecette ? null : actor.userId();
+    } else if (etaitRecette && input.montant() != null && input.montant() != Db.num(existing, "montant")) {
+      caisse.assertOuverte(Db.str(existing, "encaissePar"), Db.date(existing, "encaisseLe"));
+    }
     String observations;
     if (!input.observationsProvided()) {
       observations = Db.str(existing, "observations");
@@ -180,10 +204,11 @@ public class EtatCivilService {
     }
     Map<String, Object> row = db.one("""
         UPDATE "EtatCivilRequest" SET "contribuableId" = :contribuableId, "typeDocument" = :typeDocument, "exemplaires" = :exemplaires,
-          "montant" = :montant, "statut" = :statut, "observations" = :observations, "updatedAt" = CURRENT_TIMESTAMP
+          "montant" = :montant, "statut" = :statut, "observations" = :observations, "encaisseLe" = :encaisseLe, "encaissePar" = :encaissePar,
+          "modePaiement" = COALESCE(:mode, "modePaiement"), "updatedAt" = CURRENT_TIMESTAMP
         WHERE "id" = :id RETURNING *
         """, Db.params("id", id, "contribuableId", nextContribuableId, "typeDocument", typeDocument, "exemplaires", exemplaires, "montant", montant,
-        "statut", statut, "observations", observations));
+        "statut", statut, "observations", observations, "encaisseLe", encaisseLe, "encaissePar", encaissePar, "mode", input.modePaiement()));
     for (String key : List.of("contribuableNom", "contribuablePrenom", "contribuableNin", "contribuableTelephone", "agentNom", "agentPrenom")) {
       row.put(key, display.get(key));
     }
@@ -196,6 +221,9 @@ public class EtatCivilService {
   public void delete(Actor actor, String id) {
     Map<String, Object> existing = findById(id);
     if (existing == null) throw AppException.notFound("Demande d'état civil introuvable.");
+    Common.assertRecordYearOpen((int) Db.num(existing, "year"));
+    // Un acte délivré est une recette : on la rejette (trace conservée), on ne l'efface jamais.
+    if (recette(Db.str(existing, "statut"))) throw AppException.conflict("Cet acte est délivré et compte dans les recettes : rejetez la demande au lieu de la supprimer.");
     db.update("DELETE FROM \"EtatCivilRequest\" WHERE \"id\" = :id", Db.params("id", id));
     auditTrail.record(actor, "Suppression demande état civil", "État civil", "Suppression de la demande " + existing.get("numero"), "warning");
   }
@@ -206,7 +234,7 @@ public class EtatCivilService {
     long delivrees = rows.stream().filter(r -> "DELIVREE".equals(r.get("statut")) || "VALIDE".equals(r.get("statut"))).count();
     long rejetees = rows.stream().filter(r -> "REJETEE".equals(r.get("statut")) || "REJETE".equals(r.get("statut"))).count();
     double recettes = 0;
-    for (Map<String, Object> row : rows) recettes += Db.num(row, "montant");
+    for (Map<String, Object> row : rows) if (recette(Db.str(row, "statut"))) recettes += Db.num(row, "montant");
     return Api.map("totalDemandes", rows.size(), "demandesEnAttente", enAttente, "demandesDelivrees", delivrees, "demandesRejetees", rejetees,
         "enAttente", enAttente, "validees", delivrees, "recettes", recettes);
   }

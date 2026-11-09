@@ -6,7 +6,7 @@ help:
 	@echo "Modes disponibles:"
 	@echo "  make backend-local     -> démarre PostgreSQL/Redis de dev, prépare la base, puis lance le backend"
 	@echo "  make backend-local-no-db -> lance seulement le backend (DB déjà prête)"
-	@echo "  make front-local       -> lance le frontend Vite en local"
+	@echo "  make front-local       -> lance l'interface Angular en local"
 	@echo "  make up-dev            -> démarre PostgreSQL et Redis de développement"
 	@echo "  make validate-prod-env -> vérifie que .env.prod ne contient pas de placeholders"
 	@echo "  make security-scan     -> vérifie secrets/fichiers runtime suivis par Git"
@@ -83,4 +83,4 @@ backend-local-no-db:
 	cd backend-spring && mvn spring-boot:run
 
 front-local:
-	cd front && npm run dev
+	cd front-angular && npm start

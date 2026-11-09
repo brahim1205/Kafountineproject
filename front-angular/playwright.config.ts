@@ -16,6 +16,8 @@ export default defineConfig({
     url: process.env.FRONTEND_URL || 'http://127.0.0.1:5174',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Un PORT hérité (celui du backend en CI) ne doit pas déplacer ng serve.
+    env: { PORT: '5174' },
   },
   projects: [
     {

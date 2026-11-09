@@ -84,3 +84,7 @@ backend-local-no-db:
 
 front-local:
 	cd front-angular && npm start
+
+.PHONY: hooks
+hooks:
+	git config core.hooksPath .githooks

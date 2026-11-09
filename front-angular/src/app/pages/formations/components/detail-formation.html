@@ -14,7 +14,7 @@
               &bull;
               {{ formation().responsable }}</p>
           </div>
-          <button (click)="closed.emit()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+          <button aria-label="Fermer" (click)="closed.emit()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
             <i class="ri-close-line text-xl"></i>
           </button>
         </div>

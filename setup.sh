@@ -94,7 +94,7 @@ cd ..
 
 # Configuration du frontend
 log_info "Configuration du frontend..."
-cd front
+cd front-angular
 
 # Installer les dépendances si nécessaire
 if [ ! -d "node_modules" ]; then
@@ -111,7 +111,7 @@ log_info "========================================"
 log_info ""
 log_info "Pour démarrer l'application:"
 log_info "  Backend:  cd backend-spring && mvn spring-boot:run"
-log_info "  Frontend: cd front && npm run dev"
+log_info "  Frontend: cd front-angular && npm start"
 log_info ""
 log_info "Ou avec Docker:"
 log_info "  docker compose -f docker-compose.dev.yml up -d"

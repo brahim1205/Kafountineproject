@@ -21,7 +21,7 @@ npm run e2e:ui
 npm run e2e -- login.spec.ts
 ```
 
-Playwright uses [playwright.config.ts](../../front/playwright.config.ts), including `baseURL` and a local Vite `webServer`. Tests should therefore use relative paths like `page.goto('/login')` instead of hardcoded `localhost` URLs.
+Playwright uses [playwright.config.ts](../playwright.config.ts), including `baseURL` and a local Angular `webServer`. Tests should therefore use relative paths like `page.goto('/login')` instead of hardcoded `localhost` URLs.
 
 ## Writing Tests
 

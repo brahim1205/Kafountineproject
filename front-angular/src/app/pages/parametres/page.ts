@@ -31,8 +31,9 @@ const errorMessage = (error: unknown, fallback: string) => (error instanceof Err
   templateUrl: './page.html',
 })
 export class Parametres {
-  protected readonly TABS = TABS;
   protected readonly auth = inject(AuthService);
+  private readonly canManageBackups = computed(() => this.auth.role() === 'super_admin');
+  protected readonly tabs = computed(() => TABS.filter((tab) => tab.id !== 'sauvegarde' || this.canManageBackups()));
   protected readonly settingsApi = inject(SettingsApi);
   protected readonly readOnly = computed(() => !this.auth.canWriteRole());
 
@@ -70,7 +71,7 @@ export class Parametres {
     const [tarifsData, penalitesData, backupsData] = await Promise.all([
     this.settingsApi.getTarifs(),
     this.settingsApi.getPenalites(),
-    this.settingsApi.listBackups().catch(() => []),
+    this.canManageBackups() ? this.settingsApi.listBackups() : Promise.resolve([]),
     ]);
     this.tarifs.set(tarifsData);
     this.penalites.set(penalitesData);

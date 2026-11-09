@@ -18,7 +18,7 @@
     @if (kind() === 'expedition') {
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-        <select [value]="statut()" (change)="statut.set($any($event.target).value)" [disabled]="!editable()" [class]="INPUT_CLASS">
+        <select aria-label="Statut" [value]="statut()" (change)="statut.set($any($event.target).value)" [disabled]="!editable()" [class]="INPUT_CLASS">
           @for (row of Object.entries(STATUTS_EXPEDITION); track $index) {
             @let value = row[0];
             @let label = row[1].label;

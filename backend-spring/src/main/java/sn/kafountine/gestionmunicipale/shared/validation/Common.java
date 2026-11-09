@@ -1,5 +1,6 @@
 package sn.kafountine.gestionmunicipale.shared.validation;
 
+import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import java.time.Year;
 import java.util.Map;
 
@@ -18,6 +19,13 @@ public final class Common {
   /** yearSchema optionnel d'une requête (entier entre 2000 et 2100). */
   public static Integer year(Input query) {
     return query.num("year").integer().min(2000, null).max(2100, null).optionalInt();
+  }
+
+  /** Un paiement ne s'enregistre que sur l'année en cours : les années passées sont closes. */
+  public static void assertOpenYear(Integer year) {
+    if (year != null && year != 0 && year != Year.now().getValue()) {
+      throw AppException.forbidden("Cette année est close : aucun paiement ne peut y être enregistré.");
+    }
   }
 
   /** yearFrom côté Node : année demandée, sinon l'année en cours. */

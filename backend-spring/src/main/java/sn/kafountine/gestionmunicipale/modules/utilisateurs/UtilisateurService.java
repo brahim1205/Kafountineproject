@@ -7,7 +7,9 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sn.kafountine.gestionmunicipale.modules.auth.SessionStore;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
+import sn.kafountine.gestionmunicipale.modules.auth.SessionStore;
 import sn.kafountine.gestionmunicipale.shared.audit.AuditTrail;
 import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
@@ -25,8 +27,10 @@ public class UtilisateurService {
 
   private final Db db;
   private final AuditTrail auditTrail;
+  private final SessionStore sessions;
 
-  public UtilisateurService(Db db, AuditTrail auditTrail) {
+  public UtilisateurService(Db db, AuditTrail auditTrail, SessionStore sessions) {
+    this.sessions = sessions;
     this.db = db;
     this.auditTrail = auditTrail;
   }
@@ -129,6 +133,7 @@ public class UtilisateurService {
         WHERE "id" = :id
         """, Db.params("id", userId, "email", nextEmail, "nom", nom, "prenom", prenom, "role", role, "telephone", telephone,
         "isActive", isActive, "password", passwordHash));
+    if (passwordHash != null || !isActive || !role.equals(Db.str(existing, "role"))) sessions.revokeAll(userId);
     auditTrail.record(actor, "Mise à jour utilisateur", "Utilisateurs", "Mise à jour du compte " + nextEmail);
     return view(findById(userId));
   }
@@ -142,10 +147,12 @@ public class UtilisateurService {
     long transactions = db.count("SELECT COUNT(*) FROM \"Transaction\" WHERE \"agentId\" = :id", Db.params("id", userId));
     if (transactions > 0) {
       db.update("UPDATE \"User\" SET \"isActive\" = false, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id", Db.params("id", userId));
+      sessions.revokeAll(userId);
       auditTrail.record(actor, "Désactivation utilisateur", "Utilisateurs", "Compte " + Db.str(existing, "email") + " désactivé car lié à des transactions");
       return "Utilisateur désactivé car il possède déjà des transactions.";
     }
     db.update("DELETE FROM \"User\" WHERE \"id\" = :id", Db.params("id", userId));
+    sessions.revokeAll(userId);
     auditTrail.record(actor, "Suppression utilisateur", "Utilisateurs", "Suppression du compte " + Db.str(existing, "email"));
     return "Suppression effectuée";
   }

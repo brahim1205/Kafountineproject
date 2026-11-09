@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
 import sn.kafountine.gestionmunicipale.shared.audit.AuditTrail;
+import sn.kafountine.gestionmunicipale.shared.config.Env;
 import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
@@ -33,6 +34,9 @@ public class AuthService {
     this.db = db;
   }
 
+  /** Empreinte vérifiée pour un compte inconnu, afin que le temps de réponse ne révèle pas son existence. */
+  private static final String UNKNOWN_ACCOUNT_HASH = PasswordPolicy.hash(UUID.randomUUID().toString());
+
   private static boolean active(Map<String, Object> user) {
     return user != null && Boolean.TRUE.equals(user.get("isActive"));
   }
@@ -43,34 +47,44 @@ public class AuthService {
 
   public Tokens login(String email, String password) {
     Map<String, Object> user = users.findByEmail(email);
-    if (!active(user) || !PasswordPolicy.matches(password, Db.str(user, "password"))) {
+    boolean passwordMatches = PasswordPolicy.matches(password, user == null ? UNKNOWN_ACCOUNT_HASH : Db.str(user, "password"));
+    if (!active(user) || !passwordMatches) {
       throw AppException.unauthorized("Identifiants invalides");
     }
     String sessionId = UUID.randomUUID().toString();
     String userId = Db.str(user, "id");
-    String access = tokens.signAccessToken(userId, sessionId, Db.str(user, "role"));
-    String refresh = tokens.signRefreshToken(userId, sessionId);
+    return issue(user, userId, sessionId, sessions.generation(userId), view(user));
+  }
+
+  private Tokens issue(Map<String, Object> user, String userId, String sessionId, long generation, Map<String, Object> view) {
+    String access = tokens.signAccessToken(userId, sessionId, Db.str(user, "role"), generation);
+    String refresh = tokens.signRefreshToken(userId, sessionId, generation);
     sessions.save(userId, sessionId, refresh, tokens.refreshTtlSeconds());
-    return new Tokens(view(user), access, refresh);
+    return new Tokens(view, access, refresh);
+  }
+
+  /** Génération portée par le jeton ; 0 pour les jetons émis avant son introduction. */
+  public static long tokenGeneration(Map<String, Object> payload) {
+    return payload.get("gen") instanceof Number number ? number.longValue() : 0;
   }
 
   public Tokens refresh(String refreshToken) {
     Map<String, Object> payload = tokens.verifyRefreshToken(refreshToken);
     String userId = String.valueOf(payload.get("userId"));
+    long generation = sessions.generation(userId);
+    if (tokenGeneration(payload) < generation) throw AppException.unauthorized("Refresh token invalide");
     String sessionId = String.valueOf(payload.get("sessionId"));
     String stored = sessions.find(userId, sessionId);
     if (stored == null || !stored.equals(refreshToken)) throw AppException.unauthorized("Refresh token invalide");
     Map<String, Object> user = users.findById(userId);
     if (!active(user)) throw AppException.unauthorized("Utilisateur introuvable");
-    String access = tokens.signAccessToken(userId, sessionId, Db.str(user, "role"));
-    String refresh = tokens.signRefreshToken(userId, sessionId);
-    sessions.save(userId, sessionId, refresh, tokens.refreshTtlSeconds());
-    return new Tokens(null, access, refresh);
+    return issue(user, userId, sessionId, generation, null);
   }
 
   public void logout(String userId, String sessionId) {
     if (sessionId == null) return;
     sessions.delete(userId, sessionId);
+    sessions.markLoggedOut(sessionId, Env.durationSeconds(Env.JWT_EXPIRES_IN, 900));
   }
 
   public Map<String, Object> me(String userId) {
@@ -101,7 +115,8 @@ public class AuthService {
     return reply;
   }
 
-  public void changePassword(String userId, String role, String ip, String currentPassword, String newPassword) {
+  /** Les autres sessions sont coupées ; la session courante reçoit de nouveaux jetons. */
+  public Tokens changePassword(String userId, String sessionId, String role, String ip, String currentPassword, String newPassword) {
     Map<String, Object> user = users.findById(userId);
     if (!active(user) || !PasswordPolicy.matches(currentPassword, Db.str(user, "password"))) {
       throw AppException.unauthorized("Mot de passe actuel incorrect.");
@@ -112,5 +127,6 @@ public class AuthService {
     PasswordPolicy.validateStrong(newPassword);
     users.updatePassword(userId, PasswordPolicy.hash(newPassword));
     auditTrail.record(new Actor(userId, role, ip), "Changement de mot de passe", "Utilisateurs", "Mot de passe modifié par " + Db.str(user, "email"));
+    return issue(user, userId, sessionId, sessions.revokeAll(userId), null);
   }
 }

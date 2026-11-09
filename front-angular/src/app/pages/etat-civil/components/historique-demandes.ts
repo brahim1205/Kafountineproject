@@ -155,7 +155,7 @@ export class HistoriqueDemandes {
 
   constructor() {
     effect(() => {
-      this.refreshKey(); this.list.reload;
+      this.refreshKey();
       untracked(() => {
     if (this.refreshKey())
     this.list.reload();

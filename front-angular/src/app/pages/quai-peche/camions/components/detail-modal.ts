@@ -4,9 +4,6 @@ import { INPUT_CLASS, STATUTS_CAMION, STATUTS_EXPEDITION, formatDate, formatFcfa
 import { Modal } from '../../../../components/feature/modal';
 import { QuaiPecheApi } from '../../../../services/quai-peche';
 
-type DetailModalProps =
-  | { kind: 'camion'; item: CamionFrigorifique; canManage: boolean; onClose: () => void; onChanged: () => Promise<void> }
-  | { kind: 'expedition'; item: Expedition; canManage: boolean; onClose: () => void; onChanged: () => Promise<void> };
 
 type DetailItem = CamionFrigorifique & Expedition;
 

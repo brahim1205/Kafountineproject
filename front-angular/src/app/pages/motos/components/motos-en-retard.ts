@@ -55,7 +55,7 @@ export class MotosEnRetard {
 
   constructor() {
     effect(() => {
-      this.reloadKey(); this.list.reload;
+      this.reloadKey();
       untracked(() => {
     if (this.reloadKey())
     this.list.reload();

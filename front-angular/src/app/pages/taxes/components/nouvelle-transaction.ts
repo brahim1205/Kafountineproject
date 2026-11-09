@@ -237,7 +237,7 @@ export class NouvelleTransaction {
     });
     effect((onCleanup) => {
       void onCleanup;
-      this.formData().categorie;
+      void this.formData().categorie;
       const cleanup = untracked(() => (() => {
     if (!this.formData().categorie) {
     this.services.set([]);

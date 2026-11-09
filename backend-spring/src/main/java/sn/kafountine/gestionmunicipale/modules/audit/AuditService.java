@@ -60,10 +60,6 @@ public class AuditService {
         "pagination", Api.map("page", page, "limit", limit, "total", total, "totalPages", Math.max(1, (long) Math.ceil((double) total / limit))));
   }
 
-  public void seed(Actor actor) {
-    auditTrail.record(actor, "Initialisation audit", "Audit", "Création d’une entrée de démonstration audit");
-  }
-
   public String exportCsv(int year) {
     StringBuilder body = new StringBuilder("date,heure,utilisateur,role,action,module,details,statut,ip\n");
     List<String> lines = new ArrayList<>();

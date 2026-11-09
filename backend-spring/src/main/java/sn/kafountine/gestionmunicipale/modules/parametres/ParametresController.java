@@ -18,7 +18,7 @@ import sn.kafountine.gestionmunicipale.shared.validation.Common;
 import sn.kafountine.gestionmunicipale.shared.validation.Input;
 import sn.kafountine.gestionmunicipale.shared.web.RequestContext;
 
-/** Routes /api/v1/settings et /api/v1/public/penalites (parametres.routes.ts côté Node). */
+/** Routes /api/v1/settings (parametres.routes.ts côté Node). */
 @RestController
 public class ParametresController {
   private static final String BACKUP_FILENAME = "^backup-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}-\\d{3}\\.json$";
@@ -77,10 +77,6 @@ public class ParametresController {
   }
 
   /** Lecture publique (portail) des pénalités, sans authentification. */
-  @GetMapping("/api/v1/public/penalites")
-  public ResponseEntity<Map<String, Object>> publicPenalties() {
-    return Api.ok(service.listPenalties());
-  }
 
   private static ParametresService.PenaltyInput penalty(Input input, boolean create) {
     String type = create ? input.str("type").trimmed(1, 120, "Type requis").required() : input.str("type").max(120).optional();
@@ -116,20 +112,20 @@ public class ParametresController {
   // --- Sauvegardes -------------------------------------------------------------------------------
 
   @GetMapping("/api/v1/settings/backups")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"SUPER_ADMIN"})
   public ResponseEntity<Map<String, Object>> listBackups() {
     return Api.ok(service.listBackups());
   }
 
   @PostMapping("/api/v1/settings/backups")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"SUPER_ADMIN"})
   public ResponseEntity<Map<String, Object>> createBackup(@Body JsonNode body) {
     Input.body(body).check();
     return Api.created(service.createBackup(RequestContext.actor()));
   }
 
   @PostMapping("/api/v1/settings/backups/restore")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"SUPER_ADMIN"})
   public ResponseEntity<Map<String, Object>> restoreBackup(@Body JsonNode body) {
     Input input = Input.body(body);
     String filename = input.str("filename").noTrim().pattern(BACKUP_FILENAME, "Nom de fichier de sauvegarde invalide").required();
@@ -139,7 +135,7 @@ public class ParametresController {
   }
 
   @GetMapping("/api/v1/settings/backups/{filename}/download")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
+  @Roles({"SUPER_ADMIN"})
   public ResponseEntity<byte[]> downloadBackup(@PathVariable String filename) {
     Input params = Input.params(Map.of("filename", filename));
     String name = params.str("filename").noTrim().pattern(BACKUP_FILENAME, "Nom de fichier de sauvegarde invalide").required();

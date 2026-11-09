@@ -5,7 +5,7 @@
           <h2 class="text-xl font-bold text-gray-900">Déclaration de changement</h2>
           <p class="text-sm text-gray-600 mt-1">{{ moto().matricule }}</p>
         </div>
-        <button (click)="closed.emit()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+        <button aria-label="Fermer" (click)="closed.emit()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
           <i class="ri-close-line text-xl text-gray-600"></i>
         </button>
       </div>
@@ -50,7 +50,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Motif du changement</label>
-          <textarea [rows]="3" placeholder="Précisez le motif..." [class]="`${INPUT_CLASS} resize-none`"></textarea>
+          <textarea aria-label="Motif du changement" [rows]="3" placeholder="Précisez le motif..." [class]="`${INPUT_CLASS} resize-none`"></textarea>
         </div>
         <app-form-error [message]="error()"></app-form-error>
         <div class="flex gap-3">

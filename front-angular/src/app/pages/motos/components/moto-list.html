@@ -6,7 +6,7 @@
           <input type="text" placeholder="Rechercher par matricule, propriétaire ou conducteur..." [value]="list.search()" (input)="list.search.set($any($event.target).value)" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
         </div>
       </div>
-      <select [value]="list.statut()" (change)="list.setStatut($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer">
+      <select aria-label="Filtrer par statut" [value]="list.statut()" (change)="list.setStatut($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer">
         <option>Tous</option>
         <option>À jour</option>
         <option>En retard</option>

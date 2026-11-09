@@ -40,12 +40,12 @@ public class NotificationService {
         "message", "L’année " + year + " est disponible pour la saisie et la consultation."));
   }
 
-  public List<Map<String, Object>> list(Object year, Object limit) {
+  public List<Map<String, Object>> list(Object year, Object limit, String userId) {
     // Paramètres non validés côté Node : une valeur non numérique échoue en base.
     ensureSeedLoose(year);
     List<Map<String, Object>> result = new ArrayList<>();
-    for (Map<String, Object> row : db.list("SELECT * FROM \"AppNotification\" WHERE \"year\" = :year ORDER BY \"createdAt\" DESC LIMIT :limit",
-        Db.params("year", year, "limit", limit))) {
+    for (Map<String, Object> row : db.list("SELECT * FROM \"AppNotification\" WHERE \"year\" = :year AND (\"userId\" IS NULL OR \"userId\" = :userId) ORDER BY \"createdAt\" DESC LIMIT :limit",
+        Db.params("year", year, "limit", limit, "userId", userId))) {
       result.add(view(row));
     }
     return result;
@@ -60,15 +60,15 @@ public class NotificationService {
   }
 
   @Transactional
-  public void markRead(String id) {
-    int count = db.update("UPDATE \"AppNotification\" SET \"lu\" = true, \"readAt\" = CURRENT_TIMESTAMP, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id",
-        Db.params("id", id));
+  public void markRead(String id, String userId) {
+    int count = db.update("UPDATE \"AppNotification\" SET \"lu\" = true, \"readAt\" = CURRENT_TIMESTAMP, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id AND (\"userId\" IS NULL OR \"userId\" = :userId)",
+        Db.params("id", id, "userId", userId));
     if (count == 0) throw AppException.notFound("Notification introuvable.");
   }
 
-  public void markAllRead(int year) {
-    db.update("UPDATE \"AppNotification\" SET \"lu\" = true, \"readAt\" = CURRENT_TIMESTAMP, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"year\" = :year AND \"lu\" = false",
-        Db.params("year", year));
+  public void markAllRead(int year, String userId) {
+    db.update("UPDATE \"AppNotification\" SET \"lu\" = true, \"readAt\" = CURRENT_TIMESTAMP, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"year\" = :year AND \"lu\" = false AND (\"userId\" IS NULL OR \"userId\" = :userId)",
+        Db.params("year", year, "userId", userId));
   }
 
   public List<Map<String, Object>> listYears() {

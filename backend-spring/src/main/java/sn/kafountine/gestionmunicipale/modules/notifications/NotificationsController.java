@@ -45,20 +45,20 @@ public class NotificationsController {
     Object limit = limitText == null || limitText.isEmpty() ? (Object) 50 : jsNumber(limitText);
     // Prisma transmet NaN comme null : « LIMIT NULL » ne limite rien.
     if (limit instanceof Double d && d.isNaN()) limit = null;
-    return Api.ok(service.list(year, limit));
+    return Api.ok(service.list(year, limit, RequestContext.user().userId()));
   }
 
   @PatchMapping("/api/v1/notifications/{id}/read")
   @Authenticated
   public ResponseEntity<Map<String, Object>> markRead(@PathVariable String id) {
-    service.markRead(Common.id(id));
+    service.markRead(Common.id(id), RequestContext.user().userId());
     return Api.message("Mise à jour effectuée");
   }
 
   @PatchMapping("/api/v1/notifications/read-all")
   @Authenticated
   public ResponseEntity<Map<String, Object>> markAllRead(HttpServletRequest request) {
-    service.markAllRead(Common.yearQuery(request.getParameterMap()));
+    service.markAllRead(Common.yearQuery(request.getParameterMap()), RequestContext.user().userId());
     return Api.message("Mise à jour effectuée");
   }
 

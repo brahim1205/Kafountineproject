@@ -1,15 +1,34 @@
-import { LIBELLES_PAIEMENT, formatDate, type UiMotoPayment } from '../types';
+import { useEffect } from 'react';
+import Pagination from '../../../components/feature/Pagination';
+import { useServerList } from '../../../hooks/useServerList';
+import { pageMotoPayments } from '../../../services/motos';
+import { LIBELLES_PAIEMENT, formatDate, toUiMotoPayment, type UiMotoPayment } from '../types';
 
 type MotoPaymentsTableProps = {
-  paiements: UiMotoPayment[];
+  year: number;
+  reloadKey: number;
   canManage: boolean;
   onImprimerRecu: (paiement: UiMotoPayment) => void;
 };
 
 const COLUMNS = ['N° Reçu', 'Type', 'Matricule', 'Propriétaire', 'Mois', 'Montant', 'Date', 'Agent'];
 
-export default function MotoPaymentsTable({ paiements, canManage, onImprimerRecu }: MotoPaymentsTableProps) {
+export default function MotoPaymentsTable({ year, reloadKey, canManage, onImprimerRecu }: MotoPaymentsTableProps) {
+  const list = useServerList(
+    async ({ page, limit }) => {
+      const { data, meta } = await pageMotoPayments({ year, page, limit });
+      return { data: data.map(toUiMotoPayment), meta };
+    },
+    [year],
+    { pageSize: 25 }
+  );
+  const { reload } = list;
+  useEffect(() => {
+    if (reloadKey) reload();
+  }, [reloadKey, reload]);
+
   return (
+    <div>
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
@@ -21,7 +40,7 @@ export default function MotoPaymentsTable({ paiements, canManage, onImprimerRecu
           </tr>
         </thead>
         <tbody>
-          {paiements.map((paiement) => (
+          {list.items.map((paiement) => (
             <tr key={paiement.id} className="border-b border-gray-100 hover:bg-gray-50">
               <td className="py-3 px-4 text-sm text-gray-900 font-medium">{paiement.numeroRecu}</td>
               <td className="py-3 px-4 text-sm text-gray-700">{LIBELLES_PAIEMENT[paiement.type || 'COTISATION']}</td>
@@ -46,6 +65,8 @@ export default function MotoPaymentsTable({ paiements, canManage, onImprimerRecu
           ))}
         </tbody>
       </table>
+    </div>
+    <Pagination page={list.page} totalPages={list.totalPages} total={list.meta.total} unit="paiement" onChange={list.setPage} />
     </div>
   );
 }

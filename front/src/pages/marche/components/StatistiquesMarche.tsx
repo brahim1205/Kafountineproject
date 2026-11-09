@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
   getMarcheStats,
-  listPaiementsMarche,
+  getMarcheDetails,
+  type MarcheDetails,
   listPlacesMarche,
   type MarcheStats,
-  type PaiementMarche,
   type PlaceMarche,
 } from '../../../services/marche';
 import { useYear } from '../../../contexts/YearContext';
@@ -50,7 +50,7 @@ export default function StatistiquesMarche() {
   const [exportType, setExportType] = useState('');
   const [stats, setStats] = useState<ExtendedMarcheStats>(EMPTY_STATS);
   const [places, setPlaces] = useState<PlaceMarche[]>([]);
-  const [paiements, setPaiements] = useState<PaiementMarche[]>([]);
+  const [details, setDetails] = useState<MarcheDetails>({ topCommercants: [], evolutionMensuelle: [] });
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -58,20 +58,20 @@ export default function StatistiquesMarche() {
     try {
       setLoading(true);
       setErrorMsg('');
-      const [statsData, placesData, paiementsData] = await Promise.all([
+      const [statsData, placesData, detailsData] = await Promise.all([
         getMarcheStats(selectedYear),
         listPlacesMarche(selectedYear),
-        listPaiementsMarche(selectedYear),
+        getMarcheDetails(selectedYear),
       ]);
       
       setStats(statsData || EMPTY_STATS);
       
       setPlaces(placesData || []);
-      setPaiements(paiementsData || []);
+      setDetails(detailsData);
     } catch {
       setStats(EMPTY_STATS);
       setPlaces([]);
-      setPaiements([]);
+      setDetails({ topCommercants: [], evolutionMensuelle: [] });
       setErrorMsg("Impossible de charger les statistiques du marché.");
     } finally {
       setLoading(false);
@@ -105,58 +105,24 @@ export default function StatistiquesMarche() {
   }, [places]);
 
   // Top commerçants par paiements
-  const topCommercants = useMemo(() => {
-    const grouped = paiements.reduce<Record<string, TopCommercant>>((acc, paiement) => {
-      const occupantKey = paiement.place?.occupantId || paiement.place?.occupant;
-      if (!occupantKey) return acc;
-      const occupantLabel = typeof paiement.place?.occupant === 'string' ? paiement.place.occupant : null;
-      
-      if (!acc[occupantKey]) {
-        acc[occupantKey] = {
-          nom: occupantLabel || 'Inconnu',
-          activite: paiement.place?.activite || '-',
-          place: paiement.place?.numero || '-',
-          paiements: 0,
-          montant: 0,
-        };
-      }
-      acc[occupantKey].paiements += 1;
-      acc[occupantKey].montant += paiement.montant || 0;
-      return acc;
-    }, {});
+  const topCommercants: TopCommercant[] = details.topCommercants;
 
-    return Object.values(grouped)
-      .sort((a, b) => b.montant - a.montant)
-      .slice(0, 5);
-  }, [paiements]);
-
-  // Paiements par mois (6 derniers mois)
+  // Paiements par mois (6 derniers mois), agrégés par le serveur
   const evolutionMensuelle = useMemo(() => {
     const mois: MonthlyMarketEvolution[] = [];
     const now = new Date();
-    
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const moisStr = date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
-      
-      const paiementsMois = paiements.filter((p) => {
-        if (!p.datePaiement) return false;
-        const pDate = new Date(p.datePaiement);
-        return pDate.getMonth() === date.getMonth() && pDate.getFullYear() === date.getFullYear();
-      });
-      
-      const montant = paiementsMois.reduce((sum, p) => sum + (p.montant || 0), 0);
-      const placesOccupees = new Set(paiementsMois.map((p) => p.placeId)).size;
-      
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const row = details.evolutionMensuelle.find((item) => item.mois === key);
       mois.push({
-        mois: moisStr,
-        placesOccuppees: placesOccupees,
-        recettes: montant,
+        mois: date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
+        placesOccuppees: row?.places || 0,
+        recettes: row?.montant || 0,
       });
     }
-    
     return mois;
-  }, [paiements]);
+  }, [details]);
 
   const handleExport = (type: 'excel' | 'pdf') => {
     setExportType(type);

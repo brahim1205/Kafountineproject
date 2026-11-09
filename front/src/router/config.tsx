@@ -7,7 +7,6 @@ const LoginPage = lazy(() => import('../pages/login/page'));
 const DashboardPage = lazy(() => import('../pages/dashboard/page'));
 const ServiceFinancesPage = lazy(() => import('../pages/service-finances/page'));
 const GestionBudgetPage = lazy(() => import('../pages/gestion-budget/page'));
-const QuaiPechePage = lazy(() => import('../pages/quai-peche/page'));
 const CommissionsPage = lazy(() => import('../pages/quai-peche/commissions/page'));
 const PecheursPage = lazy(() => import('../pages/quai-peche/pecheurs/page'));
 const EmbarcationsPage = lazy(() => import('../pages/quai-peche/embarcations/page'));
@@ -203,7 +202,7 @@ const routes: RouteObject[] = [
   },
   {
     path: '/quai-peche',
-    element: protectRoles(['quai_peche', 'regisseur'], <QuaiPechePage />)
+    element: <Navigate to="/quai-peche/commissions" replace />
   },
   {
     path: '/quai-peche/commissions',

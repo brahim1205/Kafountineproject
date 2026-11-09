@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
@@ -21,6 +22,8 @@ import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.numbering.NumeroSequence;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
+import sn.kafountine.gestionmunicipale.shared.persistence.Sql;
+import sn.kafountine.gestionmunicipale.shared.validation.Common;
 import sn.kafountine.gestionmunicipale.shared.text.Js;
 
 /** Motos et paiements (MotoService et PrismaMotoRepository côté Node). */
@@ -125,6 +128,25 @@ public class MotoService {
     List<Map<String, Object>> result = new ArrayList<>();
     for (Map<String, Object> row : filtered.subList(0, count)) result.add(motoView(row));
     return result;
+  }
+
+  private static final String RETARD = "(m.\"enRetard\" OR m.\"prochainPaiement\" < CURRENT_TIMESTAMP)";
+
+  /** Liste paginée : recherche et retards sont évalués en base, sur toute l'année. */
+  public Map<String, Object> page(int year, String search, String etat, Common.Paging paging) {
+    MapSqlParameterSource params = Db.params("year", year, "limit", paging.limit(), "offset", paging.offset());
+    StringBuilder where = new StringBuilder(" WHERE m.\"year\" = :year");
+    if (!search.isEmpty()) {
+      where.append(" AND (m.\"matricule\" ILIKE :like OR m.\"marque\" ILIKE :like OR m.\"modele\" ILIKE :like OR m.\"permis\" ILIKE :like")
+          .append(" OR p.\"nom\" ILIKE :like OR p.\"prenom\" ILIKE :like OR d.\"nom\" ILIKE :like OR d.\"prenom\" ILIKE :like)");
+      params.addValue("like", "%" + Sql.escapeLike(search) + "%");
+    }
+    if ("retard".equals(etat)) where.append(" AND ").append(RETARD);
+    if ("ajour".equals(etat)) where.append(" AND NOT ").append(RETARD);
+    List<Map<String, Object>> data = new ArrayList<>();
+    for (Map<String, Object> row : db.list(SELECT_MOTO + where + " ORDER BY m.\"createdAt\" DESC, m.\"id\" DESC LIMIT :limit OFFSET :offset", params)) data.add(motoView(row));
+    long total = db.count("SELECT COUNT(*) FROM \"MotoRegistration\" m INNER JOIN \"Contribuable\" p ON p.\"id\" = m.\"proprietaireId\" LEFT JOIN \"Contribuable\" d ON d.\"id\" = m.\"conducteurId\"" + where, params);
+    return Api.map("data", data, "meta", paging.meta(total));
   }
 
   private static String nz(Object value) {
@@ -242,7 +264,11 @@ public class MotoService {
     return Api.map("droitAdhesion", DROIT_ADHESION, "tarifMensuel", TARIF_MENSUEL, "penaliteRetard", PENALITE_RETARD, "amendePolice", AMENDE_POLICE);
   }
 
-  public List<Map<String, Object>> listPayments(int year) {
+  public long countPayments(int year) {
+    return db.count("SELECT COUNT(*) FROM \"MotoPayment\" WHERE \"year\" = :year", Db.params("year", year));
+  }
+
+  public List<Map<String, Object>> listPayments(int year, Common.Paging paging) {
     List<Map<String, Object>> rows = db.list("""
         SELECT mp.*, m."matricule", m."marque", m."modele", m."annee", m."couleur", m."proprietaireId", m."conducteurId", m."permis",
                m."statut" AS "motoStatut", m."photo", m."enRetard", m."montantPenalite", m."prochainPaiement", m."dernierPaiement",
@@ -253,8 +279,9 @@ public class MotoService {
         INNER JOIN "Contribuable" p ON p."id" = m."proprietaireId"
         LEFT JOIN "Contribuable" d ON d."id" = m."conducteurId"
         WHERE mp."year" = :year
-        ORDER BY COALESCE(mp."datePaiement", mp."createdAt") DESC
-        """, Db.params("year", year));
+        ORDER BY COALESCE(mp."datePaiement", mp."createdAt") DESC, mp."id" DESC
+        """ + (paging == null ? "" : " LIMIT :limit OFFSET :offset"),
+        paging == null ? Db.params("year", year) : Db.params("year", year, "limit", paging.limit(), "offset", paging.offset()));
     List<Map<String, Object>> result = new ArrayList<>();
     for (Map<String, Object> row : rows) result.add(paymentView(row));
     return result;

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { MotoPayment } from '../../services/motos';
 import DashboardLayout from '../../components/feature/DashboardLayout';
 import RecuPDF from '../../components/feature/RecuPDF';
-import { getMotoConfiguration, getMotosStats, listMotoPayments, listMotos, type MotoStats } from '../../services/motos';
+import { getMotoConfiguration, getMotosStats, type MotoStats } from '../../services/motos';
 import { getStoredUserRole, canWriteData } from '../../services/auth';
 import { useYear } from '../../contexts/YearContext';
 import MotosStats from './components/MotosStats';
@@ -15,7 +15,6 @@ import ChangementMotoModal from './components/ChangementMotoModal';
 import {
   FULL_DATE,
   SHORT_TIME,
-  toUiMoto,
   toUiMotoPayment, libellePaiement,
   type MotoConfig,
   type ReceiptData,
@@ -40,27 +39,18 @@ export default function MotosPage() {
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
-  const [motos, setMotos] = useState<UiMoto[]>([]);
-  const [paiements, setPaiements] = useState<UiMotoPayment[]>([]);
+  const [reloadKey, setReloadKey] = useState(0);
   const [stats, setStats] = useState<MotoStats>(EMPTY_STATS);
   const [motoConfig, setMotoConfig] = useState<MotoConfig>(EMPTY_CONFIG);
 
   const loadData = async () => {
     try {
       setError('');
-      const [motosData, paymentsData, statsData, config] = await Promise.all([
-        listMotos(selectedYear),
-        listMotoPayments(selectedYear),
-        getMotosStats(selectedYear),
-        getMotoConfiguration(),
-      ]);
-      setMotos((motosData || []).map(toUiMoto));
-      setPaiements((paymentsData || []).map(toUiMotoPayment));
+      const [statsData, config] = await Promise.all([getMotosStats(selectedYear), getMotoConfiguration()]);
+      setReloadKey((key) => key + 1);
       setStats(statsData || {});
       setMotoConfig(config || EMPTY_CONFIG);
     } catch {
-      setMotos([]);
-      setPaiements([]);
       setStats(EMPTY_STATS);
       setMotoConfig(EMPTY_CONFIG);
       setError('Impossible de charger les données des motos.');
@@ -71,8 +61,6 @@ export default function MotosPage() {
     loadData();
   }, [selectedYear]);
 
-  const motosRetard = useMemo(() => motos.filter((m) => m.enRetard), [motos]);
-  const paiementsRecents = useMemo(() => paiements.filter((p) => p.statut === 'Payé').slice(0, 10), [paiements]);
 
   const showSuccess = (message: string, then?: () => void) => {
     setSuccessMessage(message);
@@ -117,7 +105,7 @@ export default function MotosPage() {
   const tabs: Array<{ id: Tab; label: string; icon: string }> = [
     ...(userRole === 'admin' ? [] : [{ id: 'liste' as const, label: 'Liste des motos', icon: 'ri-list-check' }]),
     { id: 'paiements', label: 'Paiements récents', icon: 'ri-money-dollar-circle-line' },
-    { id: 'retards', label: `Retards (${motosRetard.length})`, icon: 'ri-alarm-warning-line' },
+    { id: 'retards', label: `Retards (${stats.enRetard || 0})`, icon: 'ri-alarm-warning-line' },
   ];
 
   return (
@@ -176,18 +164,20 @@ export default function MotosPage() {
           <div className="p-6">
             {activeTab === 'liste' && (
               <MotoList
-                motos={motos}
+                year={selectedYear}
+                reloadKey={reloadKey}
                 canManage={canManage}
                 onPaiement={(moto) => setModal({ type: 'paiement', moto })}
                 onChangement={(moto) => setModal({ type: 'changement', moto })}
               />
             )}
             {activeTab === 'paiements' && (
-              <MotoPaymentsTable paiements={paiementsRecents} canManage={canManage} onImprimerRecu={imprimerRecu} />
+              <MotoPaymentsTable year={selectedYear} reloadKey={reloadKey} canManage={canManage} onImprimerRecu={imprimerRecu} />
             )}
             {activeTab === 'retards' && (
               <MotosEnRetard
-                motos={motosRetard}
+                year={selectedYear}
+                reloadKey={reloadKey}
                 motoConfig={motoConfig}
                 canManage={canManage}
                 onPaiement={(moto) => setModal({ type: 'paiement', moto })}

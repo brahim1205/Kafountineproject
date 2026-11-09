@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { apiRequest, apiRequestWithMeta, type PageMeta } from './api';
 import type { Contribuable } from './contribuables';
 
 export type EtatCivilDemande = {
@@ -21,20 +21,16 @@ export type EtatCivilStats = {
   validees?: number;
 };
 
-export async function listEtatCivilDemandes(year?: number): Promise<EtatCivilDemande[]> {
+function pageQuery(params: Record<string, string | number | undefined>) {
   const query = new URLSearchParams();
-  query.set('limit', '300');
-  if (year) query.set('year', String(year));
-  const result = await apiRequest<EtatCivilDemande[] | { data?: EtatCivilDemande[] }>(`/etat-civil?${query.toString()}`);
-  if (Array.isArray(result)) {
-    return result;
-  }
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return query.toString();
+}
 
-  if (result && typeof result === 'object' && 'data' in result && Array.isArray(result.data)) {
-    return result.data;
-  }
-
-  return [];
+export async function pageEtatCivil(params: { year?: number; page: number; limit: number; search?: string; type?: string; statut?: string }): Promise<{ data: EtatCivilDemande[]; meta: PageMeta }> {
+  return apiRequestWithMeta<EtatCivilDemande[]>(`/etat-civil?${pageQuery(params)}`) as Promise<{ data: EtatCivilDemande[]; meta: PageMeta }>;
 }
 
 export async function getEtatCivilStats(year?: number): Promise<EtatCivilStats> {

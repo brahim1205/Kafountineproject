@@ -1,22 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState } from 'react';
 import { useYear } from '../../../contexts/YearContext';
+import Pagination from '../../../components/feature/Pagination';
+import { fetchAllPages, useServerList } from '../../../hooks/useServerList';
+import PecheurFormModal from './components/PecheurFormModal';
+import PecheurDetailModal from './components/PecheurDetailModal';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
-import { listPecheurs, createPecheur, updatePecheur, deletePecheur, type Pecheur } from '../../../services/quai-peche';
+import { createPecheur, updatePecheur, deletePecheur, type Pecheur, pagePecheurs } from '../../../services/quai-peche';
 import {
-  clearFieldValidationError,
   validateFormElement,
 } from '../../../utils/formValidation';
 import { downloadCsv, today } from '../../../utils/csv';
 
 export default function PecheursPage() {
-  const [pecheurs, setPecheurs] = useState<Pecheur[]>([]);
   const { selectedYear } = useYear();
   const currentYear = new Date().getFullYear();
   const isCurrentYear = selectedYear === currentYear;
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statutFilter, setStatutFilter] = useState('all');
+  const [actionError, setErrorMsg] = useState('');
+  const list = useServerList<Pecheur>((query) => pagePecheurs({ year: selectedYear, ...query }), [selectedYear]);
+  const { items: pecheurs, loading, reload: loadData, yearTotal, counts } = list;
+  const errorMsg = actionError || list.error;
+  const searchTerm = list.search;
+  const setSearchTerm = list.setSearch;
+  const statutFilter = list.statut;
+  const setStatutFilter = list.setStatut;
   
   // Modals
   const [showModal, setShowModal] = useState(false);
@@ -33,33 +39,10 @@ export default function PecheursPage() {
     adresse: ''
   });
 
-  useEffect(() => {
-    loadData();
-  }, [selectedYear]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setErrorMsg('');
-      const data = await listPecheurs({ year: selectedYear, limit: 100 });
-      setPecheurs(data);
-    } catch {
-      setPecheurs([]);
-      setErrorMsg("Impossible de charger les pêcheurs.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filteredPecheurs = pecheurs;
 
-  const filteredPecheurs = pecheurs.filter(p => {
-    const matchSearch = p.nom.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        p.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        p.telephone?.includes(searchTerm);
-    const matchStatut = statutFilter === 'all' || p.statut === statutFilter;
-    return matchSearch && matchStatut;
-  });
-
-  const actifs = filteredPecheurs.filter(p => p.statut === 'ACTIF').length;
+  const actifs = counts.ACTIF || 0;
 
   const handleView = (pecheur: Pecheur) => {
     setSelectedPecheur(pecheur);
@@ -121,10 +104,11 @@ export default function PecheursPage() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const rows = await fetchAllPages((page, limit) => pagePecheurs({ year: selectedYear, page, limit, search: list.appliedSearch, statut: list.statutValue }));
     const data = [
       ['Nom', 'Prénom', 'Téléphone', 'NIN', 'Adresse', 'Statut'],
-      ...filteredPecheurs.map(p => [
+      ...rows.map(p => [
         p.nom, p.prenom, p.telephone || '-', p.nin || '-', p.adresse || '-', p.statut
       ])
     ];
@@ -153,7 +137,7 @@ export default function PecheursPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Pêcheurs</p>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">{filteredPecheurs.length}</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mt-1">{yearTotal}</h3>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <i className="ri-user-line text-xl text-blue-600"></i>
@@ -175,7 +159,7 @@ export default function PecheursPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Inactifs</p>
-                <h3 className="text-2xl font-bold text-gray-400 mt-1">{filteredPecheurs.length - actifs}</h3>
+                <h3 className="text-2xl font-bold text-gray-400 mt-1">{yearTotal - actifs}</h3>
               </div>
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                 <i className="ri-user-unfollow-line text-xl text-gray-400"></i>
@@ -301,200 +285,13 @@ export default function PecheursPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={list.page} totalPages={list.totalPages} total={list.meta.total} unit="pêcheur" onChange={list.setPage} />
         </div>
       </div>
 
-      {/* Modal Nouveau Pêcheur */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Nouveau Pêcheur</h3>
-                <button onClick={() => setShowModal(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                  <i className="ri-close-line text-xl"></i>
-                </button>
-              </div>
-            </div>
-            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate>
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                    <input
-                      data-required="true"
-                      type="text"
-                      placeholder="Ex: Sall"
-                      value={formData.nom}
-                      onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-                    <input
-                      data-required="true"
-                      type="text"
-                      placeholder="Ex: Moussa"
-                      value={formData.prenom}
-                      onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: 77 123 45 67"
-                      value={formData.telephone}
-                      onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">NIN</label>
-                    <input
-                      type="text"
-                      placeholder="Numéro d'identification"
-                      value={formData.nin}
-                      onChange={(e) => setFormData({ ...formData, nin: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                  <input
-                    type="text"
-                    placeholder="Adresse"
-                    value={formData.adresse}
-                    onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
-                  Annuler
-                </button>
-                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">
-                  Enregistrer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Modifier Pêcheur */}
-      {showEditModal && selectedPecheur && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Modifier le Pêcheur</h3>
-                <button onClick={() => setShowEditModal(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                  <i className="ri-close-line text-xl"></i>
-                </button>
-              </div>
-            </div>
-            <form onSubmit={handleUpdate} onInput={clearFieldValidationError} noValidate>
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                    <input
-                      data-required="true"
-                      type="text"
-                      value={formData.nom}
-                      onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-                    <input
-                      data-required="true"
-                      type="text"
-                      value={formData.prenom}
-                      onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                    <input
-                      type="text"
-                      value={formData.telephone}
-                      onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">NIN</label>
-                    <input
-                      type="text"
-                      value={formData.nin}
-                      onChange={(e) => setFormData({ ...formData, nin: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                  <input
-                    type="text"
-                    value={formData.adresse}
-                    onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
-                  Annuler
-                </button>
-                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">
-                  Enregistrer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Voir Détails */}
-      {showViewModal && selectedPecheur && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Détails du Pêcheur</h3>
-                <button onClick={() => setShowViewModal(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                  <i className="ri-close-line text-xl"></i>
-                </button>
-              </div>
-            </div>
-            <div className="p-6 space-y-3">
-              <div className="flex justify-between"><span className="text-gray-500">Nom:</span><span className="font-medium">{selectedPecheur.nom}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Prénom:</span><span className="font-medium">{selectedPecheur.prenom}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Téléphone:</span><span className="font-medium">{selectedPecheur.telephone || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">NIN:</span><span className="font-medium">{selectedPecheur.nin || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Adresse:</span><span className="font-medium">{selectedPecheur.adresse || '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Statut:</span><span className="font-medium">{selectedPecheur.statut}</span></div>
-            </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end">
-              <button onClick={() => setShowViewModal(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showModal && <PecheurFormModal title="Nouveau Pêcheur" formData={formData} setFormData={setFormData} onSubmit={handleSubmit} onClose={() => setShowModal(false)} />}
+      {showEditModal && selectedPecheur && <PecheurFormModal title="Modifier le Pêcheur" formData={formData} setFormData={setFormData} onSubmit={handleUpdate} onClose={() => setShowEditModal(false)} />}
+      {showViewModal && selectedPecheur && <PecheurDetailModal item={selectedPecheur} onClose={() => setShowViewModal(false)} />}
     </DashboardLayout>
   );
 }

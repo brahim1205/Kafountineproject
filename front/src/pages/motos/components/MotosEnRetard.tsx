@@ -1,9 +1,14 @@
 import MotoPhoto from './MotoPhoto';
-import { formatDate, type MotoConfig, type UiMoto } from '../types';
+import { useEffect } from 'react';
+import Pagination from '../../../components/feature/Pagination';
+import { fetchAllPages, useServerList } from '../../../hooks/useServerList';
+import { pageMotos } from '../../../services/motos';
+import { formatDate, toUiMoto, type MotoConfig, type UiMoto } from '../types';
 import { downloadCsv, today } from '../../../utils/csv';
 
 type MotosEnRetardProps = {
-  motos: UiMoto[];
+  year: number;
+  reloadKey: number;
   motoConfig: MotoConfig;
   canManage: boolean;
   onPaiement: (moto: UiMoto) => void;
@@ -25,13 +30,31 @@ function exportCsv(motos: UiMoto[]) {
   ]);
 }
 
-export default function MotosEnRetard({ motos, motoConfig, canManage, onPaiement }: MotosEnRetardProps) {
+async function exporterTout(year: number) {
+  const motos = await fetchAllPages((page, limit) => pageMotos({ year, page, limit, etat: 'retard' }));
+  exportCsv(motos.map(toUiMoto));
+}
+
+export default function MotosEnRetard({ year, reloadKey, motoConfig, canManage, onPaiement }: MotosEnRetardProps) {
+  const list = useServerList(
+    async ({ page, limit }) => {
+      const { data, meta } = await pageMotos({ year, page, limit, etat: 'retard' });
+      return { data: data.map(toUiMoto), meta };
+    },
+    [year],
+    { pageSize: 24 }
+  );
+  const { reload } = list;
+  useEffect(() => {
+    if (reloadKey) reload();
+  }, [reloadKey, reload]);
+
   return (
     <div className="space-y-4">
       {canManage && (
         <div className="flex justify-end">
           <button
-            onClick={() => exportCsv(motos)}
+            onClick={() => exporterTout(year)}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 cursor-pointer"
           >
             <i className="ri-download-line"></i>
@@ -39,7 +62,7 @@ export default function MotosEnRetard({ motos, motoConfig, canManage, onPaiement
           </button>
         </div>
       )}
-      {motos.map((moto) => (
+      {list.items.map((moto) => (
         <div key={moto.id} className="bg-red-50 rounded-lg p-4 border border-red-200">
           <div className="flex items-start justify-between mb-3">
             <div className="flex gap-4">
@@ -88,6 +111,7 @@ export default function MotosEnRetard({ motos, motoConfig, canManage, onPaiement
           </div>
         </div>
       ))}
+      <Pagination page={list.page} totalPages={list.totalPages} total={list.meta.total} unit="moto en retard" onChange={list.setPage} />
     </div>
   );
 }

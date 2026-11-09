@@ -602,6 +602,64 @@ describeIntegration('services municipaux (intégration)', () => {
     });
   });
 
+  describe('listes paginées par le serveur', () => {
+    const meta = (res) => res.body.meta;
+
+    it('pagine les motos, recherche et isole les retards sur toute l’année', async () => {
+      const page = await admin.get(`/motos?year=${year}&page=1&limit=2`);
+      expect(page.status).toBe(200);
+      expect(page.body.data.length).toBeLessThanOrEqual(2);
+      expect(meta(page).total).toBeGreaterThanOrEqual(page.body.data.length);
+      const retards = await admin.get(`/motos?year=${year}&page=1&limit=500&etat=retard`);
+      expect(retards.body.data.every((moto) => moto.enRetard)).toBe(true);
+      const ajour = await admin.get(`/motos?year=${year}&page=1&limit=500&etat=ajour`);
+      expect(ajour.body.data.every((moto) => !moto.enRetard)).toBe(true);
+      expect(meta(retards).total + meta(ajour).total).toBe(meta(page).total);
+      const cible = page.body.data[0];
+      const trouve = await admin.get(`/motos?year=${year}&page=1&limit=5&search=${encodeURIComponent(cible.matricule)}`);
+      expect(trouve.body.data.map((moto) => moto.id)).toContain(cible.id);
+    });
+
+    it('sert les pages suivantes sans répéter de ligne', async () => {
+      const first = await admin.get(`/motos/paiements?year=${year}&page=1&limit=2`);
+      const second = await admin.get(`/motos/paiements?year=${year}&page=2&limit=2`);
+      expect(meta(first).total).toBeGreaterThan(2);
+      const ids = first.body.data.map((p) => p.id);
+      for (const row of second.body.data) expect(ids).not.toContain(row.id);
+    });
+
+    it('compte les paiements du marché par statut, quel que soit le filtre', async () => {
+      const all = await admin.get(`/marche/paiements?year=${year}&page=1&limit=1`);
+      const paid = await admin.get(`/marche/paiements?year=${year}&page=1&limit=1&statut=PAYE`);
+      expect(meta(paid).total).toBe(meta(all).counts.PAYE);
+      expect(meta(paid).counts).toEqual(meta(all).counts);
+      const details = await admin.get(`/marche/statistiques/details?year=${year}`);
+      expect(details.status).toBe(200);
+      expect(Array.isArray(details.body.data.topCommercants)).toBe(true);
+      expect(details.body.data.topCommercants.length).toBeLessThanOrEqual(5);
+    });
+
+    it('filtre l’état civil par statut en base', async () => {
+      const res = await admin.get(`/etat-civil?year=${year}&page=1&limit=500&statut=EN_ATTENTE`);
+      expect(res.status).toBe(200);
+      expect(res.body.data.every((demande) => demande.statut === 'EN_ATTENTE')).toBe(true);
+      expect(meta(res).total).toBe(res.body.data.length);
+    });
+
+    it.each(['pecheurs', 'embarcations', 'commissions', 'camions', 'expeditions'])('pagine %s avec ses compteurs', async (collection) => {
+      const res = await admin.get(`/quai-peche/${collection}?year=${year}&page=1&limit=1`);
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBeLessThanOrEqual(1);
+      expect(Object.values(meta(res).counts).reduce((a, b) => a + b, 0)).toBe(meta(res).total);
+    });
+
+    it('garde la liste complète quand aucune page n’est demandée', async () => {
+      const res = await admin.get(`/quai-peche/pecheurs?year=${year}`);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.meta).toBeUndefined();
+    });
+  });
+
   describe('journal d’audit', () => {
     it('filtre, compte et pagine en base', async () => {
       const all = (await admin.get(`/audit?year=${year}&limit=1`)).body.data;

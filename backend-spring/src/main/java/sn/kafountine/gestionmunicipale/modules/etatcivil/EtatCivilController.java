@@ -37,7 +37,20 @@ public class EtatCivilController {
   @GetMapping
   @Roles({"SUPER_ADMIN", "ETAT_CIVIL"})
   public ResponseEntity<Map<String, Object>> list(HttpServletRequest request) {
-    return Api.ok(service.list(Common.yearLimitQuery(request.getParameterMap())));
+    Input query = Input.query(request.getParameterMap());
+    Integer year = Common.year(query);
+    Integer limit = query.num("limit").integer().min(1).max(500).optionalInt();
+    Integer page = query.num("page").integer().min(1).optionalInt();
+    String search = query.str("search").max(120).optional();
+    String type = query.str("type").max(120).optional();
+    String statut = query.str("statut").max(40).optional();
+    query.check();
+    int resolved = Common.yearOrCurrent(year == null || year == 0 ? null : year);
+    Common.Paging paging = Common.paging(page, limit);
+    if (paging == null) return Api.ok(service.list(resolved));
+    Map<String, Object> result = service.page(resolved, search == null ? "" : search.strip(), type, statut, paging);
+    @SuppressWarnings("unchecked") Map<String, Object> meta = (Map<String, Object>) result.get("meta");
+    return Api.okWithMeta(result.get("data"), meta);
   }
 
   @GetMapping("/types-documents")

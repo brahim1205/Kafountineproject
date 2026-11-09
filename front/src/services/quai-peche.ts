@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { apiRequest , apiRequestWithMeta, type PageMeta } from './api';
 
 // ============================================
 // Types - Quai de Pêche
@@ -101,6 +101,22 @@ function quaiListQuery(params?: QuaiListParams) {
   if (params?.limit) query.set('limit', String(params.limit));
   return query.toString() ? `?${query.toString()}` : '';
 }
+
+export type QuaiPageParams = { year?: number; page: number; limit: number; search?: string; statut?: string };
+
+function quaiPage<T>(collection: string, params: QuaiPageParams): Promise<{ data: T[]; meta: PageMeta }> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return apiRequestWithMeta<T[]>(`/quai-peche/${collection}?${query.toString()}`) as Promise<{ data: T[]; meta: PageMeta }>;
+}
+
+export const pagePecheurs = (params: QuaiPageParams) => quaiPage<Pecheur>('pecheurs', params);
+export const pageEmbarcations = (params: QuaiPageParams) => quaiPage<Embarcation>('embarcations', params);
+export const pageCommissions = (params: QuaiPageParams) => quaiPage<Commission>('commissions', params);
+export const pageCamions = (params: QuaiPageParams) => quaiPage<CamionFrigorifique>('camions', params);
+export const pageExpeditions = (params: QuaiPageParams) => quaiPage<Expedition>('expeditions', params);
 
 export async function listPecheurs(params?: QuaiListParams): Promise<Pecheur[]> {
   const result = await apiRequest<Pecheur[]>(`/quai-peche/pecheurs${quaiListQuery(params)}`);

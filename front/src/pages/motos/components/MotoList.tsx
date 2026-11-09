@@ -1,30 +1,34 @@
 import MotoPhoto from './MotoPhoto';
-import { useState } from 'react';
-import { formatDate, type UiMoto } from '../types';
+import Pagination from '../../../components/feature/Pagination';
+import { useServerList } from '../../../hooks/useServerList';
+import { useEffect } from 'react';
+import { pageMotos } from '../../../services/motos';
+import { formatDate, toUiMoto, type UiMoto } from '../types';
 
 type MotoListProps = {
-  motos: UiMoto[];
+  year: number;
+  reloadKey: number;
   canManage: boolean;
   onPaiement: (moto: UiMoto) => void;
   onChangement: (moto: UiMoto) => void;
 };
 
-export default function MotoList({ motos, canManage, onPaiement, onChangement }: MotoListProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatut, setFilterStatut] = useState('Tous');
-
-  const search = searchTerm.toLowerCase();
-  const filteredMotos = motos.filter((moto) => {
-    const matchSearch =
-      (moto.matricule || '').toLowerCase().includes(search) ||
-      (moto.proprietaire?.nom || '').toLowerCase().includes(search) ||
-      (moto.conducteur?.nom || '').toLowerCase().includes(search);
-    const matchStatut =
-      filterStatut === 'Tous' ||
-      (filterStatut === 'En retard' && moto.enRetard) ||
-      (filterStatut === 'À jour' && !moto.enRetard);
-    return matchSearch && matchStatut;
-  });
+export default function MotoList({ year, reloadKey, canManage, onPaiement, onChangement }: MotoListProps) {
+  const list = useServerList(
+    async ({ page, limit, search, statut }) => {
+      const { data, meta } = await pageMotos({
+        year, page, limit, search,
+        etat: statut === 'En retard' ? 'retard' : statut === 'À jour' ? 'ajour' : undefined,
+      });
+      return { data: data.map(toUiMoto), meta };
+    },
+    [year],
+    { initialStatut: 'Tous', pageSize: 24 }
+  );
+  const { reload } = list;
+  useEffect(() => {
+    if (reloadKey) reload();
+  }, [reloadKey, reload]);
 
   return (
     <div className="space-y-4">
@@ -35,15 +39,15 @@ export default function MotoList({ motos, canManage, onPaiement, onChangement }:
             <input
               type="text"
               placeholder="Rechercher par matricule, propriétaire ou conducteur..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={list.search}
+              onChange={(e) => list.setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             />
           </div>
         </div>
         <select
-          value={filterStatut}
-          onChange={(e) => setFilterStatut(e.target.value)}
+          value={list.statut}
+          onChange={(e) => list.setStatut(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent cursor-pointer"
         >
           <option>Tous</option>
@@ -53,7 +57,7 @@ export default function MotoList({ motos, canManage, onPaiement, onChangement }:
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filteredMotos.map((moto) => (
+        {list.items.map((moto) => (
           <div key={moto.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex gap-4">
               <MotoPhoto src={moto.photo} alt={`${moto.marque} ${moto.modele}`} sizeClass="w-32 h-24" />
@@ -114,6 +118,8 @@ export default function MotoList({ motos, canManage, onPaiement, onChangement }:
           </div>
         ))}
       </div>
+      {!list.loading && list.items.length === 0 && <p className="text-center text-sm text-gray-500 py-8">Aucune moto trouvée.</p>}
+      <Pagination page={list.page} totalPages={list.totalPages} total={list.meta.total} unit="moto" onChange={list.setPage} />
     </div>
   );
 }

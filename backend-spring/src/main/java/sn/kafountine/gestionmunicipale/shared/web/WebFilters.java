@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -31,6 +32,7 @@ import sn.kafountine.gestionmunicipale.shared.security.AuthUser;
 public class WebFilters {
   private static final ObjectMapper JSON = new ObjectMapper();
   private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS");
+  private static final Pattern REQUEST_ID_FORMAT = Pattern.compile("^[A-Za-z0-9._-]{1,128}$");
 
   private static String normalizeOrigin(String value) {
     try {
@@ -96,7 +98,7 @@ public class WebFilters {
       protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         long startedAt = System.currentTimeMillis();
         String header = request.getHeader("x-request-id");
-        String requestId = header == null || header.isBlank() ? UUID.randomUUID().toString() : header;
+        String requestId = header != null && REQUEST_ID_FORMAT.matcher(header).matches() ? header : UUID.randomUUID().toString();
         request.setAttribute(RequestContext.REQUEST_ID, requestId);
         response.setHeader("x-request-id", requestId);
         try {

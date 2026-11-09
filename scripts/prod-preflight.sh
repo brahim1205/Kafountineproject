@@ -49,13 +49,6 @@ bash "$ROOT_DIR/scripts/security-repo-scan.sh"
 echo "Checking docker compose configuration..."
 docker compose --env-file "$ENV_FILE" -f "$ROOT_DIR/docker-compose.prod.yml" config >/dev/null
 
-if command -v helm >/dev/null 2>&1; then
-  echo "Checking Helm chart..."
-  helm lint "$ROOT_DIR/infra/helm/kafontine" >/dev/null
-else
-  echo "Skipping Helm chart lint: helm is not installed."
-fi
-
 echo "Checking backend build..."
 (cd "$ROOT_DIR/backend-spring" && mvn -q -Dmaven.test.skip=true package >/dev/null)
 

@@ -5,7 +5,7 @@
 - Serveur : `72.62.234.215`, application dans `/opt/kafontine`.
 - Site : `https://orbyteconsulting.tech/`.
 - Disponibilite : `https://orbyteconsulting.tech/ready`.
-- Backend actuellement deploye : Node.js.
+- Backend deploye : Spring Boot. Interface deployee : Angular.
 - Les services du serveur sont `backend`, `frontend`, `postgres`, `redis`.
   Le script de deploiement accepte aussi le service `front` du Compose local.
 

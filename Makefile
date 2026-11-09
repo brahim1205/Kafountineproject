@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help check backend-check security-scan validate-prod-env validate-prod-template prod-preflight prod-smoke k8s-apply helm-install helm-upgrade helm-uninstall up-dev down-dev logs-dev reset-dev bootstrap-dev-db dev-local backend-local backend-local-no-db front-local
+.PHONY: help check backend-check security-scan validate-prod-env validate-prod-template prod-preflight prod-smoke up-dev down-dev logs-dev reset-dev bootstrap-dev-db dev-local backend-local backend-local-no-db front-local
 
 help:
 	@echo "Modes disponibles:"
@@ -13,10 +13,6 @@ help:
 	@echo "  make validate-prod-template -> vérifie seulement la structure du template .env.prod"
 	@echo "  make prod-preflight    -> lance les vérifications repo + build + tests avant prod"
 	@echo "  make prod-smoke URL=https://domaine -> lance le smoke test HTTP post-déploiement"
-	@echo "  make k8s-apply         -> applique les manifestes Kubernetes"
-	@echo "  make helm-install      -> installe le chart Helm kafontine"
-	@echo "  make helm-upgrade      -> met à jour le chart Helm kafontine"
-	@echo "  make helm-uninstall    -> supprime la release Helm kafontine"
 	@echo "  make check            -> lance la vérification backend"
 
 check:
@@ -40,18 +36,6 @@ prod-preflight:
 prod-smoke:
 	test -n "$(URL)" || (echo "Usage: make prod-smoke URL=https://your-domain.com" && exit 1)
 	bash ./scripts/smoke-prod.sh "$(URL)"
-
-k8s-apply: validate-prod-env
-	kubectl apply -f infra/k8s/
-
-helm-install: validate-prod-env
-	helm install kafontine infra/helm/kafontine
-
-helm-upgrade: validate-prod-env
-	helm upgrade --install kafontine infra/helm/kafontine
-
-helm-uninstall:
-	helm uninstall kafontine
 
 up-dev:
 	docker compose -f docker-compose.dev.yml up -d postgres redis

@@ -37,9 +37,8 @@ Production : <https://orbyteconsulting.tech>
 ├── front-angular/          # Interface en production (Angular 22)
 ├── backend-spring/         # API REST Java Spring Boot
 ├── database/               # Migrations Prisma, données de démonstration, tests d'API
-├── infra/                  # Terraform, Kubernetes, Helm, systemd
-├── traefik/                # Reverse proxy
-├── ops/, scripts/          # Exploitation, sauvegardes, déploiement
+├── infra/                  # Timer systemd des sauvegardes, empreinte SSH du serveur
+├── scripts/                # Exploitation, sauvegardes, déploiement
 ├── docker-compose.dev.yml  # PostgreSQL et Redis de développement
 └── docker-compose.prod.yml # Pile de production
 ```
@@ -47,9 +46,9 @@ Production : <https://orbyteconsulting.tech>
 | Partie | Technologies |
 |---|---|
 | Interface | Angular 22 (composants autonomes, signaux, OnPush), TypeScript strict, Tailwind CSS, Vitest, Playwright |
-| API | Java 17, Spring Boot 3.3, JWT en cookies |
+| API | Java 17, Spring Boot 3.5, JWT en cookies |
 | Données | PostgreSQL, Redis, migrations Prisma |
-| Déploiement | Docker, Nginx, Traefik, GitHub Actions |
+| Déploiement | Docker, Nginx, GitHub Actions |
 
 Les pages de l'interface se trouvent dans `front-angular/src/app/pages/`, les services d'accès à l'API dans `src/app/services/`, et l'authentification et les intercepteurs dans `src/app/core/`.
 
@@ -85,7 +84,6 @@ Les données de démonstration créent un compte par rôle, sur le modèle `admi
 Copier l'exemple adapté, puis renseigner les valeurs réelles :
 
 - `.env.dev.example`
-- `.env.staging.example`
 - `.env.prod.example`
 - [database/.env.example](./database/.env.example)
 
@@ -140,7 +138,6 @@ RUN_INTEGRATION_TESTS=true API_BASE_URL=http://127.0.0.1:3000 npm run test:api
 
 Le workflow [deploy.yml](./.github/workflows/deploy.yml) vérifie le code, construit trois images (`backend`, `migrator`, `frontend`), sauvegarde la base, puis déploie. L'étape de déploiement se lance manuellement avec l'option `deploy`, ou à la création d'un tag `v*`. L'image `frontend` est construite depuis `front-angular/`.
 
-- [DEPLOYMENT_ENTERPRISE_GUIDE.md](./DEPLOYMENT_ENTERPRISE_GUIDE.md)
 - [RUNBOOK_PRODUCTION.md](./RUNBOOK_PRODUCTION.md)
 - [PRODUCTION_CHECKLIST.md](./PRODUCTION_CHECKLIST.md)
 - [GITHUB_ACTIONS_OPERATIONS.md](./GITHUB_ACTIONS_OPERATIONS.md)

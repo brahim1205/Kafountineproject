@@ -1,3 +1,4 @@
+import { ModePaiement } from '../../../shared/ui/mode-paiement/mode-paiement';
 import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
 import { Modal } from '../../../components/feature/modal';
 import { Field } from '../../../components/feature/field';
@@ -17,10 +18,11 @@ const BUTTON_SECONDARY = 'px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg
   selector: 'app-nouveau-ticket-modal',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Modal, Field, ContribuableSelect],
+  imports: [ModePaiement, Modal, Field, ContribuableSelect],
   templateUrl: './nouveau-ticket-modal.html',
 })
 export class NouveauTicketModal {
+  protected readonly modePaiement = signal('ESPECE');
   protected readonly BUTTON_PRIMARY = BUTTON_PRIMARY;
   protected readonly BUTTON_SECONDARY = BUTTON_SECONDARY;
   protected readonly clearFieldValidationError = clearFieldValidationError;
@@ -59,7 +61,7 @@ export class NouveauTicketModal {
     service: type,
     quantite: 1,
     montant: amount,
-    modePaiement: 'ESPECE',
+    modePaiement: this.modePaiement(),
     reference,
     });
     const now = new Date();

@@ -1,0 +1,45 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Impayés</h1>
+    <p class="text-sm text-gray-600 mt-1">Cotisations de motos échues et loyers de marché non réglés</p>
+  </div>
+  @if (erreur()) {
+    <div role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ erreur() }}</div>
+  }
+  @if (data(); as d) {
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-5"><p class="text-sm text-gray-600">Total dû</p><p class="text-2xl font-bold text-red-600 mt-1">{{ montant(d.total) }}</p></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5"><p class="text-sm text-gray-600">Motos</p><p class="text-2xl font-bold text-gray-900 mt-1">{{ montant(d.montantMotos) }}</p></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5"><p class="text-sm text-gray-600">Marché</p><p class="text-2xl font-bold text-gray-900 mt-1">{{ montant(d.montantMarche) }}</p></div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <input aria-label="Rechercher un impayé" type="text" placeholder="Nom, matricule, place ou téléphone" [value]="recherche()" (input)="recherche.set($any($event.target).value)" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+        <select aria-label="Type d'impayé" [value]="type()" (change)="type.set($any($event.target).value)" class="px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer">
+          <option value="tous">Tous</option><option value="MOTO">Motos</option><option value="MARCHE">Marché</option>
+        </select>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-gray-200 text-left text-gray-700">
+            <th class="py-2 px-3">Contribuable</th><th class="py-2 px-3">Téléphone</th><th class="py-2 px-3">Référence</th><th class="py-2 px-3">Objet</th><th class="py-2 px-3">Échéance</th><th class="py-2 px-3 text-right">Montant dû</th>
+          </tr></thead>
+          <tbody>
+            @for (ligne of lignes(); track ligne.type + ligne.id) {
+              <tr class="border-b border-gray-100">
+                <td class="py-2 px-3">
+                  @if (ligne.contribuableId) {
+                    <a [routerLink]="['/contribuables']" [queryParams]="{ id: ligne.contribuableId }" class="text-cyan-700 hover:underline">{{ ligne.contribuable }}</a>
+                  } @else { {{ ligne.contribuable }} }
+                </td>
+                <td class="py-2 px-3">{{ ligne.telephone || '-' }}</td><td class="py-2 px-3 text-gray-900">{{ ligne.reference }}</td><td class="py-2 px-3">{{ ligne.libelle }}</td><td class="py-2 px-3">{{ date(ligne.echeance) }}</td><td class="py-2 px-3 text-right font-medium text-red-600">{{ montant(ligne.montant) }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="py-4 px-3 text-center text-gray-500">Aucun impayé.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

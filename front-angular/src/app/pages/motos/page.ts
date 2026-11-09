@@ -38,7 +38,7 @@ export class MotosPage {
 
   protected readonly userRole = computed(() => this.auth.role() || 'admin');
 
-  protected readonly canManage = computed(() => this.auth.canWriteRole(this.userRole()) && this.isCurrentYear());
+  protected readonly canManage = computed(() => this.auth.role() !== 'quai_peche' && this.auth.canWriteRole(this.userRole()) && this.isCurrentYear());
 
   protected readonly activeTab = signal<Tab>(this.userRole() === 'admin' ? 'paiements' : 'liste');
 

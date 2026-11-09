@@ -1,3 +1,4 @@
+import { ModePaiement } from '../../shared/ui/mode-paiement/mode-paiement';
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
 import { Penalite } from '../../services/settings';
 import { RecuPDF } from '../../components/feature/recu-pdf';
@@ -13,10 +14,11 @@ const INPUT_CLASS = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ou
   selector: 'app-penalites',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ContribuableSelect, RecuPDF],
+  imports: [ModePaiement, ContribuableSelect, RecuPDF],
   templateUrl: './page.html',
 })
 export class Penalites {
+  protected readonly modePaiement = signal('ESPECE');
   protected readonly INPUT_CLASS = INPUT_CLASS;
   protected readonly clearFieldValidationError = clearFieldValidationError;
   protected readonly auth = inject(AuthService);
@@ -88,7 +90,7 @@ export class Penalites {
     service: type,
     quantite: 1,
     montant: this.selectedPenalite()!.montant,
-    modePaiement: 'ESPECE',
+    modePaiement: this.modePaiement(),
     reference: `PEN-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
     });
     const date = created?.date ? new Date(created.date) : new Date();

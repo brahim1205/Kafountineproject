@@ -1,3 +1,4 @@
+import { ModePaiement } from '../../../shared/ui/mode-paiement/mode-paiement';
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
 import { RecuPDF } from '../../../components/feature/recu-pdf';
 import { TaxCategory, TaxService } from '../../../services/taxes';
@@ -33,10 +34,11 @@ type ReceiptTransaction = {
   selector: 'app-nouvelle-transaction',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RecuPDF],
+  imports: [ModePaiement, RecuPDF],
   templateUrl: './nouvelle-transaction.html',
 })
 export class NouvelleTransaction {
+  protected readonly modePaiement = signal('ESPECE');
   protected readonly Boolean = Boolean;
   protected readonly clearFieldValidationError = clearFieldValidationError;
   protected readonly toast = inject(ToastService);
@@ -126,7 +128,7 @@ export class NouvelleTransaction {
     service: this.serviceSelectionne()?.nom || this.formData().service,
     quantite: this.formData().quantite,
     montant: this.montantTotal(),
-    modePaiement: 'ESPECE',
+    modePaiement: this.modePaiement(),
     reference,
     });
     const now = new Date();
@@ -146,7 +148,7 @@ export class NouvelleTransaction {
     quantite: this.formData().quantite,
     unite: this.serviceSelectionne()?.unite || '',
     tarifUnitaire: this.serviceSelectionne()?.tarif || 0,
-    modePaiement: 'ESPECE',
+    modePaiement: this.modePaiement(),
     statut: 'PAYE',
     reference,
     };

@@ -8,8 +8,10 @@ import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { serverList } from '../../../shared/utils/server-list';
 import { MarcheApi } from '../../../services/marche';
+import { ModePaiement } from '../../../shared/ui/mode-paiement/mode-paiement';
+import { AnnulationModal } from '../../../shared/ui/annulation-modal/annulation-modal';
 
-type PaymentStatusLabel = 'Payé' | 'En attente' | 'En retard';
+type PaymentStatusLabel = 'Payé' | 'En attente' | 'En retard' | 'Annulé';
 
 type ReceiptData = {
   numero: string;
@@ -33,7 +35,7 @@ type UiPaiementMarche = PaiementMarche & {
   selector: 'app-suivi-paiements',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Pagination, RecuPDF],
+  imports: [ModePaiement, AnnulationModal, Pagination, RecuPDF],
   templateUrl: './suivi-paiements.html',
 })
 export class SuiviPaiements {
@@ -47,9 +49,33 @@ export class SuiviPaiements {
 
   protected readonly userRole = computed(() => this.auth.role() || 'admin');
 
-  protected readonly canManage = computed(() => this.auth.canWriteRole(this.userRole()));
+  protected readonly canManage = computed(() => this.auth.role() !== 'quai_peche' && this.auth.canWriteRole(this.userRole()));
 
   protected readonly showPaiementModal = signal(false);
+
+  protected readonly modePaiement = signal('ESPECE');
+
+  protected readonly peutAnnuler = computed(() => this.auth.role() === 'super_admin' || this.auth.role() === 'regisseur');
+
+  protected readonly aAnnuler = signal<UiPaiementMarche | null>(null);
+
+  protected readonly busy = signal(false);
+
+  protected async annuler(motif: string): Promise<void> {
+    const paiement = this.aAnnuler();
+    if (!paiement) return;
+    this.busy.set(true);
+    try {
+      await this.marcheApi.annulerPaiementMarche(paiement.id, motif);
+      this.toast.show('Paiement annulé.', 'success');
+      this.aAnnuler.set(null);
+      await this.loadData();
+    } catch (error) {
+      this.toast.show(getErrorMessage(error, "Impossible d'annuler ce paiement."), 'error');
+    } finally {
+      this.busy.set(false);
+    }
+  }
 
   protected readonly showRecuPDF = signal(false);
 
@@ -71,7 +97,7 @@ export class SuiviPaiements {
     numero: p.place?.numero || '-',
     occupant: p.place?.occupant || p.place?.occupantId || 'N/A',
     activite: p.place?.activite || '-',
-    statut: p.statut === 'PAYE' ? 'Payé' : p.statut === 'EN_ATTENTE' ? 'En attente' : 'En retard',
+    statut: p.statut === 'PAYE' ? 'Payé' : p.statut === 'ANNULE' ? 'Annulé' : p.statut === 'EN_ATTENTE' ? 'En attente' : 'En retard',
     datePaiement: p.datePaiement ? new Date(p.datePaiement).toLocaleDateString('fr-FR') : null,
     })),
     };
@@ -119,15 +145,16 @@ export class SuiviPaiements {
     }
     try {
     const reference = `MRC-${Date.now()}`;
-    await this.marcheApi.createPaiementMarche({
+    const created = await this.marcheApi.createPaiementMarche({
     placeId: this.selectedPaiement()!.placeId,
     periode: this.selectedPaiement()!.periode,
     montant: Number(this.selectedPaiement()!.montant),
     reference,
+    modePaiement: this.modePaiement(),
     });
     const now = new Date();
     this.transactionData.set({
-    numero: reference,
+    numero: created.numeroRecu || reference,
     date: now.toLocaleDateString('fr-FR'),
     heure: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
     contribuable: this.selectedPaiement()!.occupant,

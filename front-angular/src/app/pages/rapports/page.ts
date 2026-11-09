@@ -29,7 +29,7 @@ export interface TopContribuable {
 function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
   const taxes = Number(overview?.txStats?.annee?.total || overview?.txStats?.mois?.total || 0);
   const motos = Number(overview?.motosStats?.recettesAnnee || overview?.motosStats?.recettesMois || 0);
-  const marche = Number(overview?.marcheStats?.recettesMois || 0);
+  const marche = Number(overview?.marcheStats?.recettesAnnee ?? overview?.marcheStats?.recettesMois ?? 0);
   const etatCivil = Number(overview?.etatCivilStats?.recettes || 0);
   const urbanisme = Number(overview?.urbanismeStats?.recettes || 0);
   const formations = Number(overview?.formationsStats?.budgetTotal || 0);

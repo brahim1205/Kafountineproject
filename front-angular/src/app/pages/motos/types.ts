@@ -71,7 +71,7 @@ export function toUiMoto(moto: Moto): UiMoto {
 export function toUiMotoPayment(payment: MotoPayment): UiMotoPayment {
   return {
     ...payment,
-    statut: payment.statut === 'PAYE' ? 'Payé' : payment.statut === 'EN_ATTENTE' ? 'En attente' : 'En retard',
+    statut: payment.statut === 'PAYE' ? 'Payé' : payment.statut === 'ANNULE' ? 'Annulé' : payment.statut === 'EN_ATTENTE' ? 'En attente' : 'En retard',
     datePaiement: payment.datePaiement ? new Date(payment.datePaiement).toISOString() : null,
     proprietaire: `${payment.moto?.proprietaire?.prenom || ''} ${payment.moto?.proprietaire?.nom || ''}`.trim() || 'N/A',
     matricule: payment.moto?.matricule || '-',

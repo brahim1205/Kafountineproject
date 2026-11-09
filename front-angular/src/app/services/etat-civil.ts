@@ -48,6 +48,7 @@ export class EtatCivilApi {
 }
 
   async createEtatCivilDemande(payload: {
+  modePaiement?: string;
   contribuableId: string;
   typeDocument: string;
   exemplaires: number;

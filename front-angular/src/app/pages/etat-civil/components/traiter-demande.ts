@@ -1,3 +1,4 @@
+import { ModePaiement } from '../../../shared/ui/mode-paiement/mode-paiement';
 import { ChangeDetectionStrategy, Component, inject, output, signal, computed, effect, untracked } from '@angular/core';
 import { RecuPDF } from '../../../components/feature/recu-pdf';
 import { TaxService } from '../../../services/taxes';
@@ -22,10 +23,11 @@ type ReceiptData = {
   selector: 'app-traiter-demande',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RecuPDF],
+  imports: [ModePaiement, RecuPDF],
   templateUrl: './traiter-demande.html',
 })
 export class TraiterDemande {
+  protected readonly modePaiement = signal('ESPECE');
   protected readonly clearFieldValidationError = clearFieldValidationError;
   protected readonly yearService = inject(YearService);
   protected readonly toast = inject(ToastService);
@@ -85,6 +87,7 @@ export class TraiterDemande {
     typeDocument: selectedDoc.nom,
     exemplaires: exemplaire,
     montant: montantTotal,
+    modePaiement: this.modePaiement(),
     observations: this.formData().observations.trim() || undefined,
     year: this.selectedYear(),
     });

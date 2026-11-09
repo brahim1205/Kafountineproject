@@ -190,7 +190,7 @@ public class MarcheService {
       where.append(" AND (p.\"numeroPlace\" ILIKE :like OR c.\"nom\" ILIKE :like OR c.\"prenom\" ILIKE :like)");
       params.addValue("like", "%" + Sql.escapeLike(search) + "%");
     }
-    if ("RETARD".equals(statut)) where.append(" AND mp.\"statut\" NOT IN ('PAYE', 'EN_ATTENTE')");
+    if ("RETARD".equals(statut)) where.append(" AND mp.\"statut\" NOT IN ('PAYE', 'EN_ATTENTE', 'ANNULE')");
     else if (statut != null) {
       where.append(" AND mp.\"statut\" = :statut");
       params.addValue("statut", statut);
@@ -206,7 +206,7 @@ public class MarcheService {
       long n = ((Number) row.get("n")).longValue();
       if ("PAYE".equals(row.get("statut"))) paye += n;
       else if ("EN_ATTENTE".equals(row.get("statut"))) attente += n;
-      else retard += n;
+      else if (!"ANNULE".equals(row.get("statut"))) retard += n;
     }
     counts.put("PAYE", paye);
     counts.put("EN_ATTENTE", attente);

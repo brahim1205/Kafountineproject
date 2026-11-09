@@ -26,6 +26,8 @@ export type PaiementMarche = {
   periode: string;
   statut: string;
   datePaiement?: string | null;
+  numeroRecu?: string;
+  modePaiement?: string;
   place?: PlaceMarche | null;
 };
 
@@ -34,6 +36,7 @@ export type MarcheStats = {
   placesOccupees?: number;
   placesDisponibles?: number;
   recettesMois?: number;
+  recettesAnnee?: number;
   tauxOccupation?: number;
 };
 
@@ -59,6 +62,7 @@ export type CreatePaiementMarchePayload = {
   periode: string;
   montant: number;
   reference: string;
+  modePaiement?: string;
 };
 
 function pageQuery(params: Record<string, string | number | undefined>) {
@@ -113,6 +117,10 @@ export class MarcheApi {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
+}
+
+  async annulerPaiementMarche(id: string, motif: string): Promise<unknown> {
+  return this.api.request(`/marche/paiements/${id}/annuler`, { method: 'POST', body: JSON.stringify({ motif }) });
 }
 
   async createPaiementMarche(payload: CreatePaiementMarchePayload): Promise<PaiementMarche> {

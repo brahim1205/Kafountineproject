@@ -1,59 +1,35 @@
-# FrontAngular
+# Interface Angular
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.6.
+Interface de la plateforme de gestion municipale de Kafountine. Elle nécessite Node.js 22.22.3 ou plus récent.
 
-## Development server
-
-To start a local development server, run:
+## Commandes
 
 ```bash
-ng serve
+npm ci
+npm start                     # http://localhost:4200, avec /api transmis au port 3000
+npm run build                 # dist/front-angular/browser
+npm test -- --watch=false     # tests unitaires (Vitest)
+npm run e2e                   # tests Playwright, SEED_DEFAULT_PASSWORD requis
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Organisation de `src/app`
 
-## Code scaffolding
+| Dossier | Rôle |
+|---|---|
+| `core/` | API, authentification, intercepteurs, gardes, année active |
+| `layout/` | Menu, en-tête, notifications |
+| `pages/` | Écrans, chargés à la demande depuis `app.routes.ts` |
+| `components/feature/` | Composants métiers partagés (reçus, rapports, champs) |
+| `services/` | Accès à l'API par module |
+| `shared/`, `utils/` | Interface et fonctions réutilisables |
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Conventions
 
-```bash
-ng generate component component-name
-```
+- Composants autonomes, `ChangeDetectionStrategy.OnPush` et signaux pour l'état.
+- `input()` et `output()` ; ne pas donner à un `output` le nom d'un événement natif (`submit`, `close`…).
+- Chaque composant définit le `display` de son élément hôte (`block` ou `contents`) pour ne pas perturber la mise en page du parent.
+- Pas de `any` : la compilation stricte des templates doit pouvoir détecter les erreurs.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Production
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+`Dockerfile.prod` construit l'application et la sert avec Nginx sans privilèges. `nginx.conf` transmet `/api` à l'URL définie par `NGINX_BACKEND_URL` et applique les en-têtes de sécurité.

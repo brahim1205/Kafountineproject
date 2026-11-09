@@ -5,22 +5,21 @@
 1. Remplir [`.env.prod`](./.env.prod) avec des valeurs réelles.
 2. Vérifier que les secrets GitHub Actions sont présents.
 3. Lancer `bash ./scripts/prod-preflight.sh .env.prod`.
-4. Vérifier l’accès au cluster Kubernetes: `kubectl get nodes`.
+4. Vérifier l’accès au serveur : `ssh root@72.62.234.215 'docker ps'`.
 
 ## 2. Déploiement
 
 1. Déclencher [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml).
 2. Vérifier que le job `deploy` passe.
-3. Vérifier les pods: `kubectl get pods -n kafontine`.
-4. Vérifier l’ingress ou la release Helm selon le flux choisi.
-3. Lancer `bash ./scripts/smoke-prod.sh https://votre-domaine`.
+3. Vérifier les conteneurs : `ssh root@72.62.234.215 'cd /opt/kafontine && docker compose -f docker-compose.prod.yml ps'`.
+4. Lancer `bash ./scripts/smoke-prod.sh https://votre-domaine`.
 
 ## 3. Vérifications post-déploiement
 
 1. Vérifier `/health` et `/ready`.
 2. Vérifier le login web.
 3. Vérifier un parcours métier critique.
-4. Vérifier Grafana et les logs backend: `kubectl logs -n kafontine deployment/backend --tail=200`.
+4. Vérifier les logs backend : `ssh root@72.62.234.215 'cd /opt/kafontine && docker compose -f docker-compose.prod.yml logs --tail=200 backend'`.
 
 ## 4. Backup
 
@@ -38,7 +37,7 @@
 
 1. Identifier le tag image cible.
 2. Déclencher [`.github/workflows/rollback.yml`](./.github/workflows/rollback.yml).
-3. Vérifier `kubectl rollout status deployment/backend -n kafontine`.
+3. Vérifier les conteneurs : `ssh root@72.62.234.215 'cd /opt/kafontine && docker compose -f docker-compose.prod.yml ps'`.
 4. Vérifier `/ready` puis relancer le smoke test.
 
 ## 7. Incident critique

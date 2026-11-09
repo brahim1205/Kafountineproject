@@ -68,7 +68,6 @@ mobile/.env.*
 !database/prisma/migrations/**/*.sql
 pg_data/
 database/prisma/*.backup
-infra/k8s/02-secret.yml
 
 # Backups and generated storage
 backups/

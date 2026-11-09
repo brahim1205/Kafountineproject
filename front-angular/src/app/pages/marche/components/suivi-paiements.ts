@@ -124,13 +124,13 @@ export class SuiviPaiements {
   protected handleImprimerRecu(paiement: UiPaiementMarche) {
     const now = new Date();
     const recuData = {
-    numero: paiement.reference || `MRC-${paiement.id.toString().padStart(5, '0')}`,
+    numero: paiement.numeroRecu || paiement.reference || `MRC-${paiement.id.toString().padStart(5, '0')}`,
     date: paiement.datePaiement || now.toLocaleDateString('fr-FR'),
     heure: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
     contribuable: paiement.occupant,
     type: `Place de marché ${paiement.numero} - ${paiement.periode}`,
     montant: paiement.montant,
-    agent: 'Agent Municipal'
+    agent: this.auth.userName() || 'Agent Municipal'
     };
     this.transactionData.set(recuData);
     this.showRecuPDF.set(true);

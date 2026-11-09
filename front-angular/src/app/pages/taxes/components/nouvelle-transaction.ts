@@ -139,7 +139,7 @@ export class NouvelleTransaction {
     contribuable: this.formData().contribuable,
     type: this.serviceSelectionne()?.nom || '',
     montant: this.montantTotal(),
-    agent: 'Agent Municipal',
+    agent: this.auth.userName() || 'Agent Municipal',
     telephone: this.formData().telephone,
     nin: this.formData().cni,
     adresse: this.formData().adresse,

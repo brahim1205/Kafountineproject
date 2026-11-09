@@ -43,15 +43,12 @@ Chaque test de régression a été exécuté en échec sur l'ancien code, puis e
 
 | ID | Sévérité | Emplacement | Problème et preuve | Risque | Correctif proposé | Effort |
 |---|---|---|---|---|---|---|
-| RES-01 | Moyenne | `/transactions`, `/contribuables`, `/motos`, `/urbanisme`, `/marche/paiements` | Tout compte connecté lit ces listes, par exemple `quai_peche` (200) | Exposition interne de données personnelles | Matrice de droits à décider avec le client | M |
 | RES-02 | Moyenne | Dépendances | OSV : 2 alertes élevées sur `spring-webmvc` 6.2.19, dernière version 6.2 publiée | À évaluer selon les usages | Suivre les correctifs, viser Spring 7 à terme | M |
 | RES-03 | Moyenne | `backend-spring/src/test` | Aucun test unitaire Java ; seuls 71 tests d'API couvrent le backend | Régressions sur les cas non couverts | Tests unitaires des services critiques | L |
-| RES-04 | Moyenne | Paiements motos | 6 paiements simultanés sans clé d'idempotence : 6 acceptés, sur des mois successifs. L'interface envoie une clé | Doublon par un client hors interface | Verrou par moto si le client le souhaite | S |
 | RES-05 | Moyenne | Comptes de production | Comptes de démonstration et mots de passe à remplacer | Accès non autorisé | Avant livraison | S |
 | RES-06 | Faible | Révocation | Si Redis est indisponible, la révocation est suspendue | Fenêtre d'accès limitée | Alerte Redis | S |
 | RES-07 | Faible | Images | Fichier PNG contenant du texte accepté, servi en `image/png` avec `nosniff` ; tout agent peut supprimer une image | Limité | Réencoder les images, lier l'image à son auteur | M |
 | RES-08 | Faible | Workflows | Actions GitHub référencées par tag ; `secrets: inherit` | Chaîne d'approvisionnement | Épingler par SHA | S |
-| RES-09 | Faible | `infra/k8s`, Helm | Trivy : système de fichiers inscriptible, contexte de sécurité par défaut. Non utilisé par le déploiement Docker actuel | Si Kubernetes est adopté | Durcir les manifestes | M |
 | RES-10 | Faible | Accessibilité | 11 défauts de contraste restants, rapport débordant de 5 px à 360 px, cibles tactiles denses dans Paramètres | Confort | Passe dédiée | S |
 | RES-11 | À vérifier | Historique Git | Gitleaks : 2 alertes sur un fichier de test supprimé (`backend/test`), valeur de test fictive d'après son contexte | Faible | Confirmer, révoquer si elle a servi ailleurs | S |
 
@@ -74,7 +71,7 @@ Exécution finale sur une base locale vide, migrée et chargée avec les donnée
 | OSV-Scanner (backend) | Après correctifs : 4 groupes d'alertes, dont 2 élevés sur `spring-webmvc` |
 | Gitleaks (historique) | 2 alertes, voir RES-11 |
 | Semgrep | 51 résultats, surtout des tags d'actions GitHub ; 8 règles en erreur d'analyse |
-| Trivy config | Alertes sur Kubernetes et les Dockerfile de développement, voir RES-09 |
+| Trivy config | Alertes sur les Dockerfile de développement |
 | Scan interne du dépôt | Réussi |
 | Comparaison avec l'interface React | 65/66 pages (écart : heure affichée), 89/89 fenêtres, 107/107 actions, avant les dernières corrections de droits et de teintes |
 
@@ -110,8 +107,12 @@ Exécution finale sur une base locale vide, migrée et chargée avec les donnée
 
 ## 7. Plan d'action
 
-**30 jours :** remplacer les comptes de démonstration ; recette client ; décider la matrice de droits (RES-01) ; tester le déchiffrement d'une sauvegarde ; surveiller les alertes de `spring-webmvc`.
+**30 jours :** remplacer les comptes de démonstration ; recette client ; faire valider la matrice de droits ; tester le déchiffrement d'une sauvegarde ; surveiller les alertes de `spring-webmvc`.
 
 **60 jours :** tests unitaires des services de paiement, d'authentification et d'utilisateurs ; couverture Angular sur le code critique avec seuil en CI ; alertes sur les erreurs et Redis ; épingler les actions GitHub.
 
 **90 jours :** scan ZAP sur un environnement de préproduction ; test de charge ; exercice de restauration complet ; passe d'accessibilité restante ; planifier la montée vers Spring Boot 4.
+
+## Suites données
+
+RES-01 (lecture limitée aux rôles qui ont l'écran) et RES-04 (verrou sur les paiements simultanés) sont corrigés ; RES-09 est sans objet, Kubernetes et Helm ayant été retirés du dépôt.

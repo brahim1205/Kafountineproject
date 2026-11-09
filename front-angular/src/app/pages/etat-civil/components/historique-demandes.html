@@ -8,12 +8,12 @@
           <label class="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
           <div class="relative">
             <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-            <input type="text" [value]="list.search()" (input)="list.search.set($any($event.target).value)" placeholder="Nom, numéro ou CNI..." class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+            <input aria-label="Rechercher" type="text" [value]="list.search()" (input)="list.search.set($any($event.target).value)" placeholder="Nom, numéro ou CNI..." class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
           </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Type de document</label>
-          <select [value]="filterType()" (change)="filterType.set($any($event.target).value)" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+          <select aria-label="Type de document" [value]="filterType()" (change)="filterType.set($any($event.target).value)" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
             <option value="tous">Tous les documents</option>
             @for (type of filterTypes(); track type) {
               <option [value]="type">{{ type }}</option>
@@ -85,7 +85,7 @@
           <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
             <h3 class="text-lg font-semibold text-gray-900">Modifier la demande
               {{ selectedEditDemande()!.numero }}</h3>
-            <button (click)="showEditModal.set(false); selectedEditDemande.set(null)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+            <button aria-label="Fermer" (click)="showEditModal.set(false); selectedEditDemande.set(null)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
               <i class="ri-close-line text-xl"></i>
             </button>
           </div>
@@ -93,7 +93,7 @@
             <form (submit)="handleUpdateDemande($event)" (input)="clearFieldValidationError($event)" novalidate class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Type de document</label>
-                <select name="typeDocument" data-required="true" [value]="selectedEditDemande()!.typeDocument" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer">
+                <select aria-label="Type de document" name="typeDocument" data-required="true" [value]="selectedEditDemande()!.typeDocument" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer">
                   @for (nom of fromSummary(); track nom) {
                     <option [value]="nom">{{ nom }}</option>
                   }
@@ -106,16 +106,16 @@
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Exemplaires</label>
-                  <input type="number" name="exemplaires" data-required="true" min="1" [value]="selectedEditDemande()!.exemplaires" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm" />
+                  <input aria-label="Exemplaires" type="number" name="exemplaires" data-required="true" min="1" [value]="selectedEditDemande()!.exemplaires" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm" />
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Montant (FCFA)</label>
-                  <input type="number" name="montant" data-required="true" min="0" [value]="selectedEditDemande()!.montant" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm" />
+                  <input aria-label="Montant (FCFA)" type="number" name="montant" data-required="true" min="0" [value]="selectedEditDemande()!.montant" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm" />
                 </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-                <select name="statut" data-required="true" [value]="selectedEditDemande()!.statut" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer">
+                <select aria-label="Statut" name="statut" data-required="true" [value]="selectedEditDemande()!.statut" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm cursor-pointer">
                   <option value="EN_ATTENTE">En attente</option>
                   <option value="DELIVREE">Délivrée</option>
                   <option value="REJETEE">Rejetée</option>
@@ -140,7 +140,7 @@
         <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-gray-900">Détails de la demande</h3>
-            <button (click)="showDetailModal.set(false)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+            <button aria-label="Fermer" (click)="showDetailModal.set(false)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
               <i class="ri-close-line text-xl"></i>
             </button>
           </div>

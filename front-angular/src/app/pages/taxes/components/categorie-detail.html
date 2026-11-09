@@ -165,7 +165,7 @@
         <div class="bg-white rounded-xl max-w-2xl w-full">
           <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-gray-900">Détails de la transaction</h3>
-            <button (click)="showDetailModal.set(false); selectedTransaction.set(null)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+            <button aria-label="Fermer" (click)="showDetailModal.set(false); selectedTransaction.set(null)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
               <i class="ri-close-line text-xl text-gray-600"></i>
             </button>
           </div>

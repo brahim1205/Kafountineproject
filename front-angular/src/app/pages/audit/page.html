@@ -76,7 +76,7 @@
             <input type="text" placeholder="Rechercher..." [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
           </div>
         </div>
-        <select [value]="filterModule()" (change)="filterModule.set($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        <select aria-label="Filtrer par module" [value]="filterModule()" (change)="filterModule.set($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
           <option value="all">Tous les modules</option>
           <option value="Recettes">Recettes</option>
           <option value="Taxes">Taxes</option>
@@ -85,7 +85,7 @@
           <option value="Utilisateurs">Utilisateurs</option>
           <option value="Dashboard">Dashboard</option>
         </select>
-        <select [value]="filterStatus()" (change)="filterStatus.set($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+        <select aria-label="Filtrer par statut" [value]="filterStatus()" (change)="filterStatus.set($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
           <option value="all">Tous les statuts</option>
           <option value="success">Succès</option>
           <option value="warning">Avertissement</option>
@@ -141,7 +141,7 @@
                     }
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <button (click)="openDetailModal(log)" class="text-emerald-600 hover:text-emerald-700">
+                    <button aria-label="Voir les détails" (click)="openDetailModal(log)" class="text-emerald-600 hover:text-emerald-700">
                       <i class="ri-eye-line text-lg"></i>
                     </button>
                   </td>
@@ -173,7 +173,7 @@
         <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-900">Détails de l'entrée d'audit</h3>
-            <button (click)="showDetailModal.set(false)" class="text-gray-400 hover:text-gray-600">
+            <button aria-label="Fermer" (click)="showDetailModal.set(false)" class="text-gray-400 hover:text-gray-600">
               <i class="ri-close-line text-xl"></i>
             </button>
           </div>

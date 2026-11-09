@@ -100,7 +100,7 @@
               <h3 class="text-lg font-semibold text-gray-900">{{ selectedDossier()!.numero }}</h3>
               <p class="text-sm text-gray-500">Détail du dossier d'urbanisme</p>
             </div>
-            <button (click)="showDetailModal.set(false); selectedDossier.set(null)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500">
+            <button aria-label="Fermer" (click)="showDetailModal.set(false); selectedDossier.set(null)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500">
               <i class="ri-close-line text-xl"></i>
             </button>
           </div>

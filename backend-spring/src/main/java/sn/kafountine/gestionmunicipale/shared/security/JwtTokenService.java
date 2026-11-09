@@ -24,20 +24,22 @@ public class JwtTokenService {
   private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
   private static final String HEADER = ENCODER.encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
 
-  public String signAccessToken(String userId, String sessionId, String role) {
+  public String signAccessToken(String userId, String sessionId, String role, long generation) {
     Map<String, Object> payload = new LinkedHashMap<>();
     payload.put("userId", userId);
     payload.put("sessionId", sessionId);
     payload.put("role", role);
     payload.put("type", "access");
+    payload.put("gen", generation);
     return sign(payload, Env.JWT_SECRET, Env.durationSeconds(Env.JWT_EXPIRES_IN, 900));
   }
 
-  public String signRefreshToken(String userId, String sessionId) {
+  public String signRefreshToken(String userId, String sessionId, long generation) {
     Map<String, Object> payload = new LinkedHashMap<>();
     payload.put("userId", userId);
     payload.put("sessionId", sessionId);
     payload.put("type", "refresh");
+    payload.put("gen", generation);
     return sign(payload, Env.JWT_REFRESH_SECRET, refreshTtlSeconds());
   }
 
@@ -46,11 +48,11 @@ public class JwtTokenService {
   }
 
   public Map<String, Object> verifyAccessToken(String token) {
-    return verify(token, Env.JWT_SECRET, "Token invalide");
+    return verify(token, Env.JWT_SECRET, "access", "Token invalide");
   }
 
   public Map<String, Object> verifyRefreshToken(String token) {
-    return verify(token, Env.JWT_REFRESH_SECRET, "Refresh token invalide");
+    return verify(token, Env.JWT_REFRESH_SECRET, "refresh", "Refresh token invalide");
   }
 
   private String sign(Map<String, Object> payload, String secret, long ttlSeconds) {
@@ -66,7 +68,7 @@ public class JwtTokenService {
     }
   }
 
-  private Map<String, Object> verify(String token, String secret, String errorMessage) {
+  private Map<String, Object> verify(String token, String secret, String type, String errorMessage) {
     try {
       String[] parts = token.split("\\.");
       if (parts.length != 3) throw AppException.unauthorized(errorMessage);
@@ -76,7 +78,7 @@ public class JwtTokenService {
       if (!MessageDigest.isEqual(expected, DECODER.decode(parts[2]))) throw AppException.unauthorized(errorMessage);
       Map<String, Object> payload = JSON.readValue(DECODER.decode(parts[1]), new TypeReference<>() {});
       Object exp = payload.get("exp");
-      if (exp instanceof Number number && number.longValue() <= System.currentTimeMillis() / 1000) {
+      if (!(exp instanceof Number number) || number.longValue() <= System.currentTimeMillis() / 1000 || !type.equals(payload.get("type"))) {
         throw AppException.unauthorized(errorMessage);
       }
       return payload;

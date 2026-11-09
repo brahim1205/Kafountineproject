@@ -51,13 +51,14 @@ public class AuthController {
   @PostMapping("/change-password")
   @Authenticated
   @RateLimit(prefix = "auth-change-password", windowMs = 15 * 60 * 1000, max = 5, key = RateLimiter.KeyKind.USER_OR_IP)
-  public ResponseEntity<Map<String, Object>> changePassword(@Body JsonNode body, HttpServletRequest request) {
+  public ResponseEntity<Map<String, Object>> changePassword(@Body JsonNode body, HttpServletRequest request, HttpServletResponse response) {
     Input input = Input.body(body);
     String current = input.str("currentPassword").trimmed(1, 128, "Mot de passe actuel requis").required();
     String next = input.str("newPassword").trimmed(12, 128, "Le nouveau mot de passe doit contenir au moins 12 caractères").required();
     input.check();
     AuthUser user = RequestContext.user(request);
-    auth.changePassword(user.userId(), user.role(), RequestContext.clientIp(request), current, next);
+    AuthService.Tokens renewed = auth.changePassword(user.userId(), user.sessionId(), user.role(), RequestContext.clientIp(request), current, next);
+    Cookies.setAuthCookies(response, renewed.accessToken(), renewed.refreshToken());
     return Api.message("Mot de passe modifié");
   }
 

@@ -13,6 +13,8 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import sn.kafountine.gestionmunicipale.modules.auth.AuthService;
+import sn.kafountine.gestionmunicipale.modules.auth.SessionStore;
 import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Cookies;
 import sn.kafountine.gestionmunicipale.shared.security.AuthUser;
@@ -39,8 +41,10 @@ public class AccessInterceptor implements HandlerInterceptor, WebMvcConfigurer {
 
   private final JwtTokenService tokens;
   private final RateLimiter rateLimiter;
+  private final SessionStore sessions;
 
-  public AccessInterceptor(JwtTokenService tokens, RateLimiter rateLimiter) {
+  public AccessInterceptor(JwtTokenService tokens, RateLimiter rateLimiter, SessionStore sessions) {
+    this.sessions = sessions;
     this.tokens = tokens;
     this.rateLimiter = rateLimiter;
   }
@@ -68,6 +72,10 @@ public class AccessInterceptor implements HandlerInterceptor, WebMvcConfigurer {
     String token = Cookies.accessToken(request);
     if (token == null) throw AppException.unauthorized("Token requis");
     Map<String, Object> payload = tokens.verifyAccessToken(token);
+    String sessionId = payload.get("sessionId") == null ? null : payload.get("sessionId").toString();
+    if (AuthService.tokenGeneration(payload) < sessions.generation(String.valueOf(payload.get("userId"))) || sessions.isLoggedOut(sessionId)) {
+      throw AppException.unauthorized("Session expirée");
+    }
     String role = payload.get("role") == null ? null : payload.get("role").toString();
     AuthUser user = new AuthUser(String.valueOf(payload.get("userId")),
         payload.get("sessionId") == null ? null : payload.get("sessionId").toString(), role, "access");

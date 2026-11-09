@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import Pagination from '../../../components/feature/Pagination';
+import { useServerList } from '../../../hooks/useServerList';
 import RecuPDF from '../../../components/feature/RecuPDF';
-import { getEtatCivilDocumentTypes, listEtatCivilDemandes, updateEtatCivilDemande, deleteEtatCivilDemande, type EtatCivilDemande } from '../../../services/etatCivil';
+import { getEtatCivilDocumentTypes, pageEtatCivil, updateEtatCivilDemande, deleteEtatCivilDemande, type EtatCivilDemande } from '../../../services/etatCivil';
 import ContribuableSelect, { requireSelectedContribuable } from '../../../components/feature/ContribuableSelect';
 import { useYear } from '../../../contexts/YearContext';
 import { getStoredUserRole } from '../../../services/auth';
@@ -23,23 +25,23 @@ type UiEtatCivilDemande = EtatCivilDemande & {
 
 export default function HistoriqueDemandes({ refreshKey = 0, onChanged, statut }: { refreshKey?: number; onChanged?: () => void; statut?: string }) {
   const { selectedYear } = useYear();
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('tous');
   const [showRecuModal, setShowRecuModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDemande, setSelectedDemande] = useState<UiEtatCivilDemande | null>(null);
   const [selectedEditDemande, setSelectedEditDemande] = useState<UiEtatCivilDemande | null>(null);
-  const [demandes, setDemandes] = useState<UiEtatCivilDemande[]>([]);
-  const [errorMsg, setErrorMsg] = useState('');
   const userRole = getStoredUserRole();
   const { showToast } = useToast();
 
-  const loadDemandes = () => {
-    listEtatCivilDemandes(selectedYear)
-      .then((data) => {
-        setErrorMsg('');
-        const mapped = (data || []).map((d: EtatCivilDemande): UiEtatCivilDemande => ({
+  const list = useServerList<UiEtatCivilDemande>(
+    async ({ page, limit, search }) => {
+      const { data, meta } = await pageEtatCivil({
+        year: selectedYear, page, limit, search, statut, type: filterType === 'tous' ? undefined : filterType,
+      });
+      return {
+        meta,
+        data: data.map((d: EtatCivilDemande): UiEtatCivilDemande => ({
           ...d,
           contribuableId: d.contribuable?.id || '',
           demandeur: d.contribuable ? `${d.contribuable.prenom || ''} ${d.contribuable.nom || ''}`.trim() : '-',
@@ -48,20 +50,20 @@ export default function HistoriqueDemandes({ refreshKey = 0, onChanged, statut }
           date: d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '',
           heure: d.date ? new Date(d.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
           agent: d.agent || 'Agent Municipal',
-        }));
-        setDemandes(mapped);
-      })
-      .catch(() => {
-        setDemandes([]);
-        setErrorMsg("Impossible de charger l'historique de l'état civil.");
-      });
-  };
+        })),
+      };
+    },
+    [selectedYear, filterType, statut]
+  );
+  const demandes = list.items;
+  const filteredDemandes = demandes;
+  const errorMsg = list.error;
+  const loadDemandes = list.reload;
 
   useEffect(() => {
-    loadDemandes();
-  }, [selectedYear, refreshKey]);
+    if (refreshKey) loadDemandes();
+  }, [refreshKey, loadDemandes]);
 
-  // Types de documents (libellés lisibles du serveur), pour le filtre et le formulaire de modification.
   const [typesDocuments, setTypesDocuments] = useState<string[]>([]);
   useEffect(() => {
     getEtatCivilDocumentTypes()
@@ -74,14 +76,6 @@ export default function HistoriqueDemandes({ refreshKey = 0, onChanged, statut }
     [typesDocuments, demandes]
   );
 
-  const filteredDemandes = useMemo(() => demandes.filter(demande => {
-    if (statut && demande.statut !== statut) return false;
-    const matchSearch = demande.demandeur.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       demande.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       demande.cni.includes(searchTerm);
-    const matchType = filterType === 'tous' || demande.typeDocument === filterType;
-    return matchSearch && matchType;
-  }), [demandes, searchTerm, filterType, statut]);
 
   const handleVoir = (demande: UiEtatCivilDemande) => {
     setSelectedDemande(demande);
@@ -162,8 +156,8 @@ export default function HistoriqueDemandes({ refreshKey = 0, onChanged, statut }
               <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={list.search}
+                onChange={(e) => list.setSearch(e.target.value)}
                 placeholder="Nom, numéro ou CNI..."
                 className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               />
@@ -259,23 +253,7 @@ export default function HistoriqueDemandes({ refreshKey = 0, onChanged, statut }
         )}
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-4 py-3">
-        <p className="text-sm text-gray-600">
-          Affichage de <span className="font-medium">{filteredDemandes.length}</span> demande(s)
-        </p>
-        <div className="flex gap-2">
-          <button className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap">
-            Précédent
-          </button>
-          <button className="px-3 py-1.5 text-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors whitespace-nowrap">
-            1
-          </button>
-          <button className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap">
-            Suivant
-          </button>
-        </div>
-      </div>
+      <Pagination page={list.page} totalPages={list.totalPages} total={list.meta.total} unit="demande" onChange={list.setPage} />
 
       {showEditModal && selectedEditDemande && (
         <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">

@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import Pagination from '../../../components/feature/Pagination';
+import { useServerList } from '../../../hooks/useServerList';
 import RecuPDF from '../../../components/feature/RecuPDF';
 import {
   createPaiementMarche,
   getMarcheStats,
-  listPaiementsMarche,
+  pagePaiementsMarche,
   type MarcheStats,
   type PaiementMarche,
 } from '../../../services/marche';
@@ -41,54 +43,48 @@ export default function SuiviPaiements() {
   const { showToast } = useToast();
   const userRole = getStoredUserRole() || 'admin';
   const canManage = canWriteData(userRole);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatut, setFilterStatut] = useState('tous');
   const [showPaiementModal, setShowPaiementModal] = useState(false);
   const [showRecuPDF, setShowRecuPDF] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [selectedPaiement, setSelectedPaiement] = useState<UiPaiementMarche | null>(null);
   const [transactionData, setTransactionData] = useState<ReceiptData | null>(null);
-  const [paiements, setPaiements] = useState<UiPaiementMarche[]>([]);
   const [stats, setStats] = useState<MarcheStats>({ recettesMois: 0, placesOccupees: 0 });
 
+  const list = useServerList<UiPaiementMarche>(
+    async ({ page, limit, search, statut }) => {
+      const code = statut === 'Payé' ? 'PAYE' : statut === 'En attente' ? 'EN_ATTENTE' : statut === 'En retard' ? 'RETARD' : undefined;
+      const { data, meta } = await pagePaiementsMarche({ year: selectedYear, page, limit, search, statut: code });
+      return {
+        meta,
+        data: data.map((p: PaiementMarche): UiPaiementMarche => ({
+          ...p,
+          numero: p.place?.numero || '-',
+          occupant: p.place?.occupant || p.place?.occupantId || 'N/A',
+          activite: p.place?.activite || '-',
+          statut: p.statut === 'PAYE' ? 'Payé' : p.statut === 'EN_ATTENTE' ? 'En attente' : 'En retard',
+          datePaiement: p.datePaiement ? new Date(p.datePaiement).toLocaleDateString('fr-FR') : null,
+        })),
+      };
+    },
+    [selectedYear],
+    { initialStatut: 'tous' }
+  );
+  const filteredPaiements = list.items;
+  const counters = { paid: list.counts.PAYE || 0, pending: list.counts.EN_ATTENTE || 0, late: list.counts.RETARD || 0 };
+
   const loadData = async () => {
+    list.reload();
     try {
-      const [payments, marketStats] = await Promise.all([listPaiementsMarche(selectedYear), getMarcheStats(selectedYear)]);
-      const mapped = (payments || []).map((p: PaiementMarche): UiPaiementMarche => ({
-        ...p,
-        numero: p.place?.numero || '-',
-        occupant: p.place?.occupant || p.place?.occupantId || 'N/A',
-        activite: p.place?.activite || '-',
-        statut:
-          p.statut === 'PAYE' ? 'Payé' : p.statut === 'EN_ATTENTE' ? 'En attente' : 'En retard',
-        datePaiement: p.datePaiement ? new Date(p.datePaiement).toLocaleDateString('fr-FR') : null,
-      }));
-      setPaiements(mapped);
-      setStats(marketStats || {});
+      setStats((await getMarcheStats(selectedYear)) || {});
     } catch {
-      setPaiements([]);
       setStats({ recettesMois: 0, placesOccupees: 0 });
-      showToast("Impossible de charger les paiements du marché.", 'error');
+      showToast("Impossible de charger les statistiques du marché.", 'error');
     }
   };
 
   useEffect(() => {
     loadData();
   }, [selectedYear]);
-
-  const filteredPaiements = paiements.filter((paiement) => {
-    const matchSearch = paiement.occupant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       paiement.numero.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatut = filterStatut === 'tous' || paiement.statut === filterStatut;
-    return matchSearch && matchStatut;
-  });
-
-  const counters = useMemo(() => {
-    const paid = paiements.filter((p) => p.statut === 'Payé').length;
-    const pending = paiements.filter((p) => p.statut === 'En attente').length;
-    const late = paiements.filter((p) => p.statut === 'En retard').length;
-    return { paid, pending, late };
-  }, [paiements]);
 
   const handlePayer = (paiement: UiPaiementMarche) => {
     setSelectedPaiement(paiement);
@@ -214,8 +210,8 @@ export default function SuiviPaiements() {
               <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={list.search}
+                onChange={(e) => list.setSearch(e.target.value)}
                 placeholder="Nom ou numéro de place..."
                 className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
               />
@@ -224,8 +220,8 @@ export default function SuiviPaiements() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
             <select
-              value={filterStatut}
-              onChange={(e) => setFilterStatut(e.target.value)}
+              value={list.statut}
+              onChange={(e) => list.setStatut(e.target.value)}
               className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
             >
               <option value="tous">Tous les statuts</option>
@@ -306,6 +302,7 @@ export default function SuiviPaiements() {
             </tbody>
           </table>
         </div>
+        <Pagination page={list.page} totalPages={list.totalPages} total={list.meta.total} unit="paiement" onChange={list.setPage} />
       </div>
 
       {/* Modal Paiement */}
@@ -337,21 +334,6 @@ export default function SuiviPaiements() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mode de paiement <span className="text-red-500">*</span>
-                </label>
-                <select
-                  data-required="true"
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 cursor-pointer"
-                >
-                  <option value="">Sélectionnez</option>
-                  <option value="Espèces">Espèces</option>
-                  <option value="Mobile Money">Mobile Money</option>
-                  <option value="Chèque">Chèque</option>
-                  <option value="Virement">Virement bancaire</option>
-                </select>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

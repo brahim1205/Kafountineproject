@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
@@ -17,6 +18,8 @@ import sn.kafountine.gestionmunicipale.shared.domain.ContribuableLookup;
 import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
+import sn.kafountine.gestionmunicipale.shared.persistence.Sql;
+import sn.kafountine.gestionmunicipale.shared.validation.Common;
 import sn.kafountine.gestionmunicipale.shared.text.Js;
 
 /** Places et paiements du marché (MarcheService et PrismaMarcheRepository côté Node). */
@@ -152,20 +155,89 @@ public class MarcheService {
     return placeView(row);
   }
 
+  private static final String SELECT_PAYMENT = """
+      SELECT mp.*, p."numeroPlace", p."type" AS "placeType", p."zone" AS "placeZone", p."occupantId", p."activite", p."tarif",
+             p."periode" AS "placePeriode", p."statut" AS "placeStatut", p."telephone" AS "placeTelephone", p."dateAttribution" AS "placeDateAttribution",
+             c."nom" AS "occupantNom", c."prenom" AS "occupantPrenom", c."nin" AS "occupantNin", c."telephone" AS "occupantTelephone"
+      """;
+  private static final String FROM_PAYMENT = """
+      FROM "MarketPayment" mp
+      INNER JOIN "MarketPlace" p ON p."id" = mp."placeId"
+      LEFT JOIN "Contribuable" c ON c."id" = p."occupantId"
+      """;
+  private static final String ORDER_PAYMENT = " ORDER BY COALESCE(mp.\"datePaiement\", mp.\"createdAt\") DESC, mp.\"id\" DESC";
+
   public List<Map<String, Object>> listPayments(int year) {
-    List<Map<String, Object>> rows = db.list("""
-        SELECT mp.*, p."numeroPlace", p."type" AS "placeType", p."zone" AS "placeZone", p."occupantId", p."activite", p."tarif",
-               p."periode" AS "placePeriode", p."statut" AS "placeStatut", p."telephone" AS "placeTelephone", p."dateAttribution" AS "placeDateAttribution",
-               c."nom" AS "occupantNom", c."prenom" AS "occupantPrenom", c."nin" AS "occupantNin", c."telephone" AS "occupantTelephone"
+    List<Map<String, Object>> result = new ArrayList<>();
+    for (Map<String, Object> row : db.list(SELECT_PAYMENT + FROM_PAYMENT + " WHERE mp.\"year\" = :year" + ORDER_PAYMENT, Db.params("year", year))) result.add(paymentView(row));
+    return result;
+  }
+
+  /** Paiements paginés, avec les compteurs par statut de toute l'année. */
+  public Map<String, Object> pagePayments(int year, String search, String statut, Common.Paging paging) {
+    MapSqlParameterSource params = Db.params("year", year, "limit", paging.limit(), "offset", paging.offset());
+    StringBuilder where = new StringBuilder(" WHERE mp.\"year\" = :year");
+    if (!search.isEmpty()) {
+      where.append(" AND (p.\"numeroPlace\" ILIKE :like OR c.\"nom\" ILIKE :like OR c.\"prenom\" ILIKE :like)");
+      params.addValue("like", "%" + Sql.escapeLike(search) + "%");
+    }
+    if ("RETARD".equals(statut)) where.append(" AND mp.\"statut\" NOT IN ('PAYE', 'EN_ATTENTE')");
+    else if (statut != null) {
+      where.append(" AND mp.\"statut\" = :statut");
+      params.addValue("statut", statut);
+    }
+    List<Map<String, Object>> data = new ArrayList<>();
+    for (Map<String, Object> row : db.list(SELECT_PAYMENT + FROM_PAYMENT + where + ORDER_PAYMENT + " LIMIT :limit OFFSET :offset", params)) data.add(paymentView(row));
+    long total = db.count("SELECT COUNT(*) " + FROM_PAYMENT + where, params);
+    Map<String, Object> counts = new LinkedHashMap<>();
+    long paye = 0;
+    long attente = 0;
+    long retard = 0;
+    for (Map<String, Object> row : db.list("SELECT \"statut\", COUNT(*)::bigint AS \"n\" FROM \"MarketPayment\" WHERE \"year\" = :year GROUP BY \"statut\"", Db.params("year", year))) {
+      long n = ((Number) row.get("n")).longValue();
+      if ("PAYE".equals(row.get("statut"))) paye += n;
+      else if ("EN_ATTENTE".equals(row.get("statut"))) attente += n;
+      else retard += n;
+    }
+    counts.put("PAYE", paye);
+    counts.put("EN_ATTENTE", attente);
+    counts.put("RETARD", retard);
+    Map<String, Object> meta = paging.meta(total);
+    meta.put("counts", counts);
+    return Api.map("data", data, "meta", meta);
+  }
+
+  /** Agrégats de la page Statistiques, calculés en base. */
+  public Map<String, Object> statsDetails(int year) {
+    MapSqlParameterSource params = Db.params("year", year);
+    List<Map<String, Object>> top = new ArrayList<>();
+    for (Map<String, Object> row : db.list("""
+        SELECT MAX(c."prenom") AS "prenom", MAX(c."nom") AS "nom", MIN(p."activite") AS "activite", MIN(p."numeroPlace") AS "place",
+               COUNT(*)::bigint AS "paiements", SUM(mp."montant") AS "montant"
         FROM "MarketPayment" mp
         INNER JOIN "MarketPlace" p ON p."id" = mp."placeId"
         LEFT JOIN "Contribuable" c ON c."id" = p."occupantId"
-        WHERE mp."year" = :year
-        ORDER BY COALESCE(mp."datePaiement", mp."createdAt") DESC
-        """, Db.params("year", year));
-    List<Map<String, Object>> result = new ArrayList<>();
-    for (Map<String, Object> row : rows) result.add(paymentView(row));
-    return result;
+        WHERE mp."year" = :year AND p."occupantId" IS NOT NULL
+        GROUP BY p."occupantId" ORDER BY "montant" DESC LIMIT 5
+        """, params)) {
+      String nom = (nz(row.get("prenom")) + " " + nz(row.get("nom"))).strip();
+      top.add(Api.map("nom", nom.isEmpty() ? "Inconnu" : nom, "activite", row.get("activite") == null ? "-" : row.get("activite"),
+          "place", row.get("place"), "paiements", ((Number) row.get("paiements")).longValue(), "montant", Db.num(row, "montant")));
+    }
+    List<Map<String, Object>> mois = new ArrayList<>();
+    for (Map<String, Object> row : db.list("""
+        SELECT to_char(date_trunc('month', "datePaiement"), 'YYYY-MM') AS "mois", COUNT(DISTINCT "placeId")::bigint AS "places", SUM("montant") AS "montant"
+        FROM "MarketPayment"
+        WHERE "year" = :year AND "datePaiement" IS NOT NULL
+        GROUP BY 1
+        """, params)) {
+      mois.add(Api.map("mois", row.get("mois"), "places", ((Number) row.get("places")).longValue(), "montant", Db.num(row, "montant")));
+    }
+    return Api.map("topCommercants", top, "evolutionMensuelle", mois);
+  }
+
+  private static String nz(Object value) {
+    return value == null ? "" : value.toString();
   }
 
   public record PaymentInput(String placeId, Double montant, String reference, String periode, String statut, String datePaiement, Integer year) {}

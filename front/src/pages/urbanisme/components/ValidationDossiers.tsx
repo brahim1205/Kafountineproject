@@ -1,3 +1,4 @@
+import Pagination from '../../../components/feature/Pagination';
 import { useState, useEffect } from 'react';
 import { getDossiersUrbanisme, updateDossierUrbanisme, DossierUrbanisme } from '../../../services/urbanisme';
 import { useYear } from '../../../contexts/YearContext';
@@ -19,6 +20,8 @@ type PendingDossier = {
   action?: 'valider' | 'rejeter';
 };
 
+const PAGE_SIZE = 50;
+
 export default function ValidationDossiers() {
   const { selectedYear } = useYear();
   const { showToast } = useToast();
@@ -27,12 +30,15 @@ export default function ValidationDossiers() {
   const [selectedDossier, setSelectedDossier] = useState<PendingDossier | null>(null);
   const [dossiersEnAttente, setDossiersEnAttente] = useState<PendingDossier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchDossiers = async () => {
     try {
       setLoading(true);
-      const result = await getDossiersUrbanisme({ limit: 100, year: selectedYear });
+      const result = await getDossiersUrbanisme({ page, limit: PAGE_SIZE, statut: 'EN_ATTENTE', year: selectedYear });
+      setTotal(result.meta.total);
       
       const pendingDossiers = (result.data || [])
         .filter((d: DossierUrbanisme) => d.statut === 'EN_ATTENTE')
@@ -62,7 +68,9 @@ export default function ValidationDossiers() {
 
   useEffect(() => {
     fetchDossiers();
-  }, [selectedYear]);
+  }, [selectedYear, page]);
+
+  useEffect(() => setPage(1), [selectedYear]);
 
   function formatType(type: string): string {
     const types: Record<string, string> = {
@@ -121,7 +129,7 @@ export default function ValidationDossiers() {
               <i className="ri-time-line text-yellow-600 text-xl"></i>
             </div>
           </div>
-          <p className="text-2xl font-bold text-gray-900 mb-1">{dossiersEnAttente.length}</p>
+          <p className="text-2xl font-bold text-gray-900 mb-1">{total}</p>
           <p className="text-sm text-gray-600">Dossiers en attente</p>
         </div>
 
@@ -224,6 +232,7 @@ export default function ValidationDossiers() {
             ))}
           </div>
         )}
+        <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))} total={total} unit="dossier" onChange={setPage} />
       </div>
 
       {/* Modal de consultation */}

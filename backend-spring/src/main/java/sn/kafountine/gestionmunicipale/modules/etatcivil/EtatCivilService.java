@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.modules.transactions.TaxCatalog;
@@ -17,6 +18,8 @@ import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.numbering.NumeroSequence;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
+import sn.kafountine.gestionmunicipale.shared.persistence.Sql;
+import sn.kafountine.gestionmunicipale.shared.validation.Common;
 
 /** Demandes d'état civil (EtatCivilService et PrismaEtatCivilRepository côté Node). */
 @Service
@@ -80,6 +83,27 @@ public class EtatCivilService {
       result.add(Api.map("id", service.get("id"), "nom", DocumentLabels.label((String) service.get("nom")), "tarif", service.get("tarif"), "unite", service.get("unite")));
     }
     return result;
+  }
+
+  public Map<String, Object> page(int year, String search, String type, String statut, Common.Paging paging) {
+    MapSqlParameterSource params = Db.params("year", year, "limit", paging.limit(), "offset", paging.offset());
+    StringBuilder where = new StringBuilder(" WHERE e.\"year\" = :year");
+    if (!search.isEmpty()) {
+      where.append(" AND (e.\"numero\" ILIKE :like OR c.\"nom\" ILIKE :like OR c.\"prenom\" ILIKE :like OR c.\"nin\" ILIKE :like)");
+      params.addValue("like", "%" + Sql.escapeLike(search) + "%");
+    }
+    if (type != null && !type.isEmpty()) {
+      where.append(" AND e.\"typeDocument\" = :type");
+      params.addValue("type", type);
+    }
+    if (statut != null && !statut.isEmpty()) {
+      where.append(" AND e.\"statut\" = :statut");
+      params.addValue("statut", statut);
+    }
+    List<Map<String, Object>> data = new ArrayList<>();
+    for (Map<String, Object> row : db.list(SELECT_WITH_RELATIONS + where + " ORDER BY e.\"createdAt\" DESC, e.\"id\" DESC LIMIT :limit OFFSET :offset", params)) data.add(view(row));
+    long total = db.count("SELECT COUNT(*) FROM \"EtatCivilRequest\" e INNER JOIN \"Contribuable\" c ON c.\"id\" = e.\"contribuableId\"" + where, params);
+    return Api.map("data", data, "meta", paging.meta(total));
   }
 
   public List<Map<String, Object>> list(int year) {

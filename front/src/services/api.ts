@@ -12,7 +12,7 @@ export class ApiError extends Error {
   }
 }
 
-export type PageMeta = { page: number; limit: number; total: number; totalPages?: number; montantPaye?: number; nombrePaye?: number };
+export type PageMeta = { counts?: Record<string, number>; somme?: number; page: number; limit: number; total: number; totalPages?: number; montantPaye?: number; nombrePaye?: number };
 
 type ApiEnvelope<T> = {
   success: boolean;

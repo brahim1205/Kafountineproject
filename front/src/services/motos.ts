@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { apiRequest, apiRequestWithMeta, type PageMeta } from './api';
 
 export type Moto = {
   id: string;
@@ -95,10 +95,21 @@ function normalizeListResult<T>(result: ApiListResult<T>): T[] {
   return [];
 }
 
-export async function listMotos(year?: number): Promise<Moto[]> {
-  const query = year ? `?year=${year}` : '';
-  const result = await apiRequest<ApiListResult<Moto>>(`/motos${query}`);
-  return normalizeListResult(result);
+
+function pageQuery(params: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return query.toString();
+}
+
+export async function pageMotos(params: { year?: number; page: number; limit: number; search?: string; etat?: string }): Promise<{ data: Moto[]; meta: PageMeta }> {
+  return apiRequestWithMeta<Moto[]>(`/motos?${pageQuery(params)}`) as Promise<{ data: Moto[]; meta: PageMeta }>;
+}
+
+export async function pageMotoPayments(params: { year?: number; page: number; limit: number }): Promise<{ data: MotoPayment[]; meta: PageMeta }> {
+  return apiRequestWithMeta<MotoPayment[]>(`/motos/paiements?${pageQuery(params)}`) as Promise<{ data: MotoPayment[]; meta: PageMeta }>;
 }
 
 export async function getMotosStats(year?: number): Promise<MotoStats> {
@@ -127,7 +138,7 @@ export async function checkMatriculeExists(matricule: string, excludeId?: string
  */
 export async function checkPermisExists(permis: string, excludeId?: string): Promise<boolean> {
   if (!permis) return false;
-  const result = await apiRequest<ApiListResult<Moto>>(`/motos`);
+  const result = await apiRequest<ApiListResult<Moto>>(`/motos?search=${encodeURIComponent(permis)}&limit=20`);
   const items = normalizeListResult(result);
   const match = items.find((m) => m.permis && String(m.permis).toLowerCase() === String(permis).toLowerCase());
   if (!match) return false;
@@ -149,11 +160,6 @@ export async function validateMotoDuplicates(
   ]);
   
   return { matriculeExists, permisExists };
-}
-
-export async function listMotoPayments(year?: number): Promise<MotoPayment[]> {
-  const query = year ? `?year=${year}` : '';
-  return apiRequest<MotoPayment[]>(`/motos/paiements${query}`);
 }
 
 export async function createMoto(payload: CreateMotoPayload): Promise<Moto & { adhesion?: MotoPayment }> {

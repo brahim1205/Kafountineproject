@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useYear } from '../../../contexts/YearContext';
+import Pagination from '../../../components/feature/Pagination';
+import { fetchAllPages, useServerList } from '../../../hooks/useServerList';
+import CommissionFormModal from './components/CommissionFormModal';
+import CommissionDetailModal from './components/CommissionDetailModal';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
-import { listCommissions, validateCommission, createCommission, type Commission, type Pecheur } from '../../../services/quai-peche';
+import { validateCommission, createCommission, type Commission, type Pecheur, pageCommissions } from '../../../services/quai-peche';
 import { listPecheurs } from '../../../services/quai-peche';
 import {
-  clearFieldValidationError,
   validateFormElement,
 } from '../../../utils/formValidation';
 import { downloadCsv, today } from '../../../utils/csv';
@@ -13,12 +16,15 @@ export default function CommissionsPage() {
   const { selectedYear } = useYear();
   const currentYear = new Date().getFullYear();
   const isCurrentYear = selectedYear === currentYear;
-  const [commissions, setCommissions] = useState<Commission[]>([]);
   const [pecheurs, setPecheurs] = useState<Pecheur[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statutFilter, setStatutFilter] = useState('all');
+  const [actionError, setErrorMsg] = useState('');
+  const list = useServerList<Commission>((query) => pageCommissions({ year: selectedYear, ...query }), [selectedYear]);
+  const { items: commissions, loading, reload: loadData, yearTotal, counts } = list;
+  const errorMsg = actionError || list.error;
+  const searchTerm = list.search;
+  const setSearchTerm = list.setSearch;
+  const statutFilter = list.statut;
+  const setStatutFilter = list.setStatut;
   
   // Modal
   const [showModal, setShowModal] = useState(false);
@@ -34,45 +40,24 @@ export default function CommissionsPage() {
     observations: ''
   });
 
+
+  const filteredCommissions = commissions;
+
+  // La liste des pêcheurs n'est chargée qu'à l'ouverture du formulaire.
   useEffect(() => {
-    loadData();
-  }, [selectedYear]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setErrorMsg('');
-      const [commissionsData, pecheursData] = await Promise.all([
-        listCommissions({ year: selectedYear, limit: 100 }),
-        listPecheurs({ year: selectedYear, limit: 100 })
-      ]);
-      setCommissions(commissionsData);
-      setPecheurs(pecheursData);
-    } catch {
-      setCommissions([]);
-      setPecheurs([]);
-      setErrorMsg("Impossible de charger les commissions.");
-    } finally {
-      setLoading(false);
+    if ((showModal) && pecheurs.length === 0) {
+      listPecheurs({ year: selectedYear }).then(setPecheurs).catch(() => setErrorMsg('Impossible de charger les pêcheurs.'));
     }
-  };
+  }, [showModal, selectedYear, pecheurs.length]);
 
-  const filteredCommissions = commissions.filter(c => {
-    const matchSearch = c.numero.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        c.pecheur?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        c.pecheur?.prenom?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatut = statutFilter === 'all' || c.statut === statutFilter;
-    return matchSearch && matchStatut;
-  });
-
-  const totalPoids = filteredCommissions.reduce((sum, c) => sum + c.poids, 0);
-  const enAttente = filteredCommissions.filter(c => c.statut === 'ENREGISTREE').length;
+  const totalPoids = list.meta.somme || 0;
+  const enAttente = counts.ENREGISTREE || 0;
 
   const handleValidate = async (id: string) => {
     try {
       setErrorMsg('');
       await validateCommission(id);
-      setCommissions(commissions.map(c => 
+      list.setItems(commissions.map(c => 
         c.id === id ? { ...c, statut: 'VALIDEE' } : c
       ));
     } catch {
@@ -107,10 +92,11 @@ export default function CommissionsPage() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const rows = await fetchAllPages((page, limit) => pageCommissions({ year: selectedYear, page, limit, search: list.appliedSearch, statut: list.statutValue }));
     const data = [
       ['Numéro', 'Pêcheur', 'Poids (kg)', 'Type', 'Température', 'Date', 'Statut'],
-      ...filteredCommissions.map(c => [
+      ...rows.map(c => [
         c.numero, 
         `${c.pecheur?.prenom || ''} ${c.pecheur?.nom || ''}`, 
         String(c.poids), 
@@ -145,7 +131,7 @@ export default function CommissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Commissions</p>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">{filteredCommissions.length}</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mt-1">{yearTotal}</h3>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <i className="ri-snowy-line text-xl text-blue-600"></i>
@@ -294,142 +280,12 @@ isCurrentYear && (
               </tbody>
             </table>
           </div>
+          <Pagination page={list.page} totalPages={list.totalPages} total={list.meta.total} unit="commission" onChange={list.setPage} />
         </div>
       </div>
 
-      {/* Modal Nouvelle Commission */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Nouvelle Commission Frigorifique</h3>
-                <button onClick={() => setShowModal(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                  <i className="ri-close-line text-xl"></i>
-                </button>
-              </div>
-            </div>
-            <form onSubmit={handleSubmit} onInput={clearFieldValidationError} noValidate>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pêcheur *</label>
-                  <select
-                    data-required="true"
-                    value={formData.pecheurId}
-                    onChange={(e) => setFormData({ ...formData, pecheurId: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="">Sélectionner un pêcheur</option>
-                    {pecheurs.map(p => (
-                      <option key={p.id} value={p.id}>{p.prenom} {p.nom}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Poids (kg) *</label>
-                    <input
-                      data-required="true"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      placeholder="Ex: 150"
-                      value={formData.poids}
-                      onChange={(e) => setFormData({ ...formData, poids: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Type de Poisson *</label>
-                    <select
-                      data-required="true"
-                      value={formData.typePoisson}
-                      onChange={(e) => setFormData({ ...formData, typePoisson: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="Maquereau">Maquereau</option>
-                      <option value="Sardine">Sardine</option>
-                      <option value="Thon">Thon</option>
-                      <option value="Dorade">Dorade</option>
-                      <option value="Autre">Autre</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Température (°C)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder="Ex: -5"
-                      value={formData.temperatura}
-                      onChange={(e) => setFormData({ ...formData, temperatura: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                    <input
-                      type="date"
-                      value={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Observations</label>
-                  <textarea
-                    rows={3}
-                    placeholder="Observations..."
-                    value={formData.observations}
-                    onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 resize-none"
-                  ></textarea>
-                </div>
-              </div>
-              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
-                  Annuler
-                </button>
-                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">
-                  Enregistrer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Voir Détails */}
-      {showViewModal && selectedCommission && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Détails de la Commission</h3>
-                <button onClick={() => setShowViewModal(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                  <i className="ri-close-line text-xl"></i>
-                </button>
-              </div>
-            </div>
-            <div className="p-6 space-y-3">
-              <div className="flex justify-between"><span className="text-gray-500">Numéro:</span><span className="font-medium">{selectedCommission.numero}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Pêcheur:</span><span className="font-medium">{selectedCommission.pecheur?.prenom} {selectedCommission.pecheur?.nom}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Poids:</span><span className="font-medium">{selectedCommission.poids} kg</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Type:</span><span className="font-medium">{selectedCommission.typePoisson}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Température:</span><span className="font-medium">{selectedCommission.temperatura ? `${selectedCommission.temperatura}°C` : '-'}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Date:</span><span className="font-medium">{new Date(selectedCommission.date).toLocaleDateString('fr-FR')}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500">Statut:</span><span className="font-medium">{selectedCommission.statut}</span></div>
-              {selectedCommission.observations && <div className="flex justify-between"><span className="text-gray-500">Observations:</span><span className="font-medium">{selectedCommission.observations}</span></div>}
-            </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end">
-              <button onClick={() => setShowViewModal(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showModal && <CommissionFormModal formData={formData} setFormData={setFormData} onSubmit={handleSubmit} onClose={() => setShowModal(false)} pecheurs={pecheurs} />}
+      {showViewModal && selectedCommission && <CommissionDetailModal item={selectedCommission} onClose={() => setShowViewModal(false)} />}
     </DashboardLayout>
   );
 }

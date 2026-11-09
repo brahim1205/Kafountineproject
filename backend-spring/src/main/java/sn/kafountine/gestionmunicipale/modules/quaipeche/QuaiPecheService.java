@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
@@ -16,6 +17,8 @@ import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.numbering.NumeroSequence;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
+import sn.kafountine.gestionmunicipale.shared.persistence.Sql;
+import sn.kafountine.gestionmunicipale.shared.validation.Common;
 
 /** Quai de pêche : pêcheurs, embarcations, commissions, camions, expéditions (QuaiPecheService côté Node). */
 @Service
@@ -125,6 +128,61 @@ public class QuaiPecheService {
       case camions -> truckView(row);
       case expeditions -> expeditionView(row);
     };
+  }
+
+  private static final Map<Collection, String> SEARCH = Map.of(
+      Collection.pecheurs, "f.\"nom\" ILIKE :like OR f.\"prenom\" ILIKE :like OR f.\"telephone\" ILIKE :like",
+      Collection.embarcations, "b.\"nom\" ILIKE :like OR b.\"immatriculation\" ILIKE :like",
+      Collection.commissions, "c.\"numero\" ILIKE :like OR f.\"nom\" ILIKE :like OR f.\"prenom\" ILIKE :like",
+      Collection.camions, "t.\"immatriculation\" ILIKE :like OR t.\"marque\" ILIKE :like OR t.\"chauffeur\" ILIKE :like",
+      Collection.expeditions, "e.\"numero\" ILIKE :like OR e.\"destination\" ILIKE :like OR t.\"immatriculation\" ILIKE :like");
+  private static final Map<Collection, String> ALIAS = Map.of(Collection.pecheurs, "f", Collection.embarcations, "b",
+      Collection.commissions, "c", Collection.camions, "t", Collection.expeditions, "e");
+  private static final Map<Collection, String> FROM = Map.of(
+      Collection.pecheurs, "\"Fisherman\" f",
+      Collection.embarcations, "\"FishingBoat\" b",
+      Collection.commissions, "\"FishCommission\" c INNER JOIN \"Fisherman\" f ON f.\"id\" = c.\"pecheurId\"",
+      Collection.camions, "\"RefrigeratedTruck\" t",
+      Collection.expeditions, "\"ShippingExpedition\" e INNER JOIN \"RefrigeratedTruck\" t ON t.\"id\" = e.\"camionId\"");
+
+  /** Liste paginée avec recherche, compteurs par statut et totaux de toute l'année. */
+  public Map<String, Object> page(Collection collection, int year, String search, String statut, Common.Paging paging) {
+    String alias = ALIAS.get(collection);
+    String select = switch (collection) {
+      case pecheurs -> SELECT_FISHERMAN;
+      case embarcations -> SELECT_BOAT;
+      case commissions -> SELECT_COMMISSION;
+      case camions -> SELECT_TRUCK;
+      case expeditions -> SELECT_EXPEDITION;
+    };
+    String order = collection == Collection.commissions || collection == Collection.expeditions ? "date" : "createdAt";
+    MapSqlParameterSource params = Db.params("year", year, "limit", paging.limit(), "offset", paging.offset());
+    StringBuilder where = new StringBuilder(" WHERE " + alias + ".\"year\" = :year");
+    if (!search.isEmpty()) {
+      where.append(" AND (").append(SEARCH.get(collection)).append(")");
+      params.addValue("like", "%" + Sql.escapeLike(search) + "%");
+    }
+    if (statut != null && !statut.isEmpty()) {
+      where.append(" AND ").append(alias).append(".\"statut\" = :statut");
+      params.addValue("statut", statut);
+    }
+    List<Map<String, Object>> data = new ArrayList<>();
+    for (Map<String, Object> row : db.list(select + where + " ORDER BY " + alias + ".\"" + order + "\" DESC, " + alias + ".\"id\" DESC LIMIT :limit OFFSET :offset", params)) {
+      data.add(view(collection, row));
+    }
+    long total = db.count("SELECT COUNT(*) FROM " + FROM.get(collection) + where, params);
+    Map<String, Object> counts = new LinkedHashMap<>();
+    String table = TABLE.get(collection);
+    for (Map<String, Object> row : db.list("SELECT \"statut\", COUNT(*)::bigint AS \"n\" FROM \"" + table + "\" WHERE \"year\" = :year GROUP BY \"statut\"", Db.params("year", year))) {
+      counts.put(String.valueOf(row.get("statut")), ((Number) row.get("n")).longValue());
+    }
+    Map<String, Object> meta = paging.meta(total);
+    meta.put("counts", counts);
+    String sum = collection == Collection.commissions ? "poids" : collection == Collection.expeditions ? "montant" : null;
+    if (sum != null) {
+      meta.put("somme", db.sum("SELECT COALESCE(SUM(\"" + sum + "\"), 0) AS \"total\" FROM \"" + table + "\" WHERE \"year\" = :year", Db.params("year", year)));
+    }
+    return Api.map("data", data, "meta", meta);
   }
 
   public List<Map<String, Object>> list(Collection collection, int year) {

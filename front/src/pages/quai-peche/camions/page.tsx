@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useYear } from '../../../contexts/YearContext';
 import DashboardLayout from '../../../components/feature/DashboardLayout';
 import { getStoredUserRole } from '../../../services/auth';
-import { deleteCamion, listCamions, listExpeditions, type CamionFrigorifique, type Expedition } from '../../../services/quai-peche';
+import { deleteCamion, type CamionFrigorifique, type Expedition, pageCamions, pageExpeditions, listCamions } from '../../../services/quai-peche';
 import { downloadCsv, today } from '../../../utils/csv';
+import Pagination from '../../../components/feature/Pagination';
+import { fetchAllPages, useServerList } from '../../../hooks/useServerList';
 import CamionsTable from './components/CamionsTable';
 import ExpeditionsTable from './components/ExpeditionsTable';
 import CamionModal from './components/CamionModal';
@@ -26,70 +28,47 @@ export default function CamionsPage() {
   const canManage = isCurrentYear && (role === 'admin' || role === 'super_admin' || role === 'quai_peche' || role === 'regisseur');
   const canDelete = isCurrentYear && (role === 'admin' || role === 'super_admin');
 
-  const [camions, setCamions] = useState<CamionFrigorifique[]>([]);
-  const [expeditions, setExpeditions] = useState<Expedition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statutFilter, setStatutFilter] = useState('all');
+  const [actionError, setErrorMsg] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('camions');
   const [modal, setModal] = useState<ModalState>(null);
 
+  const camionsList = useServerList<CamionFrigorifique>((query) => pageCamions({ year: selectedYear, ...query }), [selectedYear]);
+  const expeditionsList = useServerList<Expedition>((query) => pageExpeditions({ year: selectedYear, ...query }), [selectedYear]);
+  const list = activeTab === 'camions' ? camionsList : expeditionsList;
+  const loading = list.loading;
+  const errorMsg = actionError || list.error;
+  const searchTerm = list.search;
+  const setSearchTerm = list.setSearch;
+  const statutFilter = list.statut;
+  const setStatutFilter = list.setStatut;
   const loadData = async () => {
-    try {
-      setLoading(true);
-      setErrorMsg('');
-      const [camionsData, expeditionsData] = await Promise.all([
-        listCamions({ year: selectedYear, limit: 100 }),
-        listExpeditions({ year: selectedYear, limit: 100 }),
-      ]);
-      setCamions(camionsData);
-      setExpeditions(expeditionsData);
-    } catch {
-      setCamions([]);
-      setExpeditions([]);
-      setErrorMsg('Impossible de charger les camions et expéditions.');
-    } finally {
-      setLoading(false);
-    }
+    camionsList.reload();
+    expeditionsList.reload();
   };
 
+  // Les camions du formulaire d'expédition ne sont chargés qu'à son ouverture.
+  const [camionsActifs, setCamionsActifs] = useState<CamionFrigorifique[]>([]);
   useEffect(() => {
-    loadData();
-  }, [selectedYear]);
+    if (modal?.type !== 'expedition') return;
+    listCamions({ year: selectedYear })
+      .then((rows) => setCamionsActifs(rows.filter((c) => c.statut === 'ACTIF')))
+      .catch(() => setErrorMsg('Impossible de charger les camions.'));
+  }, [modal?.type, selectedYear]);
 
   const changeTab = (tab: Tab) => {
     setActiveTab(tab);
-    setStatutFilter('all');
   };
 
-  const search = searchTerm.toLowerCase();
-  const filteredCamions = useMemo(
-    () =>
-      camions.filter(
-        (c) =>
-          (statutFilter === 'all' || c.statut === statutFilter) &&
-          [c.immatriculation, c.marque, c.chauffeur].some((value) => value?.toLowerCase().includes(search))
-      ),
-    [camions, search, statutFilter]
-  );
-  const filteredExpeditions = useMemo(
-    () =>
-      expeditions.filter(
-        (e) =>
-          (statutFilter === 'all' || e.statut === statutFilter) &&
-          [e.numero, e.destination, e.camion?.immatriculation].some((value) => value?.toLowerCase().includes(search))
-      ),
-    [expeditions, search, statutFilter]
-  );
+  const filteredCamions = camionsList.items;
+  const filteredExpeditions = expeditionsList.items;
 
   const stats = [
-    { label: 'Total camions', value: camions.length, icon: 'ri-truck-line', tone: 'bg-blue-100 text-blue-600' },
-    { label: 'Camions actifs', value: camions.filter((c) => c.statut === 'ACTIF').length, icon: 'ri-checkbox-circle-line', tone: 'bg-green-100 text-green-600' },
-    { label: 'Expéditions', value: expeditions.length, icon: 'ri-send-plane-line', tone: 'bg-emerald-100 text-emerald-600' },
+    { label: 'Total camions', value: camionsList.yearTotal, icon: 'ri-truck-line', tone: 'bg-blue-100 text-blue-600' },
+    { label: 'Camions actifs', value: camionsList.counts.ACTIF || 0, icon: 'ri-checkbox-circle-line', tone: 'bg-green-100 text-green-600' },
+    { label: 'Expéditions', value: expeditionsList.yearTotal, icon: 'ri-send-plane-line', tone: 'bg-emerald-100 text-emerald-600' },
     {
       label: 'Recettes transport',
-      value: `${expeditions.reduce((sum, e) => sum + (e.montant || 0), 0).toLocaleString('fr-FR')} FCFA`,
+      value: `${(expeditionsList.meta.somme || 0).toLocaleString('fr-FR')} FCFA`,
       icon: 'ri-money-dollar-circle-line',
       tone: 'bg-emerald-100 text-emerald-600',
     },
@@ -112,16 +91,19 @@ export default function CamionsPage() {
     }
   };
 
-  const exporter = () => {
+  const exporter = async () => {
+    const query = { year: selectedYear, search: list.appliedSearch, statut: list.statutValue };
     if (activeTab === 'camions') {
+      const rows = await fetchAllPages((page, limit) => pageCamions({ ...query, page, limit }));
       downloadCsv(`camions_${today()}.csv`, [
         ['Immatriculation', 'Marque', 'Modèle', 'Capacité (kg)', 'Chauffeur', 'Téléphone', 'Statut'],
-        ...filteredCamions.map((c) => [c.immatriculation, c.marque, c.modele, c.capacite, c.chauffeur, c.telephone, STATUTS_CAMION[c.statut]?.label || c.statut]),
+        ...rows.map((c) => [c.immatriculation, c.marque, c.modele, c.capacite, c.chauffeur, c.telephone, STATUTS_CAMION[c.statut]?.label || c.statut]),
       ]);
     } else {
+      const rows = await fetchAllPages((page, limit) => pageExpeditions({ ...query, page, limit }));
       downloadCsv(`expeditions_${today()}.csv`, [
         ['Numéro', 'Camion', 'Poids (kg)', 'Destination', 'Montant (FCFA)', 'Date', 'Statut'],
-        ...filteredExpeditions.map((e) => [
+        ...rows.map((e) => [
           e.numero,
           e.camion?.immatriculation,
           e.poids,
@@ -236,9 +218,11 @@ export default function CamionsPage() {
         )}
       </div>
 
+      <Pagination page={list.page} totalPages={list.totalPages} total={list.meta.total} unit={activeTab === 'camions' ? 'camion' : 'expédition'} onChange={list.setPage} />
+
       {modal?.type === 'camion' && <CamionModal onClose={() => setModal(null)} onSaved={afterChange} />}
       {modal?.type === 'expedition' && (
-        <ExpeditionModal camionsActifs={camions.filter((c) => c.statut === 'ACTIF')} onClose={() => setModal(null)} onSaved={afterChange} />
+        <ExpeditionModal camionsActifs={camionsActifs} onClose={() => setModal(null)} onSaved={afterChange} />
       )}
       {modal?.type === 'detail-camion' && (
         <DetailModal kind="camion" item={modal.item} canManage={canManage} onClose={() => setModal(null)} onChanged={afterChange} />

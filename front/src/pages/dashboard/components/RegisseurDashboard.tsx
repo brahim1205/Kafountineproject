@@ -16,7 +16,7 @@ const ACTIONS = [
   { label: 'Recettes', icon: 'ri-money-dollar-circle-line', to: '/recettes' },
   { label: 'Taxes', icon: 'ri-file-list-3-line', to: '/taxes' },
   { label: 'Marché', icon: 'ri-store-2-line', to: '/marche' },
-  { label: 'Quai de pêche', icon: 'ri-ship-2-line', to: '/quai-peche' },
+  { label: 'Quai de pêche', icon: 'ri-ship-2-line', to: '/quai-peche/commissions' },
 ];
 
 export default function RegisseurDashboard() {

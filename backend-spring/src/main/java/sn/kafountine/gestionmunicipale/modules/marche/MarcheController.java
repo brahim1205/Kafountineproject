@@ -100,7 +100,19 @@ public class MarcheController {
   @GetMapping("/paiements")
   @Authenticated
   public ResponseEntity<Map<String, Object>> listPayments(HttpServletRequest request) {
-    return Api.ok(service.listPayments(Common.yearQuery(request.getParameterMap())));
+    Input query = Input.query(request.getParameterMap());
+    Integer year = Common.year(query);
+    Integer page = query.num("page").integer().min(1).optionalInt();
+    Integer limit = query.num("limit").integer().min(1).max(500).optionalInt();
+    String search = query.str("search").max(120).optional();
+    String statut = query.str("statut").oneOf("PAYE", "EN_ATTENTE", "RETARD").optional();
+    query.check();
+    int resolved = Common.yearOrCurrent(year == null || year == 0 ? null : year);
+    Common.Paging paging = Common.paging(page, limit);
+    if (paging == null) return Api.ok(service.listPayments(resolved));
+    Map<String, Object> result = service.pagePayments(resolved, search == null ? "" : search.strip(), statut, paging);
+    @SuppressWarnings("unchecked") Map<String, Object> meta = (Map<String, Object>) result.get("meta");
+    return Api.okWithMeta(result.get("data"), meta);
   }
 
   @PostMapping("/paiements")
@@ -116,6 +128,12 @@ public class MarcheController {
     Integer year = Common.year(input);
     input.check();
     return Api.created(service.createPayment(RequestContext.actor(), new MarcheService.PaymentInput(placeId, montant, reference, periode, statut, datePaiement, year)));
+  }
+
+  @GetMapping("/statistiques/details")
+  @Authenticated
+  public ResponseEntity<Map<String, Object>> statsDetails(HttpServletRequest request) {
+    return Api.ok(service.statsDetails(Common.yearQuery(request.getParameterMap())));
   }
 
   @GetMapping("/statistiques")

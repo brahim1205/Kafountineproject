@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useYear } from '../../../contexts/YearContext';
-import { listCommissions, listPecheurs, listEmbarcations, validateCommission, getQuaiPecheStats, type Commission, type Pecheur, type Embarcation, type QuaiPecheStats } from '../../../services/quai-peche';
-import { listMotos, type Moto } from '../../../services/motos';
+import { pageCommissions, pagePecheurs, pageEmbarcations, validateCommission, getQuaiPecheStats, type Commission, type Pecheur, type Embarcation, type QuaiPecheStats } from '../../../services/quai-peche';
+import { pageMotos, type Moto } from '../../../services/motos';
+import Pagination from '../../../components/feature/Pagination';
 import { listPlacesMarche, type PlaceMarche } from '../../../services/marche';
 import { getStoredUserName } from '../../../services/auth';
 
@@ -62,50 +63,61 @@ export default function QuaiPecheDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statutFilter, setStatutFilter] = useState('all');
 
-  // Charger les données depuis l'API
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState({ total: 0, totalPages: 1 });
+  const [appliedSearch, setAppliedSearch] = useState('');
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setErrorMsg('');
-        
-        // Charger données Quai de Pêche
-        const [pecheursData, embarcationsData, commissionsData, quaiStatsData] = await Promise.all([
-          listPecheurs({ year: selectedYear }),
-          listEmbarcations({ year: selectedYear }),
-          listCommissions({ year: selectedYear }),
-          getQuaiPecheStats(selectedYear),
-        ]);
-        setPecheurs(pecheursData || []);
-        setEmbarcations(embarcationsData || []);
-        setCommissions(commissionsData || []);
-        setQuaiStats(quaiStatsData || null);
-        
-        // Charger données Motos Jakarta
-        const motosData = await listMotos(selectedYear);
-        setMotos(motosData || []);
-        
-        // Charger données Marché
-        const placesData = await listPlacesMarche(selectedYear);
-        setPlacesMarche((placesData || []).map((place) => ({
-          ...place,
-          occupantName: typeof place.occupant === 'string' ? place.occupant : '-',
-        })));
-        
-      } catch {
-        setPecheurs([]);
-        setEmbarcations([]);
-        setCommissions([]);
-        setQuaiStats(null);
-        setMotos([]);
-        setPlacesMarche([]);
-        setErrorMsg("Impossible de charger les données du quai de pêche.");
-      } finally {
-        setLoading(false);
+    const timer = window.setTimeout(() => setAppliedSearch(searchTerm.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => setPage(1), [activeTab, statutFilter, appliedSearch, selectedYear]);
+
+  // Statistiques calculées par le serveur, sur toute l'année
+  useEffect(() => {
+    getQuaiPecheStats(selectedYear).then((stats) => setQuaiStats(stats || null)).catch(() => setQuaiStats(null));
+  }, [selectedYear]);
+
+  // Seul l'onglet affiché est chargé, page par page.
+  useEffect(() => {
+    let active = true;
+    const params = { year: selectedYear, page, limit: 25, search: appliedSearch, statut: statutFilter === 'all' ? '' : statutFilter };
+    const apply = <T,>(setter: (rows: T[]) => void) => (result: { data: T[]; meta: { total: number; totalPages?: number } }) => {
+      if (!active) return;
+      setter(result.data || []);
+      setMeta({ total: result.meta.total, totalPages: result.meta.totalPages || 1 });
+    };
+    setLoading(true);
+    setErrorMsg('');
+    const load = (): Promise<void> => {
+      switch (activeTab) {
+        case 'commissions': return pageCommissions(params).then(apply(setCommissions));
+        case 'pecheurs': return pagePecheurs(params).then(apply(setPecheurs));
+        case 'embarcations': return pageEmbarcations(params).then(apply(setEmbarcations));
+        case 'motos': return pageMotos({ year: selectedYear, page, limit: 25, search: appliedSearch }).then(apply(setMotos));
+        default:
+          return listPlacesMarche(selectedYear).then((placesData) => {
+            if (!active) return;
+            setPlacesMarche((placesData || []).map((place) => ({
+              ...place,
+              occupantName: typeof place.occupant === 'string' ? place.occupant : '-',
+            })));
+            setMeta({ total: placesData.length, totalPages: 1 });
+          });
       }
     };
-    loadData();
-  }, [selectedYear]);
+    load()
+      .catch(() => {
+        if (active) setErrorMsg("Impossible de charger les données du quai de pêche.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedYear, activeTab, page, appliedSearch, statutFilter]);
 
   // Statistiques Quai de Pêche
   const totalCommissions = quaiStats?.totalCommissions ?? commissions.length;
@@ -476,6 +488,7 @@ export default function QuaiPecheDashboard() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={meta.totalPages} total={meta.total} unit="ligne" onChange={setPage} />
       </div>
     </div>
   );

@@ -37,7 +37,15 @@ public class MotosController {
     Integer year = Common.year(query);
     String search = query.str("search").max(120).optional();
     Integer limit = query.num("limit").integer().min(1).max(500).optionalInt();
+    Integer page = query.num("page").integer().min(1).optionalInt();
+    String etat = query.str("etat").oneOf("retard", "ajour").optional();
     query.check();
+    Common.Paging paging = Common.paging(page, limit);
+    if (paging != null) {
+      Map<String, Object> result = service.page(Common.yearOrCurrent(year == null || year == 0 ? null : year), search == null ? "" : search.strip(), etat, paging);
+      @SuppressWarnings("unchecked") Map<String, Object> meta = (Map<String, Object>) result.get("meta");
+      return Api.okWithMeta(result.get("data"), meta);
+    }
     return Api.ok(service.list(Common.yearOrCurrent(year == null || year == 0 ? null : year),
         search == null ? "" : search.strip().toLowerCase(Locale.ROOT), limit));
   }
@@ -110,7 +118,15 @@ public class MotosController {
   @GetMapping("/paiements")
   @Authenticated
   public ResponseEntity<Map<String, Object>> listPayments(HttpServletRequest request) {
-    return Api.ok(service.listPayments(Common.yearQuery(request.getParameterMap())));
+    Input query = Input.query(request.getParameterMap());
+    Integer year = Common.year(query);
+    Integer limit = query.num("limit").integer().min(1).max(500).optionalInt();
+    Integer page = query.num("page").integer().min(1).optionalInt();
+    query.check();
+    int resolved = Common.yearOrCurrent(year == null || year == 0 ? null : year);
+    Common.Paging paging = Common.paging(page, limit);
+    if (paging == null) return Api.ok(service.listPayments(resolved, null));
+    return Api.okWithMeta(service.listPayments(resolved, paging), paging.meta(service.countPayments(resolved)));
   }
 
   @PostMapping("/paiements")

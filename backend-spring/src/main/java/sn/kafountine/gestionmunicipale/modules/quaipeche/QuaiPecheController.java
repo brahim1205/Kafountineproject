@@ -40,7 +40,19 @@ public class QuaiPecheController {
   @GetMapping("/" + COLLECTIONS)
   @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> list(@PathVariable String collection, HttpServletRequest request) {
-    return Api.ok(service.list(Collection.valueOf(collection), Common.yearLimitQuery(request.getParameterMap())));
+    Input query = Input.query(request.getParameterMap());
+    Integer year = Common.year(query);
+    Integer limit = query.num("limit").integer().min(1).max(500).optionalInt();
+    Integer page = query.num("page").integer().min(1).optionalInt();
+    String search = query.str("search").max(120).optional();
+    String statut = query.str("statut").max(40).optional();
+    query.check();
+    int resolved = Common.yearOrCurrent(year == null || year == 0 ? null : year);
+    Common.Paging paging = Common.paging(page, limit);
+    if (paging == null) return Api.ok(service.list(Collection.valueOf(collection), resolved));
+    Map<String, Object> result = service.page(Collection.valueOf(collection), resolved, search == null ? "" : search.strip(), statut, paging);
+    @SuppressWarnings("unchecked") Map<String, Object> meta = (Map<String, Object>) result.get("meta");
+    return Api.okWithMeta(result.get("data"), meta);
   }
 
   @GetMapping("/" + COLLECTIONS + "/{id}")

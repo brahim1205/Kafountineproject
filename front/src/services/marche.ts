@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { apiRequest, apiRequestWithMeta, type PageMeta } from './api';
 
 export type PlaceMarche = {
   id: string;
@@ -65,10 +65,26 @@ export async function listPlacesMarche(year?: number): Promise<PlaceMarche[]> {
   return Array.isArray(result) ? result : [];
 }
 
-export async function listPaiementsMarche(year?: number): Promise<PaiementMarche[]> {
-  const query = year ? `?year=${year}` : '';
-  const result = await apiRequest<PaiementMarche[] | { data?: PaiementMarche[] }>(`/marche/paiements${query}`);
-  return Array.isArray(result) ? result : [];
+
+function pageQuery(params: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return query.toString();
+}
+
+export async function pagePaiementsMarche(params: { year?: number; page: number; limit: number; search?: string; statut?: string }): Promise<{ data: PaiementMarche[]; meta: PageMeta }> {
+  return apiRequestWithMeta<PaiementMarche[]>(`/marche/paiements?${pageQuery(params)}`) as Promise<{ data: PaiementMarche[]; meta: PageMeta }>;
+}
+
+export type MarcheDetails = {
+  topCommercants: Array<{ nom: string; activite: string; place: string; paiements: number; montant: number }>;
+  evolutionMensuelle: Array<{ mois: string; places: number; montant: number }>;
+};
+
+export async function getMarcheDetails(year?: number): Promise<MarcheDetails> {
+  return apiRequest<MarcheDetails>(`/marche/statistiques/details${year ? `?year=${year}` : ''}`);
 }
 
 export async function getMarcheStats(year?: number): Promise<MarcheStats> {

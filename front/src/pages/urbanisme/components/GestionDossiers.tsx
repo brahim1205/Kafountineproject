@@ -4,12 +4,15 @@ import { getDossiersUrbanisme, type DossierUrbanisme } from '../../../services/u
 import { getTaxServices, type TaxService } from '../../../services/taxes';
 import { canWriteData } from '../../../services/auth';
 import { useYear } from '../../../contexts/YearContext';
+import Pagination from '../../../components/feature/Pagination';
 import DossiersTable from './dossiers/DossiersTable';
 import DossierDetailModal from './dossiers/DossierDetailModal';
 import NouveauDossierModal from './dossiers/NouveauDossierModal';
 import { receiptFor, type ReceiptData } from './dossiers/dossiers';
 
 type Modal = { type: 'nouveau' } | { type: 'detail'; dossier: DossierUrbanisme } | null;
+
+const PAGE_SIZE = 50;
 
 export default function GestionDossiers() {
   const { selectedYear } = useYear();
@@ -19,6 +22,8 @@ export default function GestionDossiers() {
   const [dossiers, setDossiers] = useState<DossierUrbanisme[]>([]);
   const [types, setTypes] = useState<TaxService[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
   const [modal, setModal] = useState<Modal>(null);
   const [created, setCreated] = useState<DossierUrbanisme | null>(null);
@@ -27,7 +32,9 @@ export default function GestionDossiers() {
   const loadDossiers = async () => {
     try {
       setLoading(true);
-      setDossiers((await getDossiersUrbanisme({ limit: 300, year: selectedYear })).data);
+      const result = await getDossiersUrbanisme({ page, limit: PAGE_SIZE, year: selectedYear });
+      setDossiers(result.data);
+      setTotal(result.meta.total);
     } catch {
       setDossiers([]);
       setError("Impossible de charger les dossiers d'urbanisme.");
@@ -38,7 +45,9 @@ export default function GestionDossiers() {
 
   useEffect(() => {
     loadDossiers();
-  }, [selectedYear]);
+  }, [selectedYear, page]);
+
+  useEffect(() => setPage(1), [selectedYear]);
 
   useEffect(() => {
     getTaxServices('urbanisme-habitat')
@@ -89,6 +98,7 @@ export default function GestionDossiers() {
       )}
 
       <DossiersTable dossiers={dossiers} types={types} loading={loading} onView={(dossier) => setModal({ type: 'detail', dossier })} />
+      <Pagination page={page} totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))} total={total} unit="dossier" onChange={setPage} />
 
       {modal?.type === 'detail' && (
         <DossierDetailModal

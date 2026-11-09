@@ -12,7 +12,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingResponseWrapper;
+import sn.kafountine.gestionmunicipale.shared.errors.AppException;
+import sn.kafountine.gestionmunicipale.shared.http.Cookies;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
+import sn.kafountine.gestionmunicipale.shared.security.JwtTokenService;
 
 /**
  * Anti-doublon des écritures : un POST rejoué avec le même en-tête idempotency-key
@@ -22,9 +25,22 @@ import sn.kafountine.gestionmunicipale.shared.persistence.Db;
 public class IdempotencyFilter {
   private static final String HEADER = "idempotency-key";
   private final Db db;
+  private final JwtTokenService tokens;
 
-  public IdempotencyFilter(Db db) {
+  public IdempotencyFilter(Db db, JwtTokenService tokens) {
     this.db = db;
+    this.tokens = tokens;
+  }
+
+  /** Compte de la requête, ou null si la session est absente ou invalide. */
+  private String userId(HttpServletRequest request) {
+    String token = Cookies.accessToken(request);
+    if (token == null) return null;
+    try {
+      return String.valueOf(tokens.verifyAccessToken(token).get("userId"));
+    } catch (AppException invalidSession) {
+      return null;
+    }
   }
 
   @Bean
@@ -34,13 +50,20 @@ public class IdempotencyFilter {
       protected boolean shouldNotFilter(HttpServletRequest request) {
         String key = request.getHeader(HEADER);
         return !"POST".equals(request.getMethod()) || !request.getRequestURI().startsWith("/api/v1/")
+            || request.getRequestURI().startsWith("/api/v1/auth/")
             || key == null || key.isBlank() || key.length() > 128;
       }
 
       @Override
       protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
           throws ServletException, IOException {
-        String key = request.getRequestURI() + "|" + request.getHeader(HEADER);
+        // Le contrôle d'accès vient après ce filtre : une réponse n'est mémorisée et rejouée que pour son compte.
+        String userId = userId(request);
+        if (userId == null) {
+          chain.doFilter(request, response);
+          return;
+        }
+        String key = request.getRequestURI() + "|" + userId + "|" + request.getHeader(HEADER);
         boolean first = db.update("""
             INSERT INTO "IdempotencyKey" ("key") VALUES (:key) ON CONFLICT ("key") DO NOTHING
             """, Db.params("key", key)) == 1;

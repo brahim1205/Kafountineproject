@@ -15,14 +15,6 @@ type PlaceTypeStats = {
   pourcentage: number;
 };
 
-type TopCommercant = {
-  nom: string;
-  activite: string;
-  place: string;
-  paiements: number;
-  montant: number;
-};
-
 type MonthlyMarketEvolution = {
   mois: string;
   placesOccuppees: number;

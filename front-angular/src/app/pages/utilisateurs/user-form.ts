@@ -3,16 +3,6 @@ import { clearFieldValidationError } from '../../utils/form-validation';
 import { Field } from './field';
 import { storedRole } from '../../core/auth/auth.models';
 
-type UiUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  phone: string;
-  status: string;
-  lastLogin: string;
-};
-
 const ROLE_OPTIONS = ['SUPER_ADMIN', 'ADMIN', 'SERVICE_FINANCES', 'QUAI_PECHE', 'ETAT_CIVIL', 'REGISSEUR', 'AGENT'];
 
 const ROLE_LABELS: Record<string, string> = {

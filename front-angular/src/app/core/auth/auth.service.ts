@@ -77,7 +77,7 @@ export class AuthService {
     } catch (error) {
       // status 0 : erreur réseau, dont le message technique du navigateur ne doit pas être affiché.
       const message = error instanceof HttpErrorResponse && error.status > 0 ? error.error?.message : undefined;
-      throw new Error(message || LOGIN_UNREACHABLE);
+      throw new Error(message || LOGIN_UNREACHABLE, { cause: error });
     }
   }
 
@@ -110,7 +110,7 @@ export class AuthService {
       return envelope.message || 'Si un compte existe avec cet email, un lien de reinitialisation sera envoye';
     } catch (error) {
       const message = error instanceof HttpErrorResponse && error.status > 0 ? error.error?.message : undefined;
-      throw new Error(message || 'Impossible de traiter la demande de reinitialisation');
+      throw new Error(message || 'Impossible de traiter la demande de reinitialisation', { cause: error });
     }
   }
 

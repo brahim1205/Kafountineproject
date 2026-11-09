@@ -1,15 +1,4 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { DossierUrbanisme } from '../../../../services/urbanisme';
-import { TaxService } from '../../../../services/taxes';
-
-type NouveauDossierModalProps = {
-  types: TaxService[];
-  onClose: () => void;
-  onCreated: (dossier: DossierUrbanisme) => Promise<void>;
-};
-
-const INPUT_CLASS =
-  'w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 transition-all';
 
 @Component({
   selector: 'app-field',

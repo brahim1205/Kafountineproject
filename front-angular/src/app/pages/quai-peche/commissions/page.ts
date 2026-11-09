@@ -116,7 +116,7 @@ export class CommissionsPage {
 
   constructor() {
     effect(() => {
-      this.showModal(); this.selectedYear(); this.pecheurs().length;
+      this.showModal(); this.selectedYear(); void this.pecheurs().length;
       untracked(() => {
     if ((this.showModal()) && this.pecheurs().length === 0) {
     this.quaiPecheApi.listPecheurs({ year: this.selectedYear() }).then(value => this.pecheurs.set(value)).catch(() => this.actionError.set('Impossible de charger les pêcheurs.'));

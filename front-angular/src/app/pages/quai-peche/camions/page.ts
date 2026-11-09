@@ -152,7 +152,8 @@ export class CamionsPage {
   constructor() {
     effect((onCleanup) => {
       void onCleanup;
-      this.modal()?.type; this.selectedYear();
+      void this.modal()?.type;
+      this.selectedYear();
       const cleanup = untracked(() => (() => {
     if (this.modal()?.type !== 'expedition')
     return;

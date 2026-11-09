@@ -6,6 +6,8 @@ import java.util.Map;
 
 /** Schémas communs (commonSchemas.ts côté Node). */
 public final class Common {
+  public static final String[] MODES_PAIEMENT = {"ESPECE", "VIREMENT", "MOBILE_MONEY", "CHEQUE"};
+
   private Common() {}
 
   /** resourceIdParamsSchema : identifiant UUID dans le chemin. */
@@ -25,6 +27,13 @@ public final class Common {
   public static void assertOpenYear(Integer year) {
     if (year != null && year != 0 && year != Year.now().getValue()) {
       throw AppException.forbidden("Cette année est close : aucun paiement ne peut y être enregistré.");
+    }
+  }
+
+  /** Une écriture d'une année passée ne se modifie plus : ses comptes sont arrêtés. */
+  public static void assertRecordYearOpen(int year) {
+    if (year != Year.now().getValue()) {
+      throw AppException.forbidden("Cette année est close : cet enregistrement ne peut plus être modifié.");
     }
   }
 

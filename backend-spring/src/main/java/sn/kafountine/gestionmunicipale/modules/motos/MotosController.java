@@ -31,7 +31,7 @@ public class MotosController {
   }
 
   @GetMapping
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> list(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());
     Integer year = Common.year(query);
@@ -103,7 +103,7 @@ public class MotosController {
   }
 
   @GetMapping("/statistiques")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> stats(HttpServletRequest request) {
     return Api.ok(service.stats(Common.yearQuery(request.getParameterMap())));
   }
@@ -116,7 +116,7 @@ public class MotosController {
   }
 
   @GetMapping("/paiements")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> listPayments(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());
     Integer year = Common.year(query);
@@ -130,16 +130,27 @@ public class MotosController {
   }
 
   @PostMapping("/paiements")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR", "SERVICE_FINANCES"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> createPayment(@Body JsonNode body) {
     Input input = Input.body(body);
     String motoId = input.str("motoId").noTrim().uuid("Identifiant invalide").required();
     String type = input.str("type").oneOf("COTISATION", "AMENDE_POLICE").optional();
     String reference = input.str("reference").max(120).optional();
     String mois = input.str("mois").max(80).optional();
+    String mode = input.str("modePaiement").oneOf(Common.MODES_PAIEMENT).optional();
     Integer year = Common.year(input);
     input.check();
     Common.assertOpenYear(year);
-    return Api.created(service.createPayment(RequestContext.actor(), new MotoService.PaymentInput(motoId, type, reference, mois, year)));
+    return Api.created(service.createPayment(RequestContext.actor(), new MotoService.PaymentInput(motoId, type, reference, mois, year, mode)));
+  }
+
+  @PostMapping("/paiements/{id}/annuler")
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> cancelPayment(@PathVariable String id, @Body JsonNode body) {
+    Input input = Input.body(body);
+    String motif = input.str("motif").trimmed(3, 300, "Motif requis").required();
+    input.check();
+    service.cancelPayment(RequestContext.actor(), Common.id(id), motif);
+    return Api.ok(Api.map("success", true));
   }
 }

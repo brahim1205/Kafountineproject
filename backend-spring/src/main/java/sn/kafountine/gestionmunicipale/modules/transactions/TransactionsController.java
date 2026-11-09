@@ -28,7 +28,7 @@ import sn.kafountine.gestionmunicipale.shared.web.RequestContext;
 @RestController
 @RequestMapping("/api/v1/transactions")
 public class TransactionsController {
-  private static final String[] MODES = {"ESPECE", "VIREMENT", "MOBILE_MONEY", "CHEQUE"};
+  private static final String[] MODES = Common.MODES_PAIEMENT;
   private static final String[] STATUTS = {"PAYE", "EN_ATTENTE", "ANNULE"};
   private static final String DAY = "^\\d{4}-\\d{2}-\\d{2}$";
   private final TransactionService service;
@@ -77,7 +77,7 @@ public class TransactionsController {
   }
 
   @GetMapping
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR"})
   @SuppressWarnings("unchecked")
   public ResponseEntity<Map<String, Object>> list(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());

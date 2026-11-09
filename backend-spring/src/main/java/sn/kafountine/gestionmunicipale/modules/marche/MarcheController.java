@@ -32,7 +32,7 @@ public class MarcheController {
   }
 
   @GetMapping("/places")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> listPlaces(HttpServletRequest request) {
     return Api.ok(service.listPlaces(Common.yearQuery(request.getParameterMap())));
   }
@@ -98,7 +98,7 @@ public class MarcheController {
   }
 
   @GetMapping("/paiements")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> listPayments(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());
     Integer year = Common.year(query);
@@ -116,7 +116,7 @@ public class MarcheController {
   }
 
   @PostMapping("/paiements")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> createPayment(@Body JsonNode body) {
     Input input = Input.body(body);
     String placeId = input.str("placeId").noTrim().uuid("Identifiant invalide").required();
@@ -125,20 +125,31 @@ public class MarcheController {
     String periode = input.str("periode").trimmed(1, 80, "Période requise").required();
     String statut = input.str("statut").oneOf(PAYMENT_STATUTS).optional();
     String datePaiement = input.str("datePaiement").max(50).refine(v -> Js.parseDate(v) != null, "Date invalide").optional();
+    String mode = input.str("modePaiement").oneOf(Common.MODES_PAIEMENT).optional();
     Integer year = Common.year(input);
     input.check();
     Common.assertOpenYear(year);
-    return Api.created(service.createPayment(RequestContext.actor(), new MarcheService.PaymentInput(placeId, montant, reference, periode, statut, datePaiement, year)));
+    return Api.created(service.createPayment(RequestContext.actor(), new MarcheService.PaymentInput(placeId, montant, reference, periode, statut, datePaiement, year, mode)));
+  }
+
+  @PostMapping("/paiements/{id}/annuler")
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> cancelPayment(@PathVariable String id, @Body JsonNode body) {
+    Input input = Input.body(body);
+    String motif = input.str("motif").trimmed(3, 300, "Motif requis").required();
+    input.check();
+    service.cancelPayment(RequestContext.actor(), Common.id(id), motif);
+    return Api.ok(Api.map("success", true));
   }
 
   @GetMapping("/statistiques/details")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> statsDetails(HttpServletRequest request) {
     return Api.ok(service.statsDetails(Common.yearQuery(request.getParameterMap())));
   }
 
   @GetMapping("/statistiques")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> stats(HttpServletRequest request) {
     return Api.ok(service.stats(Common.yearQuery(request.getParameterMap())));
   }

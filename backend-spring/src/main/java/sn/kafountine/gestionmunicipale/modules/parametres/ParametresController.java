@@ -76,8 +76,6 @@ public class ParametresController {
     return Api.ok(service.listPenalties());
   }
 
-  /** Lecture publique (portail) des pénalités, sans authentification. */
-
   private static ParametresService.PenaltyInput penalty(Input input, boolean create) {
     String type = create ? input.str("type").trimmed(1, 120, "Type requis").required() : input.str("type").max(120).optional();
     String description = input.str("description").max(255).optional();

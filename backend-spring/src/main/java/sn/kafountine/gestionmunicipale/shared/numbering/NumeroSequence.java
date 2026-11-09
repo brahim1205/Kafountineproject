@@ -18,7 +18,8 @@ public class NumeroSequence {
     URBANISME("urbanisme", "URB", 5, "UrbanismeCase", "numero"),
     COMMISSION("commission", "CF", 5, "FishCommission", "numero"),
     EXPEDITION("expedition", "EXP", 5, "ShippingExpedition", "numero"),
-    RECU_MOTO("recuMoto", "MOTO", 5, "MotoPayment", "numeroRecu");
+    RECU_MOTO("recuMoto", "MOTO", 5, "MotoPayment", "numeroRecu"),
+    RECU_MARCHE("recuMarche", "MAR", 5, "MarketPayment", "numeroRecu");
 
     final String key;
     final String prefix;

@@ -33,7 +33,7 @@ public class ContribuablesController {
   }
 
   @GetMapping("/check-telephone")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> checkTelephone(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());
     String telephone = query.str("telephone").trimmed(1, 20, "Téléphone requis").required();
@@ -42,7 +42,7 @@ public class ContribuablesController {
   }
 
   @GetMapping
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR"})
   @SuppressWarnings("unchecked")
   public ResponseEntity<Map<String, Object>> list(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());

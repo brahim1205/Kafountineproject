@@ -6,12 +6,14 @@ import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import sn.kafountine.gestionmunicipale.modules.caisse.CaisseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
@@ -49,7 +51,10 @@ public class MotoService {
   private final AuditTrail auditTrail;
   private final NumeroSequence numeros;
 
-  public MotoService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, NumeroSequence numeros) {
+  private final CaisseService caisse;
+
+  public MotoService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, NumeroSequence numeros, CaisseService caisse) {
+    this.caisse = caisse;
     this.db = db;
     this.contribuables = contribuables;
     this.auditTrail = auditTrail;
@@ -176,6 +181,8 @@ public class MotoService {
     if (permis != null && findIdBy("permis", permis) != null) throw AppException.conflict("Ce permis existe déjà.");
     Map<String, Object>[] found = findPeople(proprietaireId, conducteurId);
     int motoYear = input.year() != null && input.year() != 0 ? input.year() : Year.now().getValue();
+    Common.assertOpenYear(motoYear);
+    caisse.assertOuverte(actor.userId(), Instant.now());
     Map<String, Object> row = db.one("INSERT INTO \"MotoRegistration\" (\"id\", " + UPSERT_COLUMNS + ", \"createdAt\", \"updatedAt\")"
         + " VALUES (:id, :matricule, :marque, :modele, :annee, :couleur, :proprietaireId, :conducteurId, :permis, :statut, :photo, :enRetard,"
         + " :montantPenalite, :prochainPaiement, :dernierPaiement, :year, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *",
@@ -192,7 +199,7 @@ public class MotoService {
     Instant paiementDate = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
     Map<String, Object> adhesion = recordPayment(row, "ADHESION", DROIT_ADHESION, null, paiementDate,
         libelleMois(paiementDate.atZone(ZoneOffset.UTC).toLocalDate()), numeros.next(NumeroSequence.Series.RECU_MOTO, motoYear),
-        auditTrail.displayName(actor.userId()), motoYear, Db.date(row, "prochainPaiement"));
+        auditTrail.displayName(actor.userId()), motoYear, Db.date(row, "prochainPaiement"), actor.userId(), null);
     auditTrail.record(actor, "Paiement moto", "Motos", "Droit d'adhésion encaissé pour la moto " + row.get("matricule") + " (" + Js.num(DROIT_ADHESION) + " FCFA)");
     Map<String, Object> view = motoView(row);
     view.put("adhesion", paymentView(adhesion));
@@ -203,6 +210,9 @@ public class MotoService {
   public Map<String, Object> update(Actor actor, String motoId, MotoInput input) {
     Map<String, Object> existing = findById(motoId);
     if (existing == null) throw AppException.notFound("Moto introuvable.");
+    // Échéance et pénalité font la dette : seul un responsable peut les corriger.
+    boolean touche = input.enRetard() != null || input.montantPenalite() != null || input.prochainPaiement() != null || input.dernierPaiement() != null;
+    if (touche && "AGENT".equalsIgnoreCase(actor.role())) throw AppException.forbidden("Permissions insuffisantes pour cette action");
     String nextMatricule = truthy(input.matricule()) ? input.matricule().strip().toUpperCase(Locale.ROOT) : Db.str(existing, "matricule");
     if (!nextMatricule.equals(Db.str(existing, "matricule"))) {
       String duplicate = findIdBy("matricule", nextMatricule);
@@ -249,15 +259,78 @@ public class MotoService {
 
   public Map<String, Object> stats(int year) {
     List<Map<String, Object>> motos = db.list("SELECT \"enRetard\", \"statut\", \"prochainPaiement\" FROM \"MotoRegistration\" WHERE \"year\" = :year", Db.params("year", year));
-    List<Map<String, Object>> paiements = db.list("SELECT \"montant\" FROM \"MotoPayment\" WHERE \"year\" = :year", Db.params("year", year));
+    List<Map<String, Object>> paiements = db.list("SELECT \"montant\", \"datePaiement\" FROM \"MotoPayment\" WHERE \"year\" = :year AND \"statut\" = 'PAYE'", Db.params("year", year));
     long total = motos.size();
     Instant now = Instant.now();
-    long enRetard = motos.stream().filter(m -> estEnRetard(m, now)).count();
+    long enRetard = 0;
+    double montantDu = 0;
+    double penalites = 0;
+    for (Map<String, Object> moto : motos) {
+      if (!estEnRetard(moto, now)) continue;
+      enRetard++;
+      int mois = moisDus(Db.date(moto, "prochainPaiement"), Boolean.TRUE.equals(moto.get("enRetard")), now);
+      montantDu += montantDu(mois);
+      penalites += mois * PENALITE_RETARD;
+    }
     double recettes = 0;
-    for (Map<String, Object> p : paiements) recettes += Db.num(p, "montant");
-    return Api.map("total", total, "totalMotos", total, "enRetard", enRetard, "paiementsMois", paiements.size(), "recettesMois", recettes,
-        "recettesAnnee", recettes, "tauxPaiement", total > 0 ? Math.round((double) paiements.size() / total * 100) : 0,
-        "penalitesEnCours", enRetard * PENALITE_RETARD, "montantEnRetard", enRetard * (TARIF_MENSUEL + PENALITE_RETARD));
+    double recettesMois = 0;
+    long paiementsMois = 0;
+    YearMonth courant = YearMonth.from(now.atZone(ZoneOffset.UTC));
+    for (Map<String, Object> p : paiements) {
+      double montant = Db.num(p, "montant");
+      recettes += montant;
+      Instant date = Db.date(p, "datePaiement");
+      if (date != null && YearMonth.from(date.atZone(ZoneOffset.UTC)).equals(courant)) {
+        recettesMois += montant;
+        paiementsMois++;
+      }
+    }
+    return Api.map("total", total, "totalMotos", total, "enRetard", enRetard, "paiementsMois", paiementsMois, "recettesMois", recettesMois,
+        "recettesAnnee", recettes, "tauxPaiement", total > 0 ? Math.round((double) (total - enRetard) / total * 100) : 0,
+        "penalitesEnCours", penalites, "montantEnRetard", montantDu);
+  }
+
+  /** Nombre de cotisations échues et non payées : au moins une dès que la moto est en retard. */
+  public static int moisDus(Instant echeance, boolean enRetard, Instant now) {
+    int mois = 0;
+    if (echeance != null) {
+      Instant limite = echeance;
+      while (limite.isBefore(now) && mois < 120) {
+        mois++;
+        limite = limiteApres(limite);
+      }
+    }
+    return Math.max(mois, enRetard ? 1 : 0);
+  }
+
+  public static double montantDu(int mois) {
+    return mois * (TARIF_MENSUEL + PENALITE_RETARD);
+  }
+
+  @Transactional
+  public void cancelPayment(Actor actor, String id, String motif) {
+    Map<String, Object> payment = db.one("SELECT * FROM \"MotoPayment\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", id));
+    if (payment == null) throw AppException.notFound("Paiement introuvable.");
+    if ("ANNULE".equals(payment.get("statut"))) throw AppException.conflict("Ce paiement est déjà annulé.");
+    Common.assertRecordYearOpen((int) Db.num(payment, "year"));
+    caisse.assertOuverte(Db.str(payment, "agentId"), Db.date(payment, "datePaiement"));
+    String motoId = Db.str(payment, "motoId");
+    Map<String, Object> moto = db.one("SELECT * FROM \"MotoRegistration\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", motoId));
+    if ("COTISATION".equals(payment.get("type"))) {
+      List<Map<String, Object>> cotisations = db.list("""
+          SELECT "id", "datePaiement" FROM "MotoPayment" WHERE "motoId" = :id AND "type" = 'COTISATION' AND "statut" = 'PAYE'
+          ORDER BY COALESCE("datePaiement", "createdAt") DESC, "createdAt" DESC LIMIT 2
+          """, Db.params("id", motoId));
+      if (!id.equals(Db.str(cotisations.get(0), "id"))) throw AppException.conflict("Annulez d'abord la cotisation la plus récente de cette moto.");
+      Instant echeance = Db.date(moto, "prochainPaiement");
+      LocalDate precedente = echeance.atZone(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1).minusMonths(1);
+      db.update("UPDATE \"MotoRegistration\" SET \"prochainPaiement\" = :prochain, \"dernierPaiement\" = :dernier, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id",
+          Db.params("id", motoId, "prochain", precedente.withDayOfMonth(10).atTime(23, 59, 59, 999_000_000).toInstant(ZoneOffset.UTC),
+              "dernier", cotisations.size() > 1 ? cotisations.get(1).get("datePaiement") : null));
+    }
+    db.update("UPDATE \"MotoPayment\" SET \"statut\" = 'ANNULE', \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id", Db.params("id", id));
+    auditTrail.record(actor, "Annulation paiement moto", "Motos", "Paiement " + (payment.get("numeroRecu") == null ? id : payment.get("numeroRecu")) + " de la moto "
+        + moto.get("matricule") + " annulé (" + Js.num(Db.num(payment, "montant")) + " FCFA) : " + motif, "warning");
   }
 
   public Map<String, Object> configuration() {
@@ -287,13 +360,16 @@ public class MotoService {
     return result;
   }
 
-  public record PaymentInput(String motoId, String type, String reference, String mois, Integer year) {}
+  public record PaymentInput(String motoId, String type, String reference, String mois, Integer year, String modePaiement) {}
 
   @Transactional
   public Map<String, Object> createPayment(Actor actor, PaymentInput input) {
     String actorName = auditTrail.displayName(actor.userId());
     String motoId = nz(input.motoId()).strip();
     if (motoId.isEmpty()) throw AppException.validation("La moto est requise pour enregistrer un paiement.");
+    caisse.assertOuverte(actor.userId(), Instant.now());
+    // Deux encaissements simultanés sur la même moto s'exécutent l'un après l'autre.
+    db.one("SELECT \"id\" FROM \"MotoRegistration\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", motoId));
     Map<String, Object> moto = findById(motoId);
     if (moto == null) throw AppException.notFound("Moto introuvable.");
     String type = truthy(input.type()) ? input.type() : "COTISATION";
@@ -309,22 +385,22 @@ public class MotoService {
     String mois = truthy(input.mois()) ? input.mois().strip()
         : cotisation && echeance != null ? moisCouvert(echeance) : libelleMois(paiementDate.atZone(ZoneOffset.UTC).toLocalDate());
     Map<String, Object> row = recordPayment(moto, type, montant, truthy(input.reference()) ? input.reference().strip() : null, paiementDate, mois,
-        numeroRecu, actorName, year, cotisation ? limiteApres(echeance != null ? echeance : paiementDate) : echeance);
+        numeroRecu, actorName, year, cotisation ? limiteApres(echeance != null ? echeance : paiementDate) : echeance, actor.userId(), input.modePaiement());
     auditTrail.record(actor, "Paiement moto", "Motos", (cotisation ? "Paiement enregistré" : "Amende police enregistrée") + " pour la moto " + moto.get("matricule") + " (" + Js.num(montant) + " FCFA)");
     return paymentView(row);
   }
 
   /** Seule la cotisation fait avancer l'échéance : adhésion et amende sont des paiements à part. */
   private Map<String, Object> recordPayment(Map<String, Object> moto, String type, double montant, String reference, Instant paiementDate, String mois,
-      String numeroRecu, String agent, int year, Instant nextDue) {
+      String numeroRecu, String agent, int year, Instant nextDue, String agentId, String modePaiement) {
     boolean cotisation = type.equals("COTISATION");
     String motoId = Db.str(moto, "id");
     Map<String, Object> row = db.one("""
-        INSERT INTO "MotoPayment" ("id", "motoId", "type", "montant", "reference", "statut", "datePaiement", "mois", "numeroRecu", "agent", "year", "createdAt", "updatedAt")
-        VALUES (:id, :motoId, :type, :montant, :reference, 'PAYE', :datePaiement, :mois, :numeroRecu, :agent, :year, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        INSERT INTO "MotoPayment" ("id", "motoId", "type", "montant", "reference", "statut", "datePaiement", "mois", "numeroRecu", "agent", "year", "agentId", "modePaiement", "createdAt", "updatedAt")
+        VALUES (:id, :motoId, :type, :montant, :reference, 'PAYE', :datePaiement, :mois, :numeroRecu, :agent, :year, :agentId, :modePaiement, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING *
         """, Db.params("id", Db.uuid(), "motoId", motoId, "type", type, "montant", montant, "reference", reference, "datePaiement", paiementDate,
-        "mois", mois, "numeroRecu", numeroRecu, "agent", agent, "year", year));
+        "mois", mois, "numeroRecu", numeroRecu, "agent", agent, "year", year, "agentId", agentId, "modePaiement", modePaiement == null ? "ESPECE" : modePaiement));
     for (String key : List.of("matricule", "marque", "modele", "annee", "couleur", "proprietaireId", "conducteurId", "permis", "photo", "montantPenalite")) {
       row.put(key, moto.get(key));
     }
@@ -396,6 +472,7 @@ public class MotoService {
     if (orNull(row.get("mois")) != null) view.put("mois", row.get("mois"));
     if (orNull(row.get("numeroRecu")) != null) view.put("numeroRecu", row.get("numeroRecu"));
     view.put("agent", orNull(row.get("agent")) != null ? row.get("agent") : "Agent municipal");
+    view.put("modePaiement", row.get("modePaiement") == null ? "ESPECE" : row.get("modePaiement"));
     Map<String, Object> moto = new LinkedHashMap<>(row);
     moto.put("id", row.get("motoId"));
     moto.put("statut", row.get("motoStatut"));

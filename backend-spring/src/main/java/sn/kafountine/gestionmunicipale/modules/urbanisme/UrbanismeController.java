@@ -37,7 +37,7 @@ public class UrbanismeController {
   }
 
   @GetMapping
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> list(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());
     int page = query.num("page").integer().min(1).optionalInt(1);
@@ -53,13 +53,13 @@ public class UrbanismeController {
   }
 
   @GetMapping("/statistiques")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> stats(HttpServletRequest request) {
     return Api.ok(service.stats(Common.yearQuery(request.getParameterMap())));
   }
 
   @GetMapping("/{id}")
-  @Authenticated
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> show(@PathVariable String id) {
     return Api.ok(service.show(Common.id(id)));
   }
@@ -77,9 +77,10 @@ public class UrbanismeController {
     Double montant = input.num("montant").min(0, "Valeur positive ou nulle requise").optional();
     String statut = input.str("statut").oneOf(STATUTS).optional();
     Common.year(input);
+    String mode = input.str("modePaiement").oneOf(Common.MODES_PAIEMENT).optional();
     input.check();
     return new UrbanismeService.Input(contribuableId, type, descriptionValue, surface, localisationValue, natureValue, montant, statut,
-        descriptionValue != null, localisationValue != null, natureValue != null);
+        descriptionValue != null, localisationValue != null, natureValue != null, mode);
   }
 
   @PostMapping

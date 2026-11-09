@@ -55,7 +55,6 @@ public final class Env {
       .filter(value -> !value.isEmpty())
       .toList();
   public static final String REDIS_URL = get("REDIS_URL", "");
-  /** Paiement en ligne du portail : simulé, jamais activé en production (même règle que Node). */
   public static final String METRICS_BEARER_TOKEN = get("METRICS_BEARER_TOKEN", "").trim();
   public static final boolean ENABLE_API_DOCS = "true".equals(System.getenv("ENABLE_API_DOCS")) || !IS_PRODUCTION;
   public static final boolean ENABLE_METRICS = "true".equals(System.getenv("ENABLE_METRICS")) || !IS_PRODUCTION;

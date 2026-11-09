@@ -34,10 +34,10 @@ public class DashboardService {
         SELECT 'Motos', 'Motos', "montant", COALESCE("datePaiement", "createdAt")
           FROM "MotoPayment" WHERE "year" = :year AND "statut" = 'PAYE'
         UNION ALL
-        SELECT 'État civil', 'État civil', "montant", "createdAt"
+        SELECT 'État civil', 'État civil', "montant", COALESCE("encaisseLe", "createdAt")
           FROM "EtatCivilRequest" WHERE "year" = :year AND "statut" IN ('DELIVREE', 'VALIDE')
         UNION ALL
-        SELECT 'Urbanisme', 'Urbanisme', "montant", "createdAt"
+        SELECT 'Urbanisme', 'Urbanisme', "montant", COALESCE("encaisseLe", "createdAt")
           FROM "UrbanismeCase" WHERE "year" = :year AND "statut" = 'VALIDE'
       )""";
   private static final String TOTAL_SQL = LEDGER + " SELECT COALESCE(SUM(montant), 0)::float8 AS montant FROM recettes";
@@ -126,14 +126,12 @@ public class DashboardService {
 
   private Map<String, Object> motosStats(int year) {
     List<Map<String, Object>> motos = db.list("SELECT \"enRetard\" FROM \"MotoRegistration\" WHERE \"year\" = :year", Db.params("year", year));
-    List<Map<String, Object>> paiements = db.list("SELECT \"montant\" FROM \"MotoPayment\" WHERE \"year\" = :year", Db.params("year", year));
     long enRetard = motos.stream().filter(row -> Boolean.TRUE.equals(row.get("enRetard"))).count();
     return Api.map("totalMotos", motos.size(), "enRetard", enRetard);
   }
 
   private Map<String, Object> marcheStats(int year) {
     List<Map<String, Object>> places = db.list("SELECT \"statut\", \"occupantId\" FROM \"MarketPlace\" WHERE \"year\" = :year", Db.params("year", year));
-    db.list("SELECT \"montant\", \"statut\" FROM \"MarketPayment\" WHERE \"year\" = :year", Db.params("year", year));
     return Api.map("placesTotales", places.size(), "placesOccupees", countWhere(places, "statut", "OCCUPEE"));
   }
 

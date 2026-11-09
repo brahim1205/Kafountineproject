@@ -6,7 +6,6 @@
 - [ ] Remplacer tous les placeholders de [`.env.prod`](./.env.prod)
 - [ ] Vérifier les secrets GitHub Actions: `SSH_HOST`, `SSH_USERNAME`, `SSH_KEY`, `DOCKER_USERNAME`, `DOCKER_PASSWORD`
 - [ ] Vérifier le domaine, DNS et les certificats HTTPS du serveur
-- [ ] Configurer `PORTAL_OTP_DELIVERY_MODE=webhook`, `PORTAL_OTP_WEBHOOK_URL` en HTTPS et `PORTAL_OTP_WEBHOOK_TOKEN`
 - [ ] Vérifier que `JWT_SECRET` et `JWT_REFRESH_SECRET` sont distincts et font au moins 32 caractères
 - [ ] Configurer `TRUST_PROXY` avec des proxys explicites (`loopback,linklocal,uniquelocal` ou CIDR/IP), jamais `true` ni un simple nombre
 - [ ] Garder `ENABLE_API_DOCS=false` en production

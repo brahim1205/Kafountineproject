@@ -1,0 +1,30 @@
+  <app-modal title="Nouveau camion frigorifique" (closed)="closed.emit()" [footerSlot]="true">
+    <ng-container ngProjectAs="[slot-footer]">
+      <app-footer-buttons (cancelled)="closed.emit()" form="form-camion" [submitting]="submitting()"></app-footer-buttons>
+    </ng-container>
+    <form id="form-camion" (submit)="handleSubmit($event)" (input)="clearFieldValidationError($event)" novalidate class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <app-field label="Immatriculation" [required]="true">
+          <input name="immatriculation" data-required="true" placeholder="Ex: DK 1234 A" [class]="INPUT_CLASS" />
+        </app-field>
+        <app-field label="Marque" [required]="true">
+          <input name="marque" data-required="true" placeholder="Ex: Renault" [class]="INPUT_CLASS" />
+        </app-field>
+        <app-field label="Modèle">
+          <input name="modele" placeholder="Ex: Master" [class]="INPUT_CLASS" />
+        </app-field>
+        <app-field label="Capacité (kg)">
+          <input name="capacite" type="number" min="0" placeholder="Ex: 5000" [class]="INPUT_CLASS" />
+        </app-field>
+        <app-field label="Chauffeur">
+          <input name="chauffeur" placeholder="Nom du chauffeur" [class]="INPUT_CLASS" />
+        </app-field>
+        <app-field label="Téléphone">
+          <input name="telephone" type="tel" placeholder="Ex: 77 123 45 67" [class]="INPUT_CLASS" />
+        </app-field>
+      </div>
+      @if (error()) {
+        <p class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">{{ error() }}</p>
+      }
+    </form>
+  </app-modal>

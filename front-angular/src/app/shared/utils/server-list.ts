@@ -1,5 +1,5 @@
 import { DestroyRef, Signal, computed, effect, inject, signal, untracked } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, Subscription, from } from 'rxjs';
 import { Page, PageMeta } from '../../core/api/api.models';
 
 export interface ListQuery {
@@ -19,7 +19,7 @@ const SEARCH_DELAY_MS = 300;
  * À appeler dans un contexte d'injection (champ ou constructeur de composant).
  */
 export function serverList<T>(
-  fetchPage: (query: ListQuery) => Observable<Page<T>>,
+  fetchPage: (query: ListQuery) => Observable<Page<T>> | Promise<Page<T> | { data: T[]; meta?: PageMeta }>,
   key: Signal<unknown>,
   options: { pageSize?: number; initialStatut?: string } = {},
 ) {
@@ -47,25 +47,27 @@ export function serverList<T>(
     onCleanup(() => clearTimeout(searchTimer));
   });
 
-  let previousKey = JSON.stringify(untracked(key));
+  let previousKey: string | undefined;
   effect(() => {
     const current = JSON.stringify(key());
-    if (current !== previousKey) {
-      previousKey = current;
+    if (previousKey !== undefined && current !== previousKey) {
       page.set(1);
     }
+    previousKey = current;
   });
 
   effect(() => {
     const query: ListQuery = { page: page(), limit: pageSize, search: appliedSearch(), statut: statutValue() };
     key();
     reloadKey();
-    untracked(() => loading.set(true));
     subscription?.unsubscribe();
-    subscription = fetchPage(query).subscribe({
+    subscription = untracked(() => {
+      loading.set(true);
+      return from(fetchPage(query));
+    }).subscribe({
       next: (result) => {
         items.set(result.data);
-        meta.set(result.meta);
+        meta.set(result.meta ?? EMPTY_META);
         error.set('');
         loading.set(false);
       },
@@ -94,6 +96,15 @@ export function serverList<T>(
     counts,
     yearTotal: computed(() => Object.values(counts()).reduce((sum, value) => sum + value, 0)),
     totalPages: computed(() => Math.max(1, meta().totalPages ?? Math.ceil(meta().total / pageSize))),
+    setSearch(value: string) {
+      search.set(value);
+    },
+    setPage(value: number) {
+      page.set(value);
+    },
+    setItems(value: T[]) {
+      items.set(value);
+    },
     setStatut(value: string) {
       statut.set(value);
       page.set(1);
@@ -102,4 +113,15 @@ export function serverList<T>(
       reloadKey.update((value) => value + 1);
     },
   };
+}
+
+/** Récupère toutes les pages d'une sélection, pour les exports. */
+export async function fetchAllPages<T>(fetchPage: (page: number, limit: number) => Promise<{ data: T[]; meta?: PageMeta }>): Promise<T[]> {
+  const limit = 500;
+  const all: T[] = [];
+  for (let page = 1; ; page += 1) {
+    const { data, meta } = await fetchPage(page, limit);
+    all.push(...data);
+    if (data.length === 0 || all.length >= (meta?.total ?? all.length)) return all;
+  }
 }

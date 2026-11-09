@@ -1,0 +1,27 @@
+  <app-modal [title]="isEdit() ? 'Modifier la Ligne Budgétaire' : 'Nouvelle Ligne Budgétaire'" (closed)="closed.emit()" [footerSlot]="true">
+    <ng-container ngProjectAs="[slot-footer]">
+      <app-footer-buttons (cancelled)="closed.emit()" form="form-ligne-budget" [submitting]="saving()" [label]="isEdit() ? 'Enregistrer' : 'Créer la ligne'"></app-footer-buttons>
+    </ng-container>
+    <form id="form-ligne-budget" (submit)="handleSubmit($event)" class="space-y-4">
+      @if (error()) {
+        <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ error() }}</div>
+      }
+      <app-field label="Code budgétaire">
+        <input type="text" placeholder="Ex: 609" [value]="form().code" (input)="set('code')($event)" [class]="INPUT_CLASS" />
+      </app-field>
+      <app-field label="Nom de la catégorie">
+        <input type="text" placeholder="Ex: Formation professionnelle" [value]="form().libelle" (input)="set('libelle')($event)" [class]="INPUT_CLASS" />
+      </app-field>
+      <app-field label="Montant budgétisé (FCFA)">
+        <input type="number" min="0" placeholder="Ex: 1000000" [value]="form().prevu" (input)="set('prevu')($event)" [class]="INPUT_CLASS" />
+      </app-field>
+      @if (isEdit()) {
+        <app-field label="Dépensé (FCFA)">
+          <input type="number" min="0" [value]="form().depense" (input)="set('depense')($event)" [class]="INPUT_CLASS" />
+        </app-field>
+      }
+      <app-field label="Description">
+        <textarea [rows]="3" placeholder="Description de la catégorie budgétaire..." [value]="form().description" (input)="set('description')($event)" [class]="`${INPUT_CLASS} resize-none`"></textarea>
+      </app-field>
+    </form>
+  </app-modal>

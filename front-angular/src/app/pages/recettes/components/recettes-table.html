@@ -1,0 +1,53 @@
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            @for (header of HEADERS; track header) {
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">{{ header }}</th>
+            }
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          @if (message()) {
+            <tr>
+              <td [attr.colspan]="HEADERS.length + 1" class="px-6 py-8 text-center text-sm text-gray-500">{{ message() }}</td>
+            </tr>
+          } @else {
+            @for (row of rows(); track row.id) {
+              <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ row.ticketNumber }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.type }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.contributor }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ row.agent }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ row.amount.toLocaleString('fr-FR') }}
+                  FCFA</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <p class="text-sm text-gray-900">{{ row.date }}</p>
+                  <p class="text-xs text-gray-500">{{ row.time }}</p>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    @if (canEdit()) {
+                      <button (click)="edit.emit(row)" [class]="ACTION_CLASS" title="Modifier" [attr.aria-label]="`Modifier le ticket ${row.ticketNumber}`">
+                        <i class="ri-edit-line text-lg"></i>
+                      </button>
+                    } @else {
+                      <button (click)="print.emit(row)" [class]="ACTION_CLASS" title="Imprimer" [attr.aria-label]="`Imprimer le reçu ${row.ticketNumber}`">
+                        <i class="ri-printer-line text-lg"></i>
+                      </button>
+                    }
+                    <button (click)="view.emit(row)" [class]="ACTION_CLASS" title="Voir" [attr.aria-label]="`Détails du ticket ${row.ticketNumber}`">
+                      <i class="ri-eye-line text-lg"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <ng-content select="[slot-footer]" />
+  </div>

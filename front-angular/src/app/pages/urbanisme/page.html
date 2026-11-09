@@ -1,0 +1,23 @@
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Urbanisme & Habitat</h1>
+      <p class="text-sm text-gray-600 mt-1">Gestion des dossiers et validations</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1 max-w-full overflow-x-auto">
+      <button (click)="activeTab.set('dossiers')" [class]="`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeTab() === 'dossiers' ? 'bg-emerald-500 text-white' : 'text-gray-700 hover:bg-gray-100'}`">
+        <i class="ri-folder-line mr-2"></i>Gestion des dossiers</button>
+      <button (click)="activeTab.set('validation')" [class]="`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeTab() === 'validation' ? 'bg-emerald-500 text-white' : 'text-gray-700 hover:bg-gray-100'}`">
+        <i class="ri-checkbox-circle-line mr-2"></i>Validation</button>
+      <button (click)="activeTab.set('statistiques')" [class]="`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeTab() === 'statistiques' ? 'bg-emerald-500 text-white' : 'text-gray-700 hover:bg-gray-100'}`">
+        <i class="ri-bar-chart-box-line mr-2"></i>Statistiques</button>
+    </div>
+    @if (activeTab() === 'dossiers') {
+      <app-gestion-dossiers></app-gestion-dossiers>
+    }
+    @if (activeTab() === 'validation') {
+      <app-validation-dossiers></app-validation-dossiers>
+    }
+    @if (activeTab() === 'statistiques') {
+      <app-statistiques-urbanisme></app-statistiques-urbanisme>
+    }
+  </div>

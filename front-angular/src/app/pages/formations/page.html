@@ -1,0 +1,106 @@
+  <div class="space-y-6">
+    @if (successMsg()) {
+      <div class="fixed top-6 right-6 z-[100] bg-emerald-600 text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+        <i class="ri-check-line text-lg"></i>
+        <span class="text-sm font-medium">{{ successMsg() }}</span>
+      </div>
+    }
+    @if (errorMsg()) {
+      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMsg() }}</div>
+    }
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Formations Professionnelles</h1>
+        <p class="text-sm text-gray-600 mt-1">Gestion des formations gratuites de la mairie</p>
+      </div>
+      <div class="flex gap-2">
+        @if (isCurrentYear()) {
+          <button (click)="showInscriptionJeune.set(true)" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer">
+            <i class="ri-user-add-line"></i>Inscrire un jeune</button>
+          <button (click)="showNouvelleFormation.set(true)" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer">
+            <i class="ri-add-line"></i>Nouvelle formation</button>
+        }
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <app-stats-card icon="ri-book-open-line" label="Formations actives" [value]="formationsEnCours().length.toString()" bgColor="bg-emerald-50" iconColor="text-emerald-600"></app-stats-card>
+      <app-stats-card icon="ri-checkbox-circle-line" label="Formations terminées" [value]="formationsTerminees().length.toString()" bgColor="bg-green-50" iconColor="text-green-600"></app-stats-card>
+      <app-stats-card icon="ri-team-line" label="Jeunes inscrits" [value]="totalJeunes().toString()" bgColor="bg-emerald-50" iconColor="text-emerald-600"></app-stats-card>
+      <app-stats-card icon="ri-award-line" label="Certifiés" [value]="jeunesCertifies().toString()" bgColor="bg-amber-50" iconColor="text-amber-600"></app-stats-card>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200">
+      <div class="border-b border-gray-200">
+        <div class="flex gap-1 p-1">
+          @for (tab of asSummary(); track tab) {
+            <button (click)="activeTab.set(tab); searchTerm.set('')" [class]="`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${activeTab() === tab ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`">
+              <i [class]="`${tab === 'formations' ? 'ri-book-line' : tab === 'jeunes' ? 'ri-user-line' : 'ri-bar-chart-line'} mr-2`"></i>{{ tab === 'formations' ? 'Formations' : tab === 'jeunes' ? 'Jeunes inscrits' : 'Statistiques' }}</button>
+          }
+        </div>
+      </div>
+      <div class="p-6">
+        @if (activeTab() === 'formations') {
+          <div class="space-y-4">
+            <div class="flex flex-col sm:flex-row gap-3">
+              <div class="flex-1 relative">
+                <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" placeholder="Rechercher une formation..." [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" />
+              </div>
+              <select [value]="filterStatut()" (change)="filterStatut.set($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm cursor-pointer">
+                <option value="tous">Tous les statuts</option>
+                <option value="En cours">En cours</option>
+                <option value="Terminée">Terminée</option>
+              </select>
+              <select [value]="filterDomaine()" (change)="filterDomaine.set($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm cursor-pointer">
+                <option value="tous">Tous les domaines</option>
+                @for (d of domaines(); track d) {
+                  <option [value]="d">{{ d }}</option>
+                }
+              </select>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              @for (formation of filteredFormations(); track formation.id) {
+                <app-formation-card [formation]="formation" [jeunesCount]="getJeunesForFormation(formation.id).length" (inscrireJeune)="selectedFormationId.set(formation.id); showInscriptionJeune.set(true)" (voirDetail)="selectedFormationId.set(formation.id); showDetailFormation.set(true)" (edit)="handleEditFormation($event)" (delete)="handleDeleteFormation($event)"></app-formation-card>
+              }
+            </div>
+            @if (filteredFormations().length === 0) {
+              <div class="text-center py-12">
+                <i class="ri-book-line text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500">Aucune formation trouvée</p>
+              </div>
+            }
+          </div>
+        }
+        @if (activeTab() === 'jeunes') {
+          <div class="space-y-4">
+            <div class="relative">
+              <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <input type="text" placeholder="Rechercher un jeune..." [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" />
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              @for (jeune of filteredJeunes(); track jeune.id) {
+                <app-jeune-card [jeune]="jeune" [formations]="formationsList()" (remove)="handleRemoveJeune($event)"></app-jeune-card>
+              }
+            </div>
+            @if (filteredJeunes().length === 0) {
+              <div class="text-center py-12">
+                <i class="ri-user-line text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500">Aucun jeune trouvé</p>
+              </div>
+            }
+          </div>
+        }
+        @if (activeTab() === 'statistiques') {
+          <app-statistiques-formations [stats]="formationsStats()"></app-statistiques-formations>
+        }
+      </div>
+    </div>
+  </div>
+  @if (showNouvelleFormation()) {
+    <app-nouvelle-formation (closed)="showNouvelleFormation.set(false)" (add)="handleAddFormation($event)"></app-nouvelle-formation>
+  }
+  @if (showInscriptionJeune()) {
+    <app-inscription-jeune [formations]="formationsList()" [preselectedFormationId]="selectedFormationId()" (closed)="showInscriptionJeune.set(false); selectedFormationId.set('')" (add)="handleAddJeune($event)"></app-inscription-jeune>
+  }
+  @if (showDetailFormation() && selectedFormationId()) {
+    <app-detail-formation [formation]="formationsListSummary()" [jeunes]="getJeunesForFormation(selectedFormationId())" (closed)="showDetailFormation.set(false); selectedFormationId.set('')" (inscrireJeune)="showDetailFormation.set(false); showInscriptionJeune.set(true)" (removeJeune)="handleRemoveJeune($event)"></app-detail-formation>
+  }

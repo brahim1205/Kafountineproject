@@ -1,0 +1,48 @@
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            @for (column of COLUMNS; track column) {
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">{{ column }}</th>
+            }
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          @if (loading() || camions().length === 0) {
+            <tr>
+              <td [attr.colspan]="COLUMNS.length + 1" class="px-6 py-8 text-center text-gray-500">{{ loading() ? 'Chargement...' : 'Aucun camion trouvé' }}</td>
+            </tr>
+          } @else {
+            @for (camion of camions(); track camion.id) {
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm font-medium text-gray-900 font-mono">{{ camion.immatriculation }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ camion.marque }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ camion.modele || '-' }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ formatKg(camion.capacite) }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ camion.chauffeur || '-' }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ camion.telephone || '-' }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ camion._count?.expeditions ?? 0 }}</td>
+                <td class="px-6 py-4">
+                  <app-statut-badge [statut]="camion.statut" [statuts]="STATUTS_CAMION"></app-statut-badge>
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <button (click)="view.emit(camion)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Voir" [attr.aria-label]="`Voir le camion ${camion.immatriculation}`">
+                      <i class="ri-eye-line"></i>
+                    </button>
+                    @if (canManage()) {
+                      <button (click)="delete.emit(camion)" class="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors" title="Supprimer" [attr.aria-label]="`Supprimer le camion ${camion.immatriculation}`">
+                        <i class="ri-delete-bin-line"></i>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>

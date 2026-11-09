@@ -1,0 +1,163 @@
+  <div class="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between mb-4">
+      <div class="flex-1 cursor-pointer" (click)="voirDetail.emit()">
+        <div class="flex items-center gap-2 mb-2">
+          <h3 class="text-base font-semibold text-gray-900 hover:text-emerald-700 transition-colors">{{ formation().nom }}</h3>
+          <span [class]="`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${formation().statut === 'En cours' ? 'bg-emerald-50 text-emerald-700' : 'bg-green-50 text-green-700'}`">{{ formation().statut }}</span>
+        </div>
+        <p class="text-sm text-gray-600">{{ formation().domaine }}</p>
+      </div>
+    </div>
+    <div class="space-y-3 mb-4">
+      <div class="flex items-center gap-2 text-sm">
+        <i class="ri-time-line text-gray-400 w-4 h-4 flex items-center justify-center"></i>
+        <span class="text-gray-600">Durée :
+          {{ formation().duree }}</span>
+      </div>
+      <div class="flex items-center gap-2 text-sm">
+        <i class="ri-user-line text-gray-400 w-4 h-4 flex items-center justify-center"></i>
+        <span class="text-gray-600">{{ formation().responsable }}</span>
+      </div>
+      <div class="flex items-center gap-2 text-sm">
+        <i class="ri-calendar-line text-gray-400 w-4 h-4 flex items-center justify-center"></i>
+        <span class="text-gray-600">{{ formatDate(formation().dateDebut) }}
+          -
+          {{ formatDate(formation().dateFin) }}</span>
+      </div>
+      <div class="flex items-center gap-2 text-sm">
+        <i class="ri-money-dollar-circle-line text-gray-400 w-4 h-4 flex items-center justify-center"></i>
+        <span class="text-gray-600">Budget :
+          {{ formatMontant(formation().budget) }}
+          FCFA</span>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+      <div class="text-center">
+        <p class="text-xs text-gray-600 mb-1">Inscrits</p>
+        <p class="text-lg font-bold text-gray-900">{{ jeunesCount() }}</p>
+      </div>
+      <div class="text-center border-l border-r border-gray-200">
+        <p class="text-xs text-gray-600 mb-1">Certifiés</p>
+        <p class="text-lg font-bold text-emerald-600">{{ formation().nombreCertifies }}</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xs text-gray-600 mb-1">Réussite</p>
+        <p class="text-lg font-bold text-emerald-600">{{ formation().tauxReussite }}%</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button (click)="voirDetail.emit()" class="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer">
+        <i class="ri-eye-line mr-1"></i>Voir détails</button>
+      <div class="relative">
+        <button (click)="showMenu.set(!showMenu())" class="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm whitespace-nowrap cursor-pointer">
+          <i class="ri-more-2-line"></i>
+        </button>
+        @if (showMenu()) {
+          <div class="absolute right-0 bottom-full mb-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
+            <button (click)="showMenu.set(false); voirDetail.emit()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+              <i class="ri-eye-line text-gray-400 w-4 h-4 flex items-center justify-center"></i>Voir les détails</button>
+            <button (click)="showMenu.set(false); editDataSummary(); showEdit.set(true)" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+              <i class="ri-edit-line text-gray-400 w-4 h-4 flex items-center justify-center"></i>Modifier</button>
+            @if (formation().statut === 'En cours') {
+              <button (click)="showMenu.set(false); inscrireJeune.emit()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
+                <i class="ri-user-add-line text-gray-400 w-4 h-4 flex items-center justify-center"></i>Inscrire un jeune</button>
+            }
+            <div class="border-t border-gray-100 my-1"></div>
+            <button (click)="showMenu.set(false); showDeleteConfirm.set(true)" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
+              <i class="ri-delete-bin-line text-red-400 w-4 h-4 flex items-center justify-center"></i>Supprimer</button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+  @if (showEdit()) {
+    <div class="fixed inset-0 bg-gray-900/50 z-50" (click)="showEdit.set(false)"></div>
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+          <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-gray-900">Modifier la formation</h2>
+            <button (click)="showEdit.set(false)" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <i class="ri-close-line text-xl"></i>
+            </button>
+          </div>
+          <form (submit)="handleEditSubmit($event)" (input)="clearFieldValidationError($event)" novalidate class="p-6">
+            @if (errorMsg()) {
+              <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMsg() }}</div>
+            }
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nom *</label>
+                <input type="text" data-required="true" [value]="editData().nom" (input)="onNomChange($event)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Domaine *</label>
+                <select data-required="true" [value]="editData().domaine" (change)="onDomaineChange($event)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm cursor-pointer">
+                  <option value="Artisanat">Artisanat</option>
+                  <option value="Services">Services</option>
+                  <option value="Agriculture">Agriculture</option>
+                  <option value="Technique">Technique</option>
+                  <option value="Agroalimentaire">Agroalimentaire</option>
+                  <option value="Commerce">Commerce</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Durée *</label>
+                <input type="text" data-required="true" [value]="editData().duree" (input)="onDureeChange($event)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Responsable *</label>
+                <input type="text" data-required="true" [value]="editData().responsable" (input)="onResponsableChange($event)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Budget (FCFA) *</label>
+                <input type="number" data-required="true" [value]="editData().budget" (input)="onBudgetChange($event)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Date début *</label>
+                <input type="date" data-required="true" [value]="editData().dateDebut" (input)="onDateDebutChange($event)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Date fin *</label>
+                <input type="date" data-required="true" [value]="editData().dateFin" (input)="onDateFinChange($event)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+                <select [value]="editData().statut" (change)="onStatutChange($event)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm cursor-pointer">
+                  <option value="En cours">En cours</option>
+                  <option value="Terminée">Terminée</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+              <button type="button" (click)="showEdit.set(false)" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">Annuler</button>
+              <button type="submit" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap cursor-pointer">Enregistrer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+  @if (showDeleteConfirm()) {
+    <div class="fixed inset-0 bg-gray-900/50 z-50" (click)="showDeleteConfirm.set(false)"></div>
+    <div class="fixed inset-0 z-50 overflow-y-auto">
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div class="p-6 text-center">
+            <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="ri-delete-bin-line text-2xl text-red-600"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Supprimer cette formation ?</h3>
+            <p class="text-sm text-gray-600 mb-1">
+              <strong>{{ formation().nom }}</strong>
+            </p>
+            <p class="text-sm text-gray-500 mb-6">Cette action est irréversible. Tous les jeunes inscrits ({{ jeunesCount() }}) seront également retirés.</p>
+            <div class="flex gap-3">
+              <button (click)="showDeleteConfirm.set(false)" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">Annuler</button>
+              <button (click)="showDeleteConfirm.set(false); delete.emit(formation().id)" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap cursor-pointer">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }

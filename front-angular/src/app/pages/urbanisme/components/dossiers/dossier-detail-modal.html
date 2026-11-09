@@ -1,0 +1,39 @@
+  <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">Détails du dossier</h3>
+        <button (click)="closed.emit()" aria-label="Fermer" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6 space-y-6">
+        <dl class="grid grid-cols-2 gap-6">
+          @for (row of details(); track $index) {
+            @let term = row[0];
+            @let value = row[1];
+            @let wide = row[2];
+            <div [class]="wide ? 'col-span-2' : undefined">
+              <dt class="text-xs text-gray-500 mb-1">{{ term }}</dt>
+              <dd class="text-sm font-medium text-gray-900">{{ value }}</dd>
+            </div>
+          }
+          <div>
+            <dt class="text-xs text-gray-500 mb-1">Statut</dt>
+            <dd>
+              <span [class]="`inline-flex px-2 py-1 text-xs font-medium rounded-full ${badge()}`">{{ label() }}</span>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-gray-500 mb-1">Montant</dt>
+            <dd class="text-sm font-bold text-emerald-600">{{ dossier().montant.toLocaleString('fr-FR') }}
+              FCFA</dd>
+          </div>
+        </dl>
+        <div class="flex gap-3">
+          <button (click)="print.emit()" class="flex-1 px-4 py-2.5 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors">
+            <i class="ri-printer-line mr-2"></i>Imprimer le reçu</button>
+          <button (click)="closed.emit()" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">Fermer</button>
+        </div>
+      </div>
+    </div>
+  </div>

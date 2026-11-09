@@ -1,0 +1,48 @@
+@let activeModal = modal();
+  <div class="space-y-6">
+    @if (notice()) {
+      <div [attr.role]="notice()!.kind === 'error' ? 'alert' : 'status'" [class]="`fixed top-4 z-50 bg-white rounded-lg shadow-lg border p-4 flex items-center gap-3 animate-fade-in max-w-md ${notice()!.kind === 'success' ? 'right-4 border-emerald-200' : 'left-4 border-red-200'}`">
+        <div [class]="`w-10 h-10 rounded-full flex items-center justify-center ${notice()!.kind === 'success' ? 'bg-emerald-100' : 'bg-red-100'}`">
+          <i [class]="`text-xl ${notice()!.kind === 'success' ? 'ri-check-line text-emerald-600' : 'ri-error-warning-line text-red-600'}`"></i>
+        </div>
+        <p class="text-sm font-medium text-gray-900">{{ notice()!.message }}</p>
+      </div>
+    }
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Paramètres système</h1>
+      <p class="text-sm text-gray-600 mt-1">Configuration des tarifs, pénalités et sauvegardes</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="border-b border-gray-200">
+        <div class="flex">
+          @for (tab of TABS; track tab.id) {
+            <button (click)="activeTab.set(tab.id)" [class]="`px-6 py-4 text-sm font-medium transition-colors whitespace-nowrap ${activeTab() === tab.id ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`">
+              <i [class]="`${tab.icon} mr-2`"></i>{{ tab.label }}</button>
+          }
+        </div>
+      </div>
+      <div class="p-6">
+        @if (loading()) {
+          <div class="flex items-center justify-center h-64">
+            <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        } @else {
+          @if (activeTab() === 'tarifs') {
+            <app-tarifs-tab [tarifs]="tarifs()" (add)="modal.set({ type: 'tarif' })" (edit)="modal.set({ type: 'tarif', tarif: $event })" (delete)="supprimerTarif($event)" [readOnly]="readOnly()"></app-tarifs-tab>
+          }
+          @if (activeTab() === 'penalites') {
+            <app-penalites-tab [penalites]="penalites()" (add)="modal.set({ type: 'penalite' })" (edit)="modal.set({ type: 'penalite', penalite: $event })" (toggled)="basculerPenalite($event)" (delete)="supprimerPenalite($event)" [readOnly]="readOnly()"></app-penalites-tab>
+          }
+          @if (activeTab() === 'sauvegarde') {
+            <app-sauvegarde-tab [backups]="backups()" (changed)="afterChange($event)" (failed)="showError($event)" [readOnly]="readOnly()"></app-sauvegarde-tab>
+          }
+        }
+      </div>
+    </div>
+    @if (activeModal?.type === 'tarif') {
+      <app-tarif-modal [tarif]="activeModal.tarif" [categories]="categories()" (closed)="modal.set(null)" (saved)="afterChange($event)" (failed)="showError($event)"></app-tarif-modal>
+    }
+    @if (activeModal?.type === 'penalite') {
+      <app-penalite-modal [penalite]="activeModal.penalite" (closed)="modal.set(null)" (saved)="afterChange($event)" (failed)="showError($event)"></app-penalite-modal>
+    }
+  </div>

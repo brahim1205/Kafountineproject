@@ -1,7 +1,9 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, throwError } from 'rxjs';
-import { ApiEnvelope, ApiError, Page, QueryParams } from './api.models';
+import { Observable, catchError, firstValueFrom, map, throwError } from 'rxjs';
+import { ApiEnvelope, ApiError, Page, PageMeta, QueryParams } from './api.models';
+
+export type RequestOptions = { method?: string; body?: unknown; headers?: HeadersInit; auth?: boolean; timeout?: number };
 
 export const API_BASE_URL = '/api/v1';
 
@@ -29,6 +31,39 @@ function toApiError(error: unknown): Error {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
+
+  /** Appel générique renvoyant les données de l'enveloppe, pour les services métier. */
+  request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+    return this.requestWithMeta<T>(path, options).then((result) => result.data);
+  }
+
+  requestWithMeta<T>(path: string, options: RequestOptions = {}): Promise<{ data: T; meta?: PageMeta }> {
+    const { method = 'GET', body, headers } = options;
+    return firstValueFrom(
+      this.http
+        .request<ApiEnvelope<T>>(method, `${API_BASE_URL}${path}`, {
+          body: typeof body === 'string' ? JSON.parse(body) : body,
+          headers: headers as Record<string, string> | undefined,
+        })
+        .pipe(
+          map((envelope) => ({ data: envelope.data, meta: envelope.meta })),
+          catchError((error) => throwError(() => toApiError(error))),
+        ),
+    );
+  }
+
+  /** Télécharge un fichier produit par l'API (export CSV…). */
+  async download(path: string, filename: string): Promise<void> {
+    const blob = await firstValueFrom(
+      this.http.get(`${API_BASE_URL}${path}`, { responseType: 'blob' }).pipe(catchError((error) => throwError(() => toApiError(error)))),
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   get<T>(path: string, query?: QueryParams): Observable<T> {
     return this.http.get<ApiEnvelope<T>>(`${API_BASE_URL}${path}`, { params: toParams(query) }).pipe(

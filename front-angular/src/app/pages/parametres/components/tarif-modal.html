@@ -1,0 +1,45 @@
+  <app-modal [wide]="true" (closed)="closed.emit()" [titleSlot]="true">
+    <ng-container ngProjectAs="[slot-title]">
+      <i class="ri-price-tag-3-line mr-2 text-emerald-600"></i>{{ tarif() ? 'Modifier le tarif' : 'Nouveau tarif municipal' }}</ng-container>
+    <form (submit)="handleSubmit($event)" (input)="clearFieldValidationError($event)" novalidate class="space-y-4">
+      <div>
+        <app-label [required]="true">Catégorie</app-label>
+        <input name="categorie" list="tarif-categories" data-required="true" [value]="tarif()?.categorie" placeholder="Ex: État civil, Urbanisme, Marché..." [class]="INPUT_CLASS" />
+        <datalist id="tarif-categories">
+          @for (category of categories(); track category) {
+            <option [value]="category"></option>
+          }
+        </datalist>
+        <p class="mt-1 text-xs text-gray-500">Sélectionnez une catégorie existante ou créez-en une nouvelle</p>
+      </div>
+      <div>
+        <app-label [required]="true">Libellé précis</app-label>
+        <input name="nom" data-required="true" [value]="tarif()?.nom" placeholder="Ex: Bulletin de naissance, Permis de construire..." [class]="INPUT_CLASS" />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <app-label [required]="true">Montant (FCFA)</app-label>
+          <div class="relative">
+            <input name="montant" type="number" min="0" step="1" data-required="true" [value]="tarif()?.montant" placeholder="0" [class]="`${INPUT_CLASS} pr-12`" />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">FCFA</span>
+          </div>
+        </div>
+        <div>
+          <app-label [required]="true">Unité</app-label>
+          <select name="unite" data-required="true" [value]="tarif()?.unite || ''" [class]="INPUT_CLASS">
+            <option value="">Sélectionner...</option>
+            @for (unite of unites(); track unite) {
+              <option [value]="unite">{{ unite }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div>
+        <app-label>Description (optionnel)</app-label>
+        <textarea name="description" [value]="tarif()?.description" placeholder="Description détaillée du tarif..." [class]="INPUT_CLASS" [rows]="3"></textarea>
+      </div>
+      <label class="flex items-center gap-2 text-sm text-gray-700">
+        <input type="checkbox" name="actif" [checked]="tarif() ? tarif()!.actif : true" class="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />Tarif actif</label>
+      <app-modal-actions (cancelled)="closed.emit()" [submitting]="submitting()" submitLabel="Enregistrer le tarif"></app-modal-actions>
+    </form>
+  </app-modal>

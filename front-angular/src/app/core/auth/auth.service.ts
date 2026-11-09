@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, firstValueFrom, map, of, tap } from 'rxjs';
 import { ApiEnvelope } from '../api/api.models';
@@ -56,10 +56,17 @@ export class AuthService {
   readonly session = this.sessionState.asReadonly();
   readonly isAuthenticated = computed(() => this.sessionState() !== null);
   readonly role = computed(() => this.sessionState()?.userRole ?? null);
+  readonly userName = computed(() => this.sessionState()?.userName ?? '');
+  readonly userId = computed(() => this.sessionState()?.userId ?? null);
+  readonly userInitials = computed(() => this.sessionState()?.userInitials ?? '');
   readonly canWrite = computed(() => {
     const role = this.role();
     return !!role && !READ_ONLY_ROLES.has(role);
   });
+
+  canWriteRole(role: UiRole | null = this.role()): boolean {
+    return !!role && !READ_ONLY_ROLES.has(role);
+  }
 
   async login(email: string, password: string): Promise<void> {
     try {
@@ -68,9 +75,14 @@ export class AuthService {
       );
       this.store(envelope.data.user);
     } catch (error) {
-      const message = (error as { error?: { message?: string } }).error?.message;
+      // status 0 : erreur réseau, dont le message technique du navigateur ne doit pas être affiché.
+      const message = error instanceof HttpErrorResponse && error.status > 0 ? error.error?.message : undefined;
       throw new Error(message || LOGIN_UNREACHABLE);
     }
+  }
+
+  fetchCurrentUser(): Promise<ApiAuthUser> {
+    return firstValueFrom(this.http.get<ApiEnvelope<ApiAuthUser>>(`${API}/me`, { withCredentials: true }).pipe(tap((e) => this.store(e.data)), map((e) => e.data)));
   }
 
   async logout(): Promise<void> {
@@ -97,7 +109,7 @@ export class AuthService {
       );
       return envelope.message || 'Si un compte existe avec cet email, un lien de reinitialisation sera envoye';
     } catch (error) {
-      const message = (error as { error?: { message?: string } }).error?.message;
+      const message = error instanceof HttpErrorResponse && error.status > 0 ? error.error?.message : undefined;
       throw new Error(message || 'Impossible de traiter la demande de reinitialisation');
     }
   }

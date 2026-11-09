@@ -31,6 +31,7 @@ const SEARCH_DELAY_MS = 300;
 
 @Component({
   selector: 'app-dashboard-layout',
+  host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterOutlet, NgTemplateOutlet, NotificationPanel],
   templateUrl: './dashboard-layout.html',

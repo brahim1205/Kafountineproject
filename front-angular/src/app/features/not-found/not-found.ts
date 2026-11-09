@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-not-found',
+  host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   templateUrl: './not-found.html',

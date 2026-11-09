@@ -1,0 +1,7 @@
+  <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+    <button type="button" (click)="cancelled.emit()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Annuler</button>
+    <button type="submit" [disabled]="submitting()" [class]="PRIMARY_BUTTON">
+      <i class="ri-save-3-line"></i>
+      {{ submitting() ? 'Enregistrement...' : submitLabel() }}
+    </button>
+  </div>

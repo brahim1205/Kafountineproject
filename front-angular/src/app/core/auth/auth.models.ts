@@ -16,3 +16,14 @@ export interface StoredSession {
   userName: string;
   userInitials: string;
 }
+
+export type CurrentUser = ApiAuthUser;
+
+/** Rôle de la session, pour les constantes hors composant. */
+export function storedRole(): UiRole | null {
+  try {
+    return (JSON.parse(sessionStorage.getItem('auth_session') ?? 'null') as StoredSession | null)?.userRole ?? null;
+  } catch {
+    return null;
+  }
+}

@@ -1,0 +1,17 @@
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
+    <div [class]="`bg-white rounded-xl p-6 w-full ${wide() ? 'max-w-lg' : 'max-w-md'} mx-4 my-8`">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-lg font-semibold text-gray-900">
+          @if (titleSlot()) {
+            <ng-content select="[slot-title]" />
+          } @else {
+            {{ title() }}
+          }
+        </h3>
+        <button type="button" (click)="close.emit()" class="text-gray-400 hover:text-gray-600" aria-label="Fermer">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <ng-content />
+    </div>
+  </div>

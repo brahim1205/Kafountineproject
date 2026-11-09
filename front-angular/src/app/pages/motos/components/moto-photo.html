@@ -1,0 +1,8 @@
+@if (!src() || broken()) {
+  <div [class]="`${sizeClass()} shrink-0 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700`">
+    <i class="ri-motorbike-line text-3xl"></i>
+  </div>
+} @else {
+  <img [src]="src()" [alt]="alt()" (error)="broken.set(true)" [class]="`${sizeClass()} shrink-0 object-cover rounded-lg`" />
+}
+

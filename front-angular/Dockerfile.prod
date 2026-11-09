@@ -1,0 +1,34 @@
+# Étape 1 : build Angular (Node 22.22.3 minimum)
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Étape 2 : Nginx sans privilèges
+FROM nginx:1.27-alpine
+ENV NGINX_BACKEND_URL=http://backend:3000
+ENV NGINX_ENVSUBST_FILTER=NGINX_BACKEND_URL
+
+RUN mkdir -p /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp && \
+    chown -R nginx:nginx /tmp && \
+    chown -R nginx:nginx /var/log/nginx && \
+    chown -R nginx:nginx /etc/nginx/conf.d
+
+COPY --from=builder /app/dist/front-angular/browser /usr/share/nginx/html
+
+COPY nginx.main.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/ || exit 1
+
+USER nginx
+
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]

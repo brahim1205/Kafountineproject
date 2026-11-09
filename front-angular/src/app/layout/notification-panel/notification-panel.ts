@@ -13,6 +13,7 @@ const ICONS: Record<string, string> = {
 
 @Component({
   selector: 'app-notification-panel',
+  host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './notification-panel.html',
 })

@@ -1,0 +1,20 @@
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">{{ title() }}</h1>
+      <p class="text-sm text-gray-600 mt-1">{{ subtitle() }}</p>
+    </div>
+    @if (section() === 'nouvelle') {
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <app-traiter-demande (success)="router.navigateByUrl('/etat-civil/a-traiter')"></app-traiter-demande>
+      </div>
+    }
+    @if (section() === 'a-traiter') {
+      <app-historique-demandes statut="EN_ATTENTE"></app-historique-demandes>
+    }
+    @if (section() === 'historique') {
+      <app-historique-demandes></app-historique-demandes>
+    }
+    @if (section() === 'statistiques') {
+      <app-statistiques-etat-civil></app-statistiques-etat-civil>
+    }
+  </div>

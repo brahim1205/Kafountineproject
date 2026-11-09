@@ -1,0 +1,74 @@
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl max-w-lg w-full">
+      <div class="bg-emerald-600 text-white px-6 py-4 rounded-t-xl">
+        <h2 class="text-xl font-bold">Enregistrer un paiement</h2>
+        <p class="text-sm text-emerald-100 mt-1">{{ moto().matricule }}</p>
+      </div>
+      <form (submit)="handleSubmit($event)" novalidate class="p-6 space-y-4">
+        <div class="bg-gray-50 rounded-lg p-4">
+          <div class="flex items-center gap-3 mb-3">
+            <app-moto-photo [src]="moto().photo" [alt]="moto().matricule" sizeClass="w-20 h-16"></app-moto-photo>
+            <div>
+              <p class="font-semibold text-gray-900">{{ moto().marque }}&ngsp;{{ moto().modele }}</p>
+              <p class="text-sm text-gray-600">{{ moto().proprietaire.nom }}</p>
+            </div>
+          </div>
+          @if (amende()) {
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p class="text-sm font-medium text-amber-800">
+                <i class="ri-police-car-line mr-1"></i>Moto arrêtée par la police</p>
+              <p class="text-sm font-bold text-amber-800 mt-1">Amende :
+                {{ motoConfig().amendePolice.toLocaleString() }}
+                FCFA</p>
+            </div>
+          } @else {
+            @if (moto().enRetard) {
+              <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p class="text-sm font-medium text-red-800 mb-1">
+                  <i class="ri-error-warning-line mr-1"></i>Paiement en retard de
+                  {{ moto().joursRetard }}
+                  jours</p>
+                <div class="text-sm text-red-700">
+                  <p>Taxe mensuelle:
+                    {{ motoConfig().tarifMensuel.toLocaleString() }}
+                    FCFA</p>
+                  <p>Pénalité:
+                    {{ moto().montantPenalite!.toLocaleString() }}
+                    FCFA</p>
+                  <p class="font-bold mt-1">Total à payer:
+                    {{ montantDu(moto(), motoConfig()).toLocaleString() }}
+                    FCFA</p>
+                </div>
+              </div>
+            } @else {
+              <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                <p class="text-sm font-medium text-emerald-800">
+                  <i class="ri-checkbox-circle-line mr-1"></i>Paiement à jour</p>
+                <p class="text-sm text-emerald-700 mt-1">Montant:
+                  {{ motoConfig().tarifMensuel.toLocaleString() }}
+                  FCFA</p>
+              </div>
+            }
+          }
+        </div>
+        <div>
+          <label for="type-paiement" class="block text-sm font-medium text-gray-700 mb-1">Type de paiement</label>
+          <select id="type-paiement" [value]="type()" (change)="typeSummary($event)" [class]="`${INPUT_CLASS} cursor-pointer`">
+            <option value="COTISATION">Cotisation mensuelle</option>
+            <option value="AMENDE_POLICE">Amende police</option>
+          </select>
+        </div>
+        @if (amende()) {
+          <div>
+            <label for="reference-amende" class="block text-sm font-medium text-gray-700 mb-1">N° du procès-verbal (facultatif)</label>
+            <input id="reference-amende" name="reference" [maxLength]="120" [class]="INPUT_CLASS" />
+          </div>
+        }
+        <div class="flex gap-3 pt-4">
+          <button type="button" (click)="closed.emit()" [disabled]="isSubmitting()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer disabled:opacity-50">Annuler</button>
+          <button type="submit" [disabled]="isSubmitting()" [class]="`flex-1 px-4 py-2 text-white rounded-lg whitespace-nowrap cursor-pointer ${isSubmitting() ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 transition-colors'}`">
+            <i [class]="`ri-${isSubmitting() ? 'loader-4-line animate-spin' : 'check-line'} mr-2`"></i>{{ isSubmitting() ? 'Validation...' : 'Valider le paiement' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>

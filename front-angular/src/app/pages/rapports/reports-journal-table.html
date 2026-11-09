@@ -1,0 +1,65 @@
+  <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+    <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h3 class="text-lg font-bold text-gray-900">Journal détaillé des opérations</h3>
+        <p class="text-sm text-gray-500">Historique complet de l'année en cours</p>
+      </div>
+      <div class="relative">
+        <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input type="text" placeholder="Rechercher une opération..." [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" class="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 w-full md:w-64 transition-all" />
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="bg-gray-50/50">
+            <th class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Date</th>
+            <th class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Type / Module</th>
+            <th class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Acteur / Bénéficiaire</th>
+            <th class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Description</th>
+            <th class="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Montant</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          @if (filteredJournal().length === 0) {
+            <tr>
+              <td [attr.colspan]="5" class="px-6 py-12 text-center text-gray-500 text-sm italic">Aucune opération trouvée pour cette période.</td>
+            </tr>
+          } @else {
+            @for (item of filteredJournal(); track item.id) {
+              @let date = itemDate(item);
+              <tr class="hover:bg-gray-50/80 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <p class="text-sm font-bold text-gray-900">{{ date.toLocaleDateString('fr-FR') }}</p>
+                  <p class="text-[10px] text-gray-500">{{ date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex flex-col gap-1.5">
+                    <span class="text-sm font-semibold text-gray-800 leading-tight">{{ item.type }}</span>
+                    <span [class]="`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getModuleBadge(item.module).color}`">
+                      <i [class]="getModuleBadge(item.module).icon"></i>{{ item.module }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-sm font-medium text-gray-900">{{ item.person }}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <p class="text-sm text-gray-600 line-clamp-1 max-w-xs" [title]="item.description">{{ item.description }}</p>
+                </td>
+                <td class="px-6 py-4 text-right whitespace-nowrap">
+                  <p [class]="`text-sm font-black ${item.amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`">{{ item.amount >= 0 ? '+' : '' }}{{ item.amount.toLocaleString('fr-FR') }}<span class="ml-1 text-[10px] font-bold">FCFA</span>
+                  </p>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="p-4 bg-gray-50 border-t border-gray-100">
+      <p class="text-xs text-center text-gray-500 italic">Affichage des
+        {{ filteredJournal().length }}
+        dernières opérations de l'année
+        {{ getFullYearSummary() }}</p>
+    </div>
+  </div>

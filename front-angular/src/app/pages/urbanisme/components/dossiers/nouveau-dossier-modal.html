@@ -1,0 +1,84 @@
+  <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-5 flex items-center justify-between z-10">
+        <div>
+          <h3 class="text-xl font-black text-gray-900 uppercase tracking-tight">Nouveau dossier d'urbanisme</h3>
+          <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-0.5">Enregistrement officiel - Commune de Kafountine</p>
+        </div>
+        <button (click)="closed.emit()" aria-label="Fermer" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">
+          <i class="ri-close-line text-2xl"></i>
+        </button>
+      </div>
+      <form (submit)="handleSubmit($event)" (input)="clearFieldValidationError($event)" novalidate class="p-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <app-field label="Type de permis / Autorisation" icon="ri-file-list-3-line" [required]="true" [wide]="true">
+            <select name="type" data-required="true" [value]="typeId()" (change)="typeId.set($any($event.target).value); surface.set('')" [class]="`${INPUT_CLASS} appearance-none`">
+              <option value="">{{ types().length ? 'Sélectionnez un type' : 'Tarifs indisponibles' }}</option>
+              @for (type of types(); track type.id) {
+                <option [value]="type.id">{{ type.nom }}</option>
+              }
+            </select>
+          </app-field>
+          <app-field label="Nom complet du demandeur" icon="ri-user-line" [required]="true">
+            <input name="nomComplet" data-required="true" placeholder="Ex: El Hadji Malick Sy" [class]="INPUT_CLASS" />
+          </app-field>
+          <app-field label="Numéro CNI / NIN" icon="ri-id-card-line" [required]="true">
+            <input name="cni" data-required="true" placeholder="Ex: 1755198000123" [class]="INPUT_CLASS" />
+          </app-field>
+          <app-field label="Numéro de téléphone" icon="ri-phone-line" [required]="true">
+            <input type="tel" name="telephone" data-required="true" placeholder="Ex: 771234567" [class]="INPUT_CLASS" />
+          </app-field>
+          <app-field label="Localisation précise du projet" icon="ri-map-pin-line" [required]="true" [wide]="true">
+            <input name="localisation" data-required="true" placeholder="Ex: Quartier Abéné, Parcelle n°45" [class]="INPUT_CLASS" />
+          </app-field>
+          @if (auMetreCarre()) {
+            <app-field label="Surface totale (m²)" icon="ri-ruler-2-line" [required]="true">
+              <input type="number" name="surface" min="1" data-required="true" [value]="surface()" (input)="surface.set($any($event.target).value)" placeholder="Ex: 250" [class]="INPUT_CLASS" />
+            </app-field>
+          }
+          <app-field label="Nature du projet" icon="ri-building-line" [required]="true" [wide]="!auMetreCarre()">
+            <select name="nature" data-required="true" [class]="`${INPUT_CLASS} appearance-none`">
+              <option value="">Sélectionnez la nature</option>
+              @for (row of Object.entries(NATURES); track $index) {
+                @let value = row[0];
+                @let label = row[1];
+                <option [value]="value">{{ label }}</option>
+              }
+            </select>
+          </app-field>
+          <div class="md:col-span-2">
+            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Description complémentaire</label>
+            <textarea name="description" [rows]="3" placeholder="Précisez les détails du projet (ex: nombre d'étages, type de clôture...)" class="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500 transition-all resize-none"></textarea>
+          </div>
+        </div>
+        @if (permis()) {
+          <div class="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-xl"></div>
+            <div class="relative flex justify-between items-center text-white">
+              <div>
+                <p class="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">Estimation des droits</p>
+                <h4 class="text-sm font-bold mb-2">{{ permis()!.nom }}</h4>
+                <p class="text-emerald-50/70 text-[10px] font-medium">Tarif :
+                  {{ permis()!.tarif.toLocaleString('fr-FR') }}
+                  F /
+                  {{ permis()!.unite }}{{ auMetreCarre() && ` · Base de calcul : ${Math.max(1, surfaceSaisie() || 1)} m²` }}</p>
+              </div>
+              <p class="text-3xl font-black">{{ montant().toLocaleString('fr-FR') }}&ngsp;<span class="text-xs opacity-60">FCFA</span>
+              </p>
+            </div>
+          </div>
+        }
+        @if (error()) {
+          <div role="alert" class="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3 text-red-600">
+            <i class="ri-error-warning-line text-xl"></i>
+            <p class="text-xs font-bold">{{ error() }}</p>
+          </div>
+        }
+        <div class="flex gap-4 pt-4">
+          <button type="button" (click)="closed.emit()" [disabled]="submitting()" class="flex-1 px-8 py-4 bg-gray-100 text-gray-500 text-sm font-black uppercase tracking-widest rounded-2xl hover:bg-gray-200 transition-all">Annuler</button>
+          <button type="submit" [disabled]="submitting()" [class]="`flex-[2] px-8 py-4 text-white text-sm font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-3 ${submitting() ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-xl'}`">
+            <i [class]="`${submitting() ? 'ri-loader-4-line animate-spin' : 'ri-checkbox-circle-line'} text-xl`"></i>{{ submitting() ? 'Enregistrement...' : 'Créer le dossier' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>

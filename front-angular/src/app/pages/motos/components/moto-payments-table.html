@@ -1,0 +1,39 @@
+  <div>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-gray-200">
+            @for (column of COLUMNS; track column) {
+              <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">{{ column }}</th>
+            }
+            @if (canManage()) {
+              <th class="text-center py-3 px-4 text-sm font-semibold text-gray-700">Actions</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (paiement of list.items(); track paiement.id) {
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="py-3 px-4 text-sm text-gray-900 font-medium">{{ paiement.numeroRecu }}</td>
+              <td class="py-3 px-4 text-sm text-gray-700">{{ LIBELLES_PAIEMENT[paiement.type || 'COTISATION'] }}</td>
+              <td class="py-3 px-4 text-sm text-gray-900">{{ paiement.matricule }}</td>
+              <td class="py-3 px-4 text-sm text-gray-700">{{ paiement.proprietaire }}</td>
+              <td class="py-3 px-4 text-sm text-gray-700">{{ paiement.mois }}</td>
+              <td class="py-3 px-4 text-sm font-semibold text-emerald-600">{{ paiement.montant.toLocaleString() }}
+                FCFA</td>
+              <td class="py-3 px-4 text-sm text-gray-700">{{ formatDate(paiement.datePaiement, 'N/A') }}</td>
+              <td class="py-3 px-4 text-sm text-gray-700">{{ paiement.agent }}</td>
+              @if (canManage()) {
+                <td class="py-3 px-4 text-center">
+                  <button (click)="imprimerRecu.emit(paiement)" class="p-2 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" title="Imprimer le reçu">
+                    <i class="ri-printer-line text-lg"></i>
+                  </button>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pagination [page]="list.page()" [totalPages]="list.totalPages()" [total]="list.meta().total" unit="paiement" (pageChange)="list.page.set($event)"></app-pagination>
+  </div>

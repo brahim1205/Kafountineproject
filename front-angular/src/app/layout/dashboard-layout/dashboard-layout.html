@@ -1,0 +1,152 @@
+<div class="min-h-screen bg-gray-50">
+  @if (mobileSidebarOpen()) {
+    <div class="fixed inset-0 z-40 bg-gray-900/50 md:hidden" (click)="mobileSidebarOpen.set(false)"></div>
+  }
+
+  <aside [class]="'fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] border-r border-gray-200 bg-white transition-transform duration-300 md:hidden ' + (mobileSidebarOpen() ? 'translate-x-0' : '-translate-x-full')">
+    <ng-container [ngTemplateOutlet]="sidebar" [ngTemplateOutletContext]="{ expanded: true, mobile: true }" />
+  </aside>
+
+  <aside [class]="'fixed top-0 left-0 hidden h-full border-r border-gray-200 bg-white transition-all duration-300 md:block ' + (sidebarOpen() ? 'w-64' : 'w-20')">
+    <ng-container [ngTemplateOutlet]="sidebar" [ngTemplateOutletContext]="{ expanded: sidebarOpen(), mobile: false }" />
+  </aside>
+
+  <div [class]="'min-w-0 transition-all duration-300 ' + (sidebarOpen() ? 'md:ml-64' : 'md:ml-20')">
+    <header class="sticky top-0 z-30 flex min-h-16 flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:px-6">
+      <div class="flex min-w-0 flex-1 items-center gap-3">
+        <button type="button" (click)="toggleSidebar()" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100" aria-label="Menu">
+          <i [class]="(mobileViewport() || sidebarOpen() ? 'ri-menu-fold-line' : 'ri-menu-unfold-line') + ' text-xl'"></i>
+        </button>
+
+        <div #searchBox class="relative order-3 w-full min-w-0 md:order-none md:max-w-xl">
+          <div class="relative">
+            <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input
+              type="text"
+              placeholder="Rechercher une transaction..."
+              [value]="searchQuery()"
+              (input)="searchQuery.set($any($event.target).value)"
+              (focus)="searchResults().length > 0 && showSearchDropdown.set(true)"
+              class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            />
+          </div>
+          @if (showSearchDropdown()) {
+            <div class="absolute top-full left-0 right-0 z-50 mt-2 max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+              <div class="py-2">
+                @for (result of searchResults(); track result.id) {
+                  <button type="button" (click)="openResult(result.link)" class="w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left flex items-start gap-3">
+                    <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <i [class]="result.icon + ' text-emerald-600 text-lg'"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-gray-900 text-sm">{{ result.title }}</span>
+                        <span class="px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-700">Recette</span>
+                      </div>
+                      <p class="text-xs text-gray-500 truncate">{{ result.subtitle }}</p>
+                    </div>
+                    <i class="ri-arrow-right-line text-gray-400 flex-shrink-0 mt-2"></i>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="ml-auto flex items-center gap-2 sm:gap-3">
+        <div class="relative">
+          <button type="button" (click)="showNotifications.set(!showNotifications())" class="relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 cursor-pointer" aria-label="Notifications">
+            <i class="ri-notification-3-line text-xl text-gray-600"></i>
+            @if (unread() > 0) {
+              <span class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">{{ unread() > 9 ? '9+' : unread() }}</span>
+            }
+          </button>
+          <app-notification-panel [isOpen]="showNotifications()" (closed)="showNotifications.set(false)" />
+        </div>
+
+        <div class="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
+          <i class="ri-calendar-line text-gray-500"></i>
+          <select [value]="year.selectedYear()" (change)="onYearChange($any($event.target).value)" aria-label="Année" class="cursor-pointer border-none bg-transparent text-sm font-medium text-gray-700 outline-none focus:ring-0">
+            @for (value of years; track value) {
+              <option [value]="value" [selected]="value === year.selectedYear()">{{ value }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="relative">
+          <button type="button" (click)="showUserMenu.set(!showUserMenu())" class="flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-gray-100 cursor-pointer sm:gap-3 sm:px-3">
+            <div [class]="'w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm ' + avatarClass()">{{ userInitials() }}</div>
+            <div class="hidden text-left sm:block">
+              <p class="text-sm font-medium text-gray-900">{{ userName() }}</p>
+              <p class="text-xs text-gray-600">{{ roleLabel() }}{{ canWrite() ? '' : ' · consultation' }}</p>
+            </div>
+            <i class="ri-arrow-down-s-line text-gray-600"></i>
+          </button>
+
+          @if (showUserMenu()) {
+            <div class="fixed inset-0 z-40" (click)="showUserMenu.set(false)"></div>
+            <div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              <a routerLink="/profil" (click)="showUserMenu.set(false)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"><i class="ri-user-line text-lg"></i>Mon profil</a>
+              @if (role() === 'super_admin') {
+                <a routerLink="/audit" (click)="showUserMenu.set(false)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"><i class="ri-file-list-3-line text-lg"></i>Journal Audit</a>
+              }
+              @if (role() === 'admin' || role() === 'super_admin') {
+                <a routerLink="/rapports" (click)="showUserMenu.set(false)" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"><i class="ri-bar-chart-box-line text-lg"></i>Rapports</a>
+              }
+              <hr class="my-2 border-gray-200" />
+              <button type="button" (click)="logout()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"><i class="ri-logout-box-line text-lg"></i>Déconnexion</button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <main class="p-4 sm:p-6">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<ng-template #sidebar let-expanded="expanded" let-mobile="mobile">
+  <div class="flex h-16 items-center justify-between border-b border-gray-200 px-4">
+    @if (expanded) {
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 overflow-hidden">
+          <img src="/logo.jpeg" alt="Logo" class="w-full h-full object-contain p-0.5" />
+        </div>
+        <div>
+          <p class="text-sm font-bold text-gray-900">Kafountine</p>
+          <p class="text-xs text-gray-600">Gestion Municipale</p>
+        </div>
+      </div>
+    } @else {
+      <div class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 overflow-hidden">
+        <img src="/logo.jpeg" alt="Logo" class="w-full h-full object-contain p-0.5" />
+      </div>
+    }
+    @if (mobile) {
+      <button type="button" (click)="mobileSidebarOpen.set(false)" class="flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100" aria-label="Fermer le menu">
+        <i class="ri-close-line text-xl"></i>
+      </button>
+    }
+  </div>
+  <nav class="space-y-1 overflow-y-auto no-scrollbar p-4" style="height: calc(100vh - 64px)">
+    @for (item of menuItems(); track item.path + item.label) {
+      @if (section(item.path, expanded); as label) {
+        <p class="px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ label }}</p>
+      }
+      <a
+        [routerLink]="item.path"
+        (click)="mobile && mobileSidebarOpen.set(false)"
+        [title]="expanded ? '' : item.label"
+        [class]="'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ' + (isActive(item.path) ? 'bg-emerald-50 text-emerald-700' : 'text-gray-700 hover:bg-gray-100') + (expanded ? '' : ' justify-center')"
+      >
+        <i [class]="item.icon + ' flex-shrink-0 text-xl'"></i>
+        @if (expanded) {
+          <span class="text-sm font-medium">{{ item.label }}</span>
+        }
+      </a>
+    }
+  </nav>
+</ng-template>

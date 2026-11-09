@@ -1,0 +1,120 @@
+  <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">Attribuer une place</h3>
+        <button (click)="closed.emit()" aria-label="Fermer" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          <i class="ri-close-line text-xl"></i>
+        </button>
+      </div>
+      <form (submit)="handleSubmit($event)" (input)="clearFieldValidationError($event)" novalidate class="p-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="md:col-span-2">
+            <app-label [required]="true">Type d'attribution</app-label>
+            <div class="grid grid-cols-2 gap-3">
+              @for (row of asSummary(); track $index) {
+                @let value = row[0];
+                @let titre = row[1];
+                @let description = row[2];
+                <label [class]="`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-colors ${mode() === value ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200 hover:border-cyan-300'}`">
+                  <input type="radio" name="mode" [checked]="mode() === value" [disabled]="value === 'existant' && placesDisponibles().length === 0" (change)="mode.set(value)" />
+                  <span>
+                    <span class="block text-sm font-medium text-gray-900">{{ titre }}</span>
+                    <span class="block text-xs text-gray-500">{{ description }}</span>
+                  </span>
+                </label>
+              }
+            </div>
+          </div>
+          @if (mode() === 'existant') {
+            <div class="md:col-span-2">
+              <app-label [required]="true">Place</app-label>
+              <select name="placeId" data-required="true" [value]="placeId()" (change)="placeId.set($any($event.target).value)" [class]="`${INPUT_CLASS} cursor-pointer`">
+                <option value="">Sélectionnez une place disponible</option>
+                @for (candidate of placesDisponibles(); track candidate.id) {
+                  <option [value]="candidate.id">{{ candidate.numero }}
+                    —
+                    {{ candidate.type }}
+                    —
+                    {{ candidate.zone }}
+                    —
+                    {{ formatTarif(candidate) }}</option>
+                }
+              </select>
+            </div>
+          } @else {
+            <div class="md:col-span-2">
+              <app-label [required]="true">Numéro de place</app-label>
+              <input name="numeroPlace" data-required="true" placeholder="Ex: A-03, B-13" [class]="INPUT_CLASS" />
+            </div>
+            <div>
+              <app-label [required]="true">Type de place</app-label>
+              <input name="type" list="types-place" data-required="true" placeholder="Ex: Boutique" [class]="INPUT_CLASS" />
+              <datalist id="types-place">
+                @for (type of types(); track type) {
+                  <option [value]="type"></option>
+                }
+              </datalist>
+            </div>
+            <div>
+              <app-label [required]="true">Zone</app-label>
+              <input name="zone" list="zones-place" data-required="true" placeholder="Ex: Bloc A" [class]="INPUT_CLASS" />
+              <datalist id="zones-place">
+                @for (zone of zones(); track zone) {
+                  <option [value]="zone"></option>
+                }
+              </datalist>
+            </div>
+          }
+          <div>
+            <app-label [required]="true">Tarif (FCFA)</app-label>
+            <input type="number" name="tarif" min="0" data-required="true" [value]="place()?.tarif" placeholder="Ex: 25000" [class]="INPUT_CLASS" />
+          </div>
+          <div>
+            <app-label [required]="true">Période</app-label>
+            <select name="periode" data-required="true" [value]="pERIODESSummary()" [class]="`${INPUT_CLASS} cursor-pointer`">
+              @for (periode of PERIODES; track periode.value) {
+                <option [value]="periode.value">{{ periode.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="md:col-span-2 border-t pt-4">
+            <h4 class="text-sm font-medium text-gray-900">Informations du commerçant</h4>
+          </div>
+          <div>
+            <app-label [required]="true">Nom complet</app-label>
+            <input name="nomComplet" data-required="true" placeholder="Ex: Fatou Diallo" [class]="INPUT_CLASS" />
+          </div>
+          <div>
+            <app-label [required]="true">Numéro CNI</app-label>
+            <input name="cni" data-required="true" placeholder="Ex: 1234567890123" [maxLength]="13" [class]="INPUT_CLASS" />
+          </div>
+          <div>
+            <app-label [required]="true">Téléphone</app-label>
+            <input type="tel" name="telephone" data-required="true" placeholder="Ex: 77 123 45 67" [class]="INPUT_CLASS" />
+          </div>
+          <div>
+            <app-label [required]="true">Type d'activité</app-label>
+            <select name="activite" data-required="true" [class]="`${INPUT_CLASS} cursor-pointer`">
+              <option value="">Sélectionnez</option>
+              @for (activite of ACTIVITES; track activite) {
+                <option [value]="activite">{{ activite }}</option>
+              }
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <app-label>Adresse</app-label>
+            <input name="adresse" placeholder="Ex: Quartier Nord, Kafountine" [class]="INPUT_CLASS" />
+          </div>
+        </div>
+        @if (error()) {
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+            <i class="ri-error-warning-line mr-2"></i>{{ error() }}</div>
+        }
+        <div class="flex gap-3">
+          <button type="button" (click)="closed.emit()" [disabled]="submitting()" class="flex-1 px-6 py-3 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">Annuler</button>
+          <button type="submit" [disabled]="submitting()" [class]="`flex-1 px-6 py-3 text-white text-sm font-medium rounded-lg cursor-pointer ${submitting() ? 'bg-gray-400 cursor-not-allowed' : 'bg-cyan-500 hover:bg-cyan-600 transition-colors'}`">
+            <i [class]="`ri-${submitting() ? 'loader-4-line animate-spin' : 'check-line'} mr-2`"></i>{{ submitting() ? 'Enregistrement...' : 'Attribuer la place' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>

@@ -1,0 +1,43 @@
+import { Routes } from '@angular/router';
+import { authGuard, publicOnlyGuard, roleGuard } from './core/auth/auth.guards';
+
+export const routes: Routes = [
+  { path: '', pathMatch: 'full', redirectTo: 'login' },
+  { path: 'login', canActivate: [publicOnlyGuard], loadComponent: () => import('./features/login/login').then((m) => m.Login) },
+  {
+    path: '',
+    canActivate: [authGuard],
+    loadComponent: () => import('./layout/dashboard-layout/dashboard-layout').then((m) => m.DashboardLayout),
+    children: [
+      { path: 'dashboard', loadComponent: () => import('./pages/dashboard/page').then((m) => m.Dashboard) },
+      { path: 'recettes', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'regisseur'])], loadComponent: () => import('./pages/recettes/page').then((m) => m.Recettes) },
+      { path: 'taxes', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/taxes/page').then((m) => m.TaxesPage) },
+      { path: 'taxes/nouvelle-transaction', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/taxes/components/nouvelle-transaction').then((m) => m.NouvelleTransaction) },
+      { path: 'taxes/:categorieId', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/taxes/components/categorie-detail').then((m) => m.CategorieDetail) },
+      { path: 'etat-civil/nouvelle', canActivate: [roleGuard(['etat_civil'])], data: { section: 'nouvelle' }, loadComponent: () => import('./pages/etat-civil/etat-civil-section-page').then((m) => m.EtatCivilSectionPage) },
+      { path: 'etat-civil/a-traiter', canActivate: [roleGuard(['etat_civil'])], data: { section: 'a-traiter' }, loadComponent: () => import('./pages/etat-civil/etat-civil-section-page').then((m) => m.EtatCivilSectionPage) },
+      { path: 'etat-civil/historique', canActivate: [roleGuard(['etat_civil'])], data: { section: 'historique' }, loadComponent: () => import('./pages/etat-civil/etat-civil-section-page').then((m) => m.EtatCivilSectionPage) },
+      { path: 'etat-civil/statistiques', canActivate: [roleGuard(['etat_civil'])], data: { section: 'statistiques' }, loadComponent: () => import('./pages/etat-civil/etat-civil-section-page').then((m) => m.EtatCivilSectionPage) },
+      { path: 'etat-civil', canActivate: [roleGuard(['admin'])], loadComponent: () => import('./pages/etat-civil/page').then((m) => m.EtatCivilPage) },
+      { path: 'urbanisme', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/urbanisme/page').then((m) => m.UrbanismePage) },
+      { path: 'marche', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'quai_peche', 'regisseur'])], loadComponent: () => import('./pages/marche/page').then((m) => m.MarchePage) },
+      { path: 'motos', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'quai_peche', 'regisseur'])], loadComponent: () => import('./pages/motos/page').then((m) => m.MotosPage) },
+      { path: 'formations', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/formations/page').then((m) => m.FormationsPage) },
+      { path: 'penalites', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/penalites/page').then((m) => m.Penalites) },
+      { path: 'utilisateurs', canActivate: [roleGuard(['admin', 'super_admin', 'regisseur'])], loadComponent: () => import('./pages/utilisateurs/page').then((m) => m.Utilisateurs) },
+      { path: 'rapports', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/rapports/page').then((m) => m.Rapports) },
+      { path: 'audit', canActivate: [roleGuard(['super_admin'])], loadComponent: () => import('./pages/audit/page').then((m) => m.Audit) },
+      { path: 'budget-suivi', canActivate: [roleGuard(['service_finances'])], loadComponent: () => import('./pages/budget-suivi/page').then((m) => m.BudgetSuiviPage) },
+      { path: 'gestion-budget', canActivate: [roleGuard(['service_finances'])], loadComponent: () => import('./pages/gestion-budget/page').then((m) => m.GestionBudgetPage) },
+      { path: 'quai-peche', pathMatch: 'full', redirectTo: 'quai-peche/commissions' },
+      { path: 'quai-peche/commissions', canActivate: [roleGuard(['quai_peche', 'regisseur'])], loadComponent: () => import('./pages/quai-peche/commissions/page').then((m) => m.CommissionsPage) },
+      { path: 'quai-peche/pecheurs', canActivate: [roleGuard(['quai_peche', 'regisseur'])], loadComponent: () => import('./pages/quai-peche/pecheurs/page').then((m) => m.PecheursPage) },
+      { path: 'quai-peche/embarcations', canActivate: [roleGuard(['quai_peche', 'regisseur'])], loadComponent: () => import('./pages/quai-peche/embarcations/page').then((m) => m.EmbarcationsPage) },
+      { path: 'quai-peche/camions', canActivate: [roleGuard(['quai_peche', 'regisseur'])], loadComponent: () => import('./pages/quai-peche/camions/page').then((m) => m.CamionsPage) },
+      { path: 'service-finances', canActivate: [roleGuard(['service_finances', 'admin', 'super_admin'])], loadComponent: () => import('./pages/service-finances/page').then((m) => m.ServiceFinancesPage) },
+      { path: 'parametres', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/parametres/page').then((m) => m.Parametres) },
+      { path: 'profil', loadComponent: () => import('./pages/profil/page').then((m) => m.ProfilPage) },
+    ],
+  },
+  { path: '**', loadComponent: () => import('./features/not-found/not-found').then((m) => m.NotFound) },
+];

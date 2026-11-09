@@ -1,0 +1,53 @@
+  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            @for (column of COLUMNS; track column) {
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase whitespace-nowrap">{{ column }}</th>
+            }
+            <th class="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase whitespace-nowrap">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          @if (loading() || dossiers().length === 0) {
+            <tr>
+              <td [attr.colspan]="COLUMNS.length + 1" class="px-4 py-8 text-center text-gray-500">
+                @if (loading()) {
+                  <span class="inline-flex items-center gap-2">
+                    <i class="ri-loader-4-line animate-spin text-emerald-500"></i>Chargement des dossiers...</span>
+                } @else {
+                  {{ 'Aucun dossier trouvé' }}
+                }
+              </td>
+            </tr>
+          } @else {
+            @for (dossier of dossiers(); track dossier.id) {
+              @let d1 = statutOf(dossier);
+              @let label = d1.label;
+              @let badge = d1.badge;
+              @let demandeur = demandeurOf(dossier);
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ dossier.numero }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ formatDate(dossier.createdAt) }}</td>
+                <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ demandeur }}</td>
+                <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ typeLabel(dossier, types()) }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ dossier.localisation || '-' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ formatSurface(dossier.surface) }}</td>
+                <td class="px-4 py-3 text-sm font-medium text-emerald-600 whitespace-nowrap">{{ dossier.montant.toLocaleString('fr-FR') }}
+                  FCFA</td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span [class]="`px-2 py-1 text-xs font-medium rounded-full ${badge}`">{{ label }}</span>
+                </td>
+                <td class="px-4 py-3 text-center whitespace-nowrap">
+                  <button (click)="view.emit(dossier)" class="w-8 h-8 inline-flex items-center justify-center text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Voir les détails" [attr.aria-label]="`Détails du dossier ${dossier.numero}`">
+                    <i class="ri-eye-line"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>

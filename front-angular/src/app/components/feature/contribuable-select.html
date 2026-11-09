@@ -1,0 +1,23 @@
+  <div class="relative">
+    <input type="hidden" [attr.name]="name()" [value]="selectedId()" />
+    <input [attr.name]="SEARCH_INPUT_NAME" data-required="true" aria-label="Contribuable" role="combobox" [attr.aria-expanded]="showList()" [attr.aria-controls]="listId()" aria-autocomplete="list" autocomplete="off" placeholder="Rechercher par nom, téléphone ou NIN" [value]="query()" (input)="query.set($any($event.target).value); selectedId.set(''); open.set(true)" (focus)="open.set(true)" (blur)="windowSummary()" [class]="inputClassName()" />
+    @if (showList()) {
+      <ul [id]="listId()" role="listbox" class="absolute z-10 mt-1 w-full max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+        @if (loading() && results().length === 0) {
+          <li class="px-4 py-2 text-sm text-gray-500">Recherche...</li>
+        } @else {
+          @if (results().length === 0) {
+            <li class="px-4 py-2 text-sm text-gray-500">Aucun contribuable trouvé.</li>
+          } @else {
+            @for (c of results(); track c.id) {
+              <li role="option" [attr.aria-selected]="false" (mousedown)="$event.preventDefault()" (click)="choose(c)" class="cursor-pointer px-4 py-2 text-sm text-gray-900 hover:bg-emerald-50">{{ contribuableLabel(c) }}
+                @if (c.telephone) {
+                  <span class="ml-2 text-xs text-gray-500">{{ c.telephone }}</span>
+                }
+              </li>
+            }
+          }
+        }
+      </ul>
+    }
+  </div>

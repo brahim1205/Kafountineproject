@@ -1,0 +1,22 @@
+  <app-modal [title]="`Modifier la transaction ${row().ticketNumber}`" size="2xl" (closed)="closed.emit()">
+    <form (submit)="handleSubmit($event)" (input)="clearFieldValidationError($event)" novalidate class="space-y-4">
+      <app-field label="Type de taxe">
+        <input name="type" data-required="true" [value]="row().type" [class]="INPUT_CLASS" />
+      </app-field>
+      <app-field label="Contribuable">
+        <app-contribuable-select name="contributorId" [initial]="initial()" [inputClassName]="INPUT_CLASS"></app-contribuable-select>
+      </app-field>
+      <app-field label="Montant (FCFA)">
+        <input type="number" name="amount" data-required="true" min="0" [value]="row().amount" [class]="INPUT_CLASS" />
+      </app-field>
+      <div class="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
+        <button type="button" (click)="handleDelete()" [disabled]="busy()" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60">
+          <i class="ri-delete-bin-line"></i>Annuler la recette</button>
+        <div class="flex items-center gap-3">
+          <button type="button" (click)="closed.emit()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">Annuler</button>
+          <button type="submit" [disabled]="busy()" class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-60">
+            <i class="ri-save-line"></i>Enregistrer</button>
+        </div>
+      </div>
+    </form>
+  </app-modal>

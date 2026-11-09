@@ -1,0 +1,8 @@
+<div [class]="className()">
+  <label class="block text-sm font-medium text-gray-700 mb-1">{{ label() }}&ngsp;
+    @if (required()) {
+      <span class="text-red-500">*</span>
+    }
+  </label>
+  <input [type]="type()" [attr.name]="name()" [attr.placeholder]="placeholder()" [attr.min]="min()" [attr.max]="max()" [attr.data-required]="required() ? 'true' : null" [class]="INPUT_CLASS" />
+</div>

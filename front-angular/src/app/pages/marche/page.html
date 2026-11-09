@@ -1,0 +1,23 @@
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Marché &amp; Commerce</h1>
+      <p class="text-sm text-gray-600 mt-1">Attribution des places et suivi des paiements</p>
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1 max-w-full overflow-x-auto">
+      <button (click)="activeTab.set('attribution')" [class]="`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeTab() === 'attribution' ? 'bg-cyan-500 text-white' : 'text-gray-700 hover:bg-gray-100'}`">
+        <i class="ri-store-2-line mr-2"></i>Attribution places</button>
+      <button (click)="activeTab.set('paiements')" [class]="`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeTab() === 'paiements' ? 'bg-cyan-500 text-white' : 'text-gray-700 hover:bg-gray-100'}`">
+        <i class="ri-money-dollar-circle-line mr-2"></i>Suivi paiements</button>
+      <button (click)="activeTab.set('statistiques')" [class]="`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeTab() === 'statistiques' ? 'bg-cyan-500 text-white' : 'text-gray-700 hover:bg-gray-100'}`">
+        <i class="ri-bar-chart-box-line mr-2"></i>Statistiques</button>
+    </div>
+    @if (activeTab() === 'attribution') {
+      <app-attribution-places></app-attribution-places>
+    }
+    @if (activeTab() === 'paiements') {
+      <app-suivi-paiements></app-suivi-paiements>
+    }
+    @if (activeTab() === 'statistiques') {
+      <app-statistiques-marche></app-statistiques-marche>
+    }
+  </div>

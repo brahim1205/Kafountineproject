@@ -1,0 +1,152 @@
+  <div class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4 no-print">
+    <div class="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-gray-900">Prévisualisation du reçu</h2>
+          <button (click)="closed.emit()" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+            <i class="ri-close-line text-xl"></i>
+          </button>
+        </div>
+      </div>
+      <div class="p-6">
+        <div id="recu-content" class="bg-white border-[3px] border-double border-gray-400 rounded-xl p-6 shadow-inner relative overflow-hidden">
+          <div class="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none rotate-[-35deg]">
+            <p class="text-8xl font-black text-gray-900">COMMUNE DE KAFOUNTINE</p>
+          </div>
+          <div class="relative text-center border-b-2 border-emerald-600/20 pb-4 mb-4">
+            <div class="flex justify-between items-start mb-4">
+              <div class="text-left">
+                <p class="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-0.5">République du Sénégal</p>
+                <p class="text-[7px] text-gray-500 uppercase tracking-widest">Un Peuple - Un But - Une Foi</p>
+              </div>
+              <div class="text-right">
+                <p class="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-0.5">Région de Ziguinchor</p>
+                <p class="text-[7px] text-gray-500 uppercase tracking-widest">Département de Bignona</p>
+              </div>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div class="relative w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-emerald-50 border-gray-100 shadow-md">
+                  <img src="/logo.jpeg" alt="Logo Commune de Kafountine" class="w-full h-full object-contain p-1.5" />
+                </div>
+              </div>
+              <div>
+                <h1 class="text-xl font-black text-emerald-800 tracking-tight">COMMUNE DE KAFOUNTINE</h1>
+                <div class="flex items-center justify-center gap-2 mt-1">
+                  <div class="h-[2px] w-8 bg-emerald-500"></div>
+                  <span class="text-[9px] font-bold text-emerald-600 uppercase tracking-[0.3em]">Hôtel de Ville</span>
+                  <div class="h-[2px] w-8 bg-emerald-500"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between items-end mb-4">
+            <div class="text-left">
+              <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">Reçu de Paiement</h2>
+              <div class="flex items-baseline gap-2">
+                <span class="text-4xl font-black text-gray-900 tracking-tighter">N°
+                  {{ recuData().ticketNumber }}</span>
+              </div>
+            </div>
+            <div class="text-right bg-gray-50 p-3 rounded-xl border border-gray-100">
+              <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Date d'émission</p>
+              <p class="text-sm font-black text-gray-800">{{ formattedDate() }}</p>
+              <p class="text-[10px] text-gray-500 mt-0.5">{{ recuData().time }}</p>
+            </div>
+          </div>
+          <div class="space-y-4 mb-6 relative">
+            <div class="grid grid-cols-1 gap-6">
+              <div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl border border-gray-100 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+                <div class="relative grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div>
+                    <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1" [style.font-family]="'sans-serif'">Contribuable</p>
+                    <p class="text-xl font-bold text-gray-900 leading-normal" [style.font-family]="'sans-serif'">{{ recuData().contributor }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1" [style.font-family]="'sans-serif'">Objet du paiement</p>
+                    <p class="text-sm font-semibold text-gray-800 leading-normal" [style.font-family]="'sans-serif'">{{ recuData().type }}</p>
+                    @if (recuData().reference) {
+                      <p class="text-[10px] text-gray-500 mt-1 font-medium italic" [style.font-family]="'sans-serif'">Réf:
+                        {{ recuData().reference }}</p>
+                    }
+                  </div>
+                </div>
+              </div>
+              @if (detailRows().length > 0) {
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  @for (row of detailRows().slice(0, 6); track $index) {
+                    @let label = row[0];
+                    @let value = row[1];
+                    <div class="p-4 bg-white rounded-xl border border-gray-100 flex flex-col justify-center min-h-[70px]">
+                      <p class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5" [style.font-family]="'sans-serif'">{{ label }}</p>
+                      <p class="text-xs font-bold text-gray-800 leading-relaxed" [style.font-family]="'sans-serif'">{{ value }}</p>
+                    </div>
+                  }
+                </div>
+              }
+              <div class="bg-gradient-to-r from-emerald-600 to-emerald-600 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-2xl"></div>
+                <div class="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full -ml-24 -mb-24 blur-2xl"></div>
+                <div class="relative flex flex-col items-center">
+                  <p class="text-[9px] font-bold text-emerald-100 uppercase tracking-[0.4em] mb-1.5">Montant Total Versé</p>
+                  <div class="flex items-center gap-3">
+                    <span class="text-4xl font-black text-white tracking-tighter" [style.color]="'white !important'">{{ recuData().amount.toLocaleString() }}</span>
+                    <span class="text-xl font-bold text-emerald-100">FCFA</span>
+                  </div>
+                  <div class="mt-3 w-full h-[1px] bg-white/20"></div>
+                  <p class="mt-3 text-[10px] text-emerald-50 font-medium italic text-center leading-relaxed">" Arrêté à la somme de :
+                    {{ amountInWords() }}
+                    francs CFA "</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-12 pt-8 border-t-2 border-gray-100">
+            <div class="text-center">
+              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-8">Cachet et Signature de l'Agent</p>
+              <div class="relative h-24 flex items-center justify-center">
+                <p class="text-xs font-bold text-gray-900 z-10">{{ recuData().agent }}</p>
+                <div class="absolute inset-0 flex items-center justify-center opacity-20 rotate-[-15deg]">
+                  <div class="w-20 h-20 border-4 border-double border-emerald-600 rounded-full flex items-center justify-center text-[8px] font-black text-emerald-600 text-center uppercase p-1">Commune de Kafountine</div>
+                </div>
+              </div>
+              <div class="w-full h-px bg-gray-200"></div>
+            </div>
+            <div class="flex flex-col items-center justify-center bg-gray-50 rounded-2xl p-4 border border-gray-100">
+              <div class="bg-white p-2 rounded-xl shadow-sm border border-gray-100 mb-3">
+                <app-qr-code-svg [value]="qrData()" [size]="80" level="H" [includeMargin]="false" fgColor="#0f766e"></app-qr-code-svg>
+              </div>
+              <p class="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Validation Numérique</p>
+              <p class="text-[8px] text-gray-500 mt-1">Scannez pour vérifier l'authenticité</p>
+            </div>
+          </div>
+          <div class="mt-12 pt-6 border-t border-gray-100">
+            <div class="flex justify-between items-center text-[9px] text-gray-400 font-medium">
+              <p>©
+                {{ getFullYearSummary() }}
+                Mairie de Kafountine - Système de Gestion Municipale</p>
+              <div class="flex gap-4">
+                <p>www.kafountine.sn</p>
+                <p>Tél: +221 33 994 00 00</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-col items-end gap-3 mt-6 no-print">
+          @if ((recuData().statut?.toLowerCase() === 'en attente' || recuData().statut?.toLowerCase() === 'en_attente')) {
+            <div class="flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-100 mb-2">
+              <i class="ri-information-line"></i>
+              <p class="text-xs font-semibold uppercase tracking-wider">Paiement non validé : Reçu indisponible</p>
+            </div>
+          }
+          <div class="flex items-center justify-end gap-3">
+            <button (click)="closed.emit()" class="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap">Fermer</button>
+            <button (click)="handlePrint()" [disabled]="recuData().statut?.toLowerCase() === 'en attente' || recuData().statut?.toLowerCase() === 'en_attente'" [class]="`px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${(recuData().statut?.toLowerCase() === 'en attente' || recuData().statut?.toLowerCase() === 'en_attente') ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md hover:shadow-lg'}`">
+              <i class="ri-printer-line"></i>Imprimer le reçu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,183 @@
+@if (loading()) {
+  <div class="flex items-center justify-center h-96">
+    <div class="flex flex-col items-center gap-4">
+      <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-gray-600">Chargement des données...</p>
+    </div>
+  </div>
+} @else {
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Bonjour,
+          {{ agentName().split(' ')[0] }}
+          👋</h1>
+        <p class="text-sm text-gray-600 mt-1">{{ resumeLabel() }}</p>
+      </div>
+      @if (!isCurrentYear()) {
+        <div class="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-2 rounded-lg flex items-center gap-2">
+          <i class="ri-eye-line"></i>
+          <span class="text-sm font-medium">Année
+            {{ selectedYear() }}
+            - Consultation seule</span>
+        </div>
+      }
+      <div class="flex flex-wrap items-center gap-2"></div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl p-5 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Mes collectes du jour</p>
+            <h3 class="text-2xl font-bold text-gray-900">{{ totalJour().toLocaleString() }}</h3>
+            <p class="text-xs text-gray-500 mt-1">FCFA</p>
+          </div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i class="ri-money-dollar-circle-line text-2xl"></i>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Tickets émis</p>
+            <h3 class="text-2xl font-bold text-gray-900">{{ nombreJour().toLocaleString('fr-FR') }}</h3>
+            <p class="text-xs text-gray-500 mt-1">aujourd'hui</p>
+          </div>
+          <div class="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i class="ri-file-list-3-line text-2xl"></i>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Contribuables servis</p>
+            <h3 class="text-2xl font-bold text-gray-900">{{ setSummary() }}</h3>
+            <p class="text-xs text-gray-500 mt-1">personnes</p>
+          </div>
+          <div class="w-12 h-12 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center">
+            <i class="ri-user-line text-2xl"></i>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-600 mb-1">Tâches en attente</p>
+            <h3 class="text-2xl font-bold text-gray-900">{{ tachesEnCoursSummary() }}</h3>
+            <p class="text-xs text-gray-500 mt-1">à traiter</p>
+          </div>
+          <div class="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <i class="ri-task-line text-2xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-1 bg-white rounded-xl p-6 border border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Objectif du jour</h3>
+        <div class="flex flex-col items-center">
+          <div class="relative w-36 h-36 mb-4">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="#f3f4f6" stroke-width="10"></circle>
+              <circle cx="60" cy="60" r="52" fill="none" [attr.stroke]="progression() >= 100 ? '#10b981' : '#14b8a6'" stroke-width="10" stroke-linecap="round" [attr.stroke-dasharray]="`${progression() * 3.267} 326.7`"></circle>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-2xl font-bold text-gray-900">{{ Math.round(progression()) }}%</span>
+              <span class="text-xs text-gray-500">atteint</span>
+            </div>
+          </div>
+          <p class="text-sm text-gray-600 text-center">
+            <strong class="text-gray-900">{{ totalJour().toLocaleString() }}
+              FCFA</strong>
+            sur
+            {{ objectifJour().toLocaleString() }}
+            FCFA</p>
+          <p class="text-xs text-gray-500 mt-1">Reste :
+            {{ Math.max(0, objectifJour() - totalJour()).toLocaleString() }}
+            FCFA</p>
+        </div>
+      </div>
+      <div class="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">Tâches en attente</h3>
+        <p class="text-sm text-gray-600 mb-4">Éléments nécessitant votre attention</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          @for (tache of tachesEnCours(); track idx; let idx = $index) {
+            <a [attr.to]="tache.link" class="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer group">
+              <div [class]="`w-11 h-11 rounded-lg ${tache.color} flex items-center justify-center flex-shrink-0`">
+                <i [class]="`${tache.icon} text-xl`"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ tache.label }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ tache.count }}
+                  élément{{ tache.count > 1 ? 's' : '' }}</p>
+              </div>
+              <i class="ri-arrow-right-s-line text-gray-400 group-hover:text-emerald-600 text-lg"></i>
+            </a>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">Mes collectes du jour</h3>
+            <p class="text-sm text-gray-600 mt-1">Tickets émis par vous aujourd'hui</p>
+          </div>
+          <a routerLink="/recettes" class="px-4 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer whitespace-nowrap">Voir tout</a>
+        </div>
+      </div>
+      @if (mesCollectes().length === 0) {
+        <div class="p-6 text-center text-gray-500">Aucune collecte aujourd'hui</div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">N° Ticket</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Contribuable</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Montant</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Heure</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              @for (collecte of mesCollectes(); track collecte.id) {
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm font-medium text-gray-900">{{ collecte.id }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">{{ collecte.type }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm text-gray-700">{{ collecte.contribuable }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm font-semibold text-gray-900">{{ collecte.montant.toLocaleString() }}
+                      FCFA</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm text-gray-600">{{ collecte.heure }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <button (click)="handlePrintRecu(collecte)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" title="Générer reçu PDF">
+                      <i class="ri-printer-line text-lg"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+  @if (showRecuModal() && selectedRecu()) {
+    <app-recu-pdf [ticketNumber]="selectedRecu()!.ticketNumber" [date]="selectedRecu()!.date" [time]="selectedRecu()!.time" [contributor]="selectedRecu()!.contributor" [type]="selectedRecu()!.type" [amount]="selectedRecu()!.amount" [agent]="selectedRecu()!.agent" (closed)="showRecuModal.set(false); selectedRecu.set(null)"></app-recu-pdf>
+  }
+}
+

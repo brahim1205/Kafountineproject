@@ -1,0 +1,39 @@
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Régie municipale</h1>
+      <p class="text-sm text-gray-600 mt-1">Vos équipes et le suivi des recettes</p>
+    </div>
+    <div>
+      <h2 class="text-lg font-semibold text-gray-900 mb-3">Équipes</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        @for (equipe of EQUIPES; track equipe.role) {
+          <a routerLink="/utilisateurs" class="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 hover:border-gray-300">
+            <div [class]="`w-11 h-11 rounded-lg flex items-center justify-center ${equipe.color}`">
+              <i [class]="`${equipe.icon} text-xl`"></i>
+            </div>
+            <div>
+              <p class="text-sm text-gray-600">{{ equipe.label }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ activeMembers(equipe) }}</p>
+            </div>
+          </a>
+        }
+      </div>
+    </div>
+    <div>
+      <h2 class="text-lg font-semibold text-gray-900 mb-3">Motos Jakarta</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        @for (card of [ { label: 'Motos enregistrées', value: `${motos().totalMotos || 0}` }, { label: 'En retard', value: `${motos().enRetard || 0}` }, { label: 'Recettes de l’année', value: `${Number(motos().recettesAnnee || 0).toLocaleString('fr-FR')} FCFA` }, ]; track card.label) {
+          <a routerLink="/motos" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300">
+            <p class="text-sm text-gray-600">{{ card.label }}</p>
+            <p class="text-2xl font-bold text-gray-900 mt-1">{{ card.value }}</p>
+          </a>
+        }
+      </div>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      @for (action of ACTIONS; track action.to) {
+        <a [attr.to]="action.to" class="rounded-xl p-4 flex flex-col items-center gap-2 text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors">
+          <i [class]="`${action.icon} text-xl`"></i>{{ action.label }}</a>
+      }
+    </div>
+  </div>

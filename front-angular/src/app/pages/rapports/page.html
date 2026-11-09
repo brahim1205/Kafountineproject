@@ -1,0 +1,191 @@
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Rapport Annuel -
+          {{ selectedYear() }}</h1>
+        <p class="text-sm text-gray-600 mt-1">Synthese complete des activites de la Commune de Kafountine</p>
+      </div>
+      <div class="flex gap-2">
+        <button (click)="showPdfPreview.set(true)" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 whitespace-nowrap no-print">
+          <i class="ri-printer-line"></i>Générer Rapport (PDF)</button>
+        <button (click)="exportCsv()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap">
+          <i class="ri-download-line"></i>Export CSV</button>
+      </div>
+    </div>
+    @if (loading()) {
+      <div class="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-600">Chargement des rapports...</div>
+    }
+    @if (!loading()) {
+      <app-reports-overview-cards [total]="total()" [tauxRecouvrement]="tauxRecouvrement()" [overview]="overview()"></app-reports-overview-cards>
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Evolution mensuelle des recettes</h3>
+        @if (evolutionMensuelle().length === 0) {
+          <div class="h-64 flex items-center justify-center text-sm text-gray-500">Aucune évolution disponible pour
+            {{ selectedYear() }}</div>
+        } @else {
+          <div class="flex items-end justify-between h-64 gap-2">
+            @for (item of evolutionMensuelle(); track index; let index = $index) {
+              <div class="flex-1 flex flex-col items-center gap-2">
+                <div class="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-md transition-all duration-300 hover:from-emerald-600 hover:to-emerald-500" [style.height]="`${(item.montant / maxMontant()) * 100}%`" [style.min-height]="item.montant > 0 ? '8px' : '0'" [title]="`${item.montant.toLocaleString('fr-FR')} FCFA`"></div>
+                <span class="text-xs text-gray-500">{{ item.mois }}</span>
+              </div>
+            }
+          </div>
+        }
+        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between">
+          <span class="text-gray-600">Total annuel</span>
+          <span class="font-bold text-gray-900">{{ evolutionMensuelleSummary() }}
+            FCFA</span>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Repartition par module</h3>
+          <div class="space-y-4">
+            @for (m of moduleStats(); track m.name) {
+              @let pct = total() > 0 ? Math.round((m.amount / total()) * 100) : 0;
+              <div>
+                <div class="flex items-center justify-between text-sm mb-1">
+                  <span class="text-gray-700 flex items-center gap-2">
+                    <i [class]="`${m.icon}`"></i>{{ m.name }}</span>
+                  <span class="font-medium text-gray-900">{{ m.amount.toLocaleString('fr-FR') }}
+                    FCFA ({{ pct }}%)</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-3">
+                  <div [class]="`${m.couleur} h-3 rounded-full`" [style.width]="`${Math.min(pct, 100)}%`"></div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Indicateurs par module</h3>
+          <div class="space-y-4">
+            @for (m of moduleStats(); track m.name) {
+              @let stats = m.stats;
+              <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-2 mb-2">
+                  <i [class]="`${m.icon} ${m.couleur.replace('bg-', 'text-')}`"></i>
+                  <span class="font-medium text-gray-900">{{ m.name }}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  @if (m.name === 'Taxes') {
+                    <div>
+                      <span class="text-gray-500">Transactions:</span>&ngsp;<span class="font-medium">{{ stats.transactions || 0 }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500">Moyenne:</span>&ngsp;<span class="font-medium">{{ Number(stats.moyenne || 0).toLocaleString() }}
+                        FCFA</span>
+                    </div>
+                  }
+                  @if (m.name === 'Marche') {
+                    <div>
+                      <span class="text-gray-500">Places:</span>&ngsp;<span class="font-medium">{{ stats.places || 0 }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500">Occupation:</span>&ngsp;<span class="font-medium">{{ stats.occupancy || 0 }}%</span>
+                    </div>
+                  }
+                  @if (m.name === 'Motos') {
+                    <div>
+                      <span class="text-gray-500">Motos:</span>&ngsp;<span class="font-medium">{{ stats.totalMotos || 0 }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500">Taux paiement:</span>&ngsp;<span class="font-medium">{{ stats.tauxPaiement || 0 }}%</span>
+                    </div>
+                  }
+                  @if (m.name === 'Etat Civil') {
+                    <div>
+                      <span class="text-gray-500">Actes:</span>&ngsp;<span class="font-medium">{{ stats.actesDelivres || 0 }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500">Principale:</span>&ngsp;<span class="font-medium">{{ Array.isArray(stats.principalesDemandes) ? stats.principalesDemandes[0] : '' }}</span>
+                    </div>
+                  }
+                  @if (m.name === 'Urbanisme') {
+                    <div>
+                      <span class="text-gray-500">Permis:</span>&ngsp;<span class="font-medium">{{ stats.permisDelivres || 0 }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500">Dossiers:</span>&ngsp;<span class="font-medium">{{ stats.dossiers || 0 }}</span>
+                    </div>
+                  }
+                  @if (m.name === 'Formations') {
+                    <div>
+                      <span class="text-gray-500">Jeunes:</span>&ngsp;<span class="font-medium">{{ stats.jeunesFormes || 0 }}</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-500">Certifications:</span>&ngsp;<span class="font-medium">{{ stats.certifications || 0 }}</span>
+                    </div>
+                  }
+                  <div>
+                    <span class="text-gray-500">Evolution:</span>&ngsp;<span class="font-medium text-green-600">+{{ stats.evolution || 0 }}%</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Formations Professionnelles</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="text-center p-4 bg-emerald-50 rounded-lg">
+            <i class="ri-book-open-line text-3xl text-emerald-600 mb-2"></i>
+            <p class="text-2xl font-bold text-gray-900">{{ overview()?.formationsStats?.totalFormations || 0 }}</p>
+            <p class="text-sm text-gray-600">Formations actives</p>
+          </div>
+          <div class="text-center p-4 bg-blue-50 rounded-lg">
+            <i class="ri-user-star-line text-3xl text-blue-600 mb-2"></i>
+            <p class="text-2xl font-bold text-gray-900">{{ overview()?.formationsStats?.totalJeunesFormes || 0 }}</p>
+            <p class="text-sm text-gray-600">Jeunes formes</p>
+          </div>
+          <div class="text-center p-4 bg-purple-50 rounded-lg">
+            <i class="ri-award-line text-3xl text-purple-600 mb-2"></i>
+            <p class="text-2xl font-bold text-gray-900">{{ overview()?.formationsStats?.totalCertifies || 0 }}</p>
+            <p class="text-sm text-gray-600">Certifications</p>
+          </div>
+          <div class="text-center p-4 bg-amber-50 rounded-lg">
+            <i class="ri-money-dollar-box-line text-3xl text-amber-600 mb-2"></i>
+            <p class="text-2xl font-bold text-gray-900">{{ (overview()?.formationsStats?.budgetTotal || 0) / 1000000 }}M</p>
+            <p class="text-sm text-gray-600">Budget (FCFA)</p>
+          </div>
+        </div>
+      </div>
+      <app-reports-top-contribuables-table [topContribuables]="topContribuables()" [total]="total()"></app-reports-top-contribuables-table>
+      <app-reports-journal-table [journal]="detailedJournal()"></app-reports-journal-table>
+      <div class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white">
+        <h3 class="text-lg font-semibold mb-4">Resume executif - Annee
+          {{ selectedYear() }}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+          <div>
+            <h4 class="font-medium text-gray-300 mb-2">Points positifs</h4>
+            <ul class="space-y-1 text-gray-400">
+              @for (item of executiveSummary().pointsPositifs; track index; let index = $index) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-medium text-gray-300 mb-2">Defis identifies</h4>
+            <ul class="space-y-1 text-gray-400">
+              @for (item of executiveSummary().defisIdentifies; track index; let index = $index) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-medium text-gray-300 mb-2">Recommandations</h4>
+            <ul class="space-y-1 text-gray-400">
+              @for (item of executiveSummary().recommandations; track index; let index = $index) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+  @if (showPdfPreview()) {
+    <app-rapport-pdf [year]="selectedYear()" [total]="total()" [totalExpenses]="totalExpenses()" [tauxRecouvrement]="tauxRecouvrement()" [totalTransactions]="overview()?.txStats?.annee?.transactions || 0" [totalContribuables]="overview()?.totalContribuables || 0" [moduleStats]="moduleStats()" [topContribuables]="topContribuables()" [journal]="journalData()" (closed)="showPdfPreview.set(false)"></app-rapport-pdf>
+  }

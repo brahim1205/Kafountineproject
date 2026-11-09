@@ -1,0 +1,40 @@
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            @for (column of COLUMNS; track column) {
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">{{ column }}</th>
+            }
+            <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          @if (loading() || expeditions().length === 0) {
+            <tr>
+              <td [attr.colspan]="COLUMNS.length + 1" class="px-6 py-8 text-center text-gray-500">{{ loading() ? 'Chargement...' : 'Aucune expédition trouvée' }}</td>
+            </tr>
+          } @else {
+            @for (expedition of expeditions(); track expedition.id) {
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ expedition.numero }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700 font-mono">{{ expedition.camion?.immatriculation || '-' }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ formatKg(expedition.poids) }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ expedition.destination || '-' }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ formatFcfa(expedition.montant) }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ formatDate(expedition.date) }}</td>
+                <td class="px-6 py-4">
+                  <app-statut-badge [statut]="expedition.statut" [statuts]="STATUTS_EXPEDITION"></app-statut-badge>
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <button (click)="view.emit(expedition)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Voir" [attr.aria-label]="`Voir l'expédition ${expedition.numero}`">
+                    <i class="ri-eye-line"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>

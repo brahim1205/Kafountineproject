@@ -1,0 +1,16 @@
+  <app-modal title="Détails de la transaction" size="2xl" (closed)="closed.emit()" [footerSlot]="true">
+    <ng-container ngProjectAs="[slot-footer]">
+      <button (click)="print.emit(row())" class="px-4 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap">
+        <i class="ri-printer-line"></i>Imprimer le reçu</button>
+    </ng-container>
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      @for (row of items(); track $index) {
+        @let label = row[0];
+        @let value = row[1];
+        <div>
+          <dt class="text-sm text-gray-500">{{ label }}</dt>
+          <dd class="font-medium text-gray-900">{{ value }}</dd>
+        </div>
+      }
+    </dl>
+  </app-modal>

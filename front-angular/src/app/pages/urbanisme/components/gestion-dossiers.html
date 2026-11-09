@@ -1,0 +1,36 @@
+@let activeModal = modal();
+  <div class="space-y-4">
+    @if (created()) {
+      <div role="status" class="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-emerald-200 p-4 flex items-center gap-3 animate-fade-in">
+        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+          <i class="ri-check-line text-emerald-600 text-xl"></i>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-900">Dossier
+            {{ created()!.numero }}
+            créé avec succès !</p>
+          <button (click)="receipt.set(receiptFor(created()!, types())); created.set(null)" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium mt-1 underline">Imprimer le reçu</button>
+        </div>
+      </div>
+    }
+    @if (error()) {
+      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</div>
+    }
+    @if (canCreate()) {
+      <div class="flex justify-end">
+        <button (click)="modal.set({ type: 'nouveau' })" class="px-4 py-2.5 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors whitespace-nowrap">
+          <i class="ri-add-line mr-2"></i>Nouveau dossier</button>
+      </div>
+    }
+    <app-dossiers-table [dossiers]="dossiers()" [types]="types()" [loading]="loading()" (view)="modal.set({ type: 'detail', dossier: $event })"></app-dossiers-table>
+    <app-pagination [page]="page()" [totalPages]="Math.max(1, Math.ceil(total() / PAGE_SIZE))" [total]="total()" unit="dossier" (pageChange)="page.set($event)"></app-pagination>
+    @if (activeModal?.type === 'detail') {
+      <app-dossier-detail-modal [dossier]="activeModal.dossier" [types]="types()" (closed)="modal.set(null)" (print)="receipt.set(receiptFor(activeModal.dossier, types())); modal.set(null)"></app-dossier-detail-modal>
+    }
+    @if (activeModal?.type === 'nouveau') {
+      <app-nouveau-dossier-modal [types]="types()" (closed)="modal.set(null)" (created)="handleCreated($event)"></app-nouveau-dossier-modal>
+    }
+    @if (receipt()) {
+      <app-recu-pdf [transaction]="receipt()!" (closed)="receipt.set(null)"></app-recu-pdf>
+    }
+  </div>

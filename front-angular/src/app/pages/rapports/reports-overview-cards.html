@@ -1,0 +1,42 @@
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-5 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-emerald-100 text-sm">Total annuel</p>
+          <p class="text-3xl font-bold mt-1">{{ (total() / 1000000).toFixed(1) }}M</p>
+          <p class="text-emerald-100 text-xs mt-1">FCFA</p>
+        </div>
+        <i class="ri-money-dollar-circle-line text-4xl text-emerald-200"></i>
+      </div>
+    </div>
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-purple-100 text-sm">Evolution</p>
+          <p class="text-3xl font-bold mt-1">{{ tauxRecouvrement() }}%</p>
+          <p class="text-purple-100 text-xs mt-1">taux de recouvrement</p>
+        </div>
+        <i class="ri-line-chart-line text-4xl text-purple-200"></i>
+      </div>
+    </div>
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-sm">Transactions</p>
+          <p class="text-3xl font-bold mt-1">{{ overview()?.txStats?.annee?.transactions?.toLocaleString('fr-FR') || 0 }}</p>
+          <p class="text-blue-100 text-xs mt-1">tickets emis</p>
+        </div>
+        <i class="ri-file-list-3-line text-4xl text-blue-200"></i>
+      </div>
+    </div>
+    <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-amber-100 text-sm">Contribuables</p>
+          <p class="text-3xl font-bold mt-1">{{ overview()?.totalContribuables?.toLocaleString('fr-FR') || 0 }}</p>
+          <p class="text-amber-100 text-xs mt-1">inscrits</p>
+        </div>
+        <i class="ri-user-line text-4xl text-amber-200"></i>
+      </div>
+    </div>
+  </div>

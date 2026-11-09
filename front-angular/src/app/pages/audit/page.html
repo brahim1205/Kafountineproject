@@ -1,0 +1,225 @@
+  <div class="space-y-6">
+    @if (errorMsg()) {
+      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMsg() }}</div>
+    }
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Journal d'audit</h1>
+        <p class="text-sm text-gray-600 mt-1">Traçabilité complète de toutes les opérations système - Année
+          {{ selectedYear() }}</p>
+      </div>
+      <div class="flex gap-2">
+        <button (click)="handleExport()" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+          <i class="ri-download-line"></i>Exporter le journal</button>
+      </div>
+    </div>
+    @if (showSuccessMessage()) {
+      <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+        <i class="ri-checkbox-circle-fill text-green-600 text-xl"></i>
+        <div>
+          <p class="text-sm font-medium text-gray-900">Export réussi !</p>
+          <p class="text-xs text-gray-600">Le journal d'audit a été téléchargé</p>
+        </div>
+      </div>
+    }
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl p-4 border border-gray-200">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+            <i class="ri-file-list-line text-gray-600"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-gray-900">{{ stats().total }}</p>
+            <p class="text-xs text-gray-500">Total actions</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-gray-200">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+            <i class="ri-check-line text-green-600"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-gray-900">{{ stats().success }}</p>
+            <p class="text-xs text-gray-500">Succès</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-gray-200">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+            <i class="ri-alert-line text-yellow-600"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-gray-900">{{ stats().warning }}</p>
+            <p class="text-xs text-gray-500">Avertissements</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-gray-200">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+            <i class="ri-close-line text-red-600"></i>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-gray-900">{{ stats().error }}</p>
+            <p class="text-xs text-gray-500">Erreurs</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl p-4 border border-gray-200">
+      <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+          <div class="relative">
+            <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input type="text" placeholder="Rechercher..." [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+          </div>
+        </div>
+        <select [value]="filterModule()" (change)="filterModule.set($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+          <option value="all">Tous les modules</option>
+          <option value="Recettes">Recettes</option>
+          <option value="Taxes">Taxes</option>
+          <option value="Urbanisme">Urbanisme</option>
+          <option value="Motos">Motos</option>
+          <option value="Utilisateurs">Utilisateurs</option>
+          <option value="Dashboard">Dashboard</option>
+        </select>
+        <select [value]="filterStatus()" (change)="filterStatus.set($any($event.target).value)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+          <option value="all">Tous les statuts</option>
+          <option value="success">Succès</option>
+          <option value="warning">Avertissement</option>
+          <option value="error">Erreur</option>
+        </select>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      @if (loading()) {
+        <div class="flex items-center justify-center h-64">
+          <div class="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-6 py-3 text-left text-gray-600 uppercase tracking-wider whitespace-nowrap">Date & Heure</th>
+                <th class="px-6 py-3 text-left text-xs font-medium-xs font-medium text text-gray-600 uppercase tracking-wider whitespace-nowrap">Utilisateur</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Action</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Module</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Détails</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Statut</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              @for (log of filteredLogs(); track log.id) {
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div class="flex flex-col">
+                      <span>{{ log.date }}</span>
+                      <span class="text-gray-500">{{ log.time }}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-semibold text-xs">{{ userInitials(log) }}</div>
+                      <div>
+                        <p class="text-sm font-medium text-gray-900">{{ log.user }}</p>
+                        <p class="text-xs text-gray-500">{{ log.role }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ log.action }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ log.module }}</span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{{ log.details }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    @if (badge(log.status)) {
+                      <span [class]="badge(log.status).cls" [innerHTML]="badge(log.status).html"></span>
+                    }
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <button (click)="openDetailModal(log)" class="text-emerald-600 hover:text-emerald-700">
+                      <i class="ri-eye-line text-lg"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      @if (!loading()) {
+        <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+          <p class="text-sm text-gray-600">{{ stats().total.toLocaleString('fr-FR') }}
+            entrée{{ stats().total > 1 ? 's' : '' }}
+            — page
+            {{ page() }}
+            sur
+            {{ totalPages() }}</p>
+          @if (totalPages() > 1) {
+            <div class="flex gap-2 text-sm">
+              <button (click)="pageSummary()" [disabled]="page() === 1" class="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40">Précédent</button>
+              <button (click)="pageSummary2()" [disabled]="page() >= totalPages()" class="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40">Suivant</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+    @if (showDetailModal() && selectedLog()) {
+      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Détails de l'entrée d'audit</h3>
+            <button (click)="showDetailModal.set(false)" class="text-gray-400 hover:text-gray-600">
+              <i class="ri-close-line text-xl"></i>
+            </button>
+          </div>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-xs text-gray-500">Date</p>
+                <p class="text-sm font-medium text-gray-900">{{ selectedLog()!.date }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Heure</p>
+                <p class="text-sm font-medium text-gray-900">{{ selectedLog()!.time }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Utilisateur</p>
+                <p class="text-sm font-medium text-gray-900">{{ selectedLog()!.user }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Rôle</p>
+                <p class="text-sm font-medium text-gray-900">{{ selectedLog()!.role }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Action</p>
+                <p class="text-sm font-medium text-gray-900">{{ selectedLog()!.action }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Module</p>
+                <p class="text-sm font-medium text-gray-900">{{ selectedLog()!.module }}</p>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500">Détails</p>
+              <p class="text-sm font-medium text-gray-900">{{ selectedLog()!.details }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500">Adresse IP</p>
+              <p class="text-sm font-medium text-gray-900">{{ selectedLog()!.ipAddress || '-' }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500">Statut</p>
+              @if (badge(selectedLog()!.status)) {
+                <span [class]="badge(selectedLog()!.status).cls" [innerHTML]="badge(selectedLog()!.status).html"></span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>

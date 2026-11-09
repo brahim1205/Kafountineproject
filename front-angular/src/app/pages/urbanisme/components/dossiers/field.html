@@ -1,0 +1,12 @@
+  <div [class]="wide() ? 'md:col-span-2' : undefined">
+    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+      {{ label() }}&ngsp;
+      @if (required()) {
+        <span class="text-red-500">*</span>
+      }
+    </label>
+    <div class="relative">
+      <i [class]="`${icon()} absolute left-4 top-1/2 -translate-y-1/2 text-gray-400`"></i>
+      <ng-content />
+    </div>
+  </div>

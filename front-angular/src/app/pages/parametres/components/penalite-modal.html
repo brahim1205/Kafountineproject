@@ -1,0 +1,21 @@
+  <app-modal [title]="penalite() ? 'Modifier la pénalité' : 'Nouvelle pénalité'" (closed)="closed.emit()">
+    <form (submit)="handleSubmit($event)" (input)="clearFieldValidationError($event)" novalidate class="space-y-4">
+      <div>
+        <app-label [required]="true">Type</app-label>
+        <input name="type" data-required="true" [value]="penalite()?.type" [class]="INPUT_CLASS" />
+      </div>
+      <div>
+        <app-label [required]="true">Montant (FCFA)</app-label>
+        <input name="montant" type="number" min="0" data-required="true" [value]="penalite()?.montant" [class]="INPUT_CLASS" />
+      </div>
+      <div>
+        <app-label [required]="true">Délai d'application</app-label>
+        <input name="delai" data-required="true" [value]="penalite()?.delai" placeholder="Ex: 5 jours après échéance" [class]="INPUT_CLASS" />
+      </div>
+      <div>
+        <app-label>Description</app-label>
+        <textarea name="description" [value]="penalite()?.description" [class]="INPUT_CLASS" [rows]="2"></textarea>
+      </div>
+      <app-modal-actions (cancelled)="closed.emit()" [submitting]="submitting()" [submitLabel]="penalite() ? 'Enregistrer' : 'Créer'"></app-modal-actions>
+    </form>
+  </app-modal>

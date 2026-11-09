@@ -1,0 +1,19 @@
+  <app-modal title="Détails de la Ligne Budgétaire" (closed)="closed.emit()" [footerSlot]="true">
+    <ng-container ngProjectAs="[slot-footer]">
+      <button (click)="closed.emit()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">Fermer</button>
+    </ng-container>
+    <dl class="grid grid-cols-2 gap-4">
+      @for (row of items(); track $index) {
+        @let label = row[0];
+        @let value = row[1];
+        @let tone = row[2];
+        <div>
+          <dt class="text-sm text-gray-500">{{ label }}</dt>
+          <dd [class]="`font-medium ${tone}`">{{ value }}</dd>
+        </div>
+      }
+    </dl>
+    @if (ligne().description) {
+      <p class="text-sm text-gray-600">{{ ligne().description }}</p>
+    }
+  </app-modal>

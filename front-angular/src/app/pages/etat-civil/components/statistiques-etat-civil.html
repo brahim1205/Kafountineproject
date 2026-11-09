@@ -1,0 +1,61 @@
+@if (loading()) {
+  <div class="flex items-center justify-center h-64">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+  </div>
+} @else {
+  <div class="space-y-6">
+    @if (errorMsg()) {
+      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMsg() }}</div>
+    }
+    @if (showSuccessMessage()) {
+      <div class="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-emerald-200 p-4 flex items-center gap-3 animate-fade-in">
+        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+          <i class="ri-check-line text-emerald-600 text-xl"></i>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-900">Export réussi !</p>
+          <p class="text-xs text-gray-600">Le fichier
+            {{ exportType() === 'excel' ? 'Excel' : 'PDF' }}
+            a été téléchargé</p>
+        </div>
+      </div>
+    }
+    <div class="flex justify-end gap-2">
+      <button (click)="handleExport('pdf')" class="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 cursor-pointer">
+        <i class="ri-file-pdf-line"></i>Exporter PDF</button>
+      <button (click)="handleExport('excel')" class="px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 cursor-pointer">
+        <i class="ri-file-excel-line"></i>Exporter Excel</button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      @for (stat of statsData(); track index; let index = $index) {
+        <div class="bg-white rounded-lg border border-gray-200 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div [class]="`w-10 h-10 rounded-lg bg-${stat.color}-100 flex items-center justify-center`">
+              <i [class]="`${stat.icon} text-${stat.color}-600 text-xl`"></i>
+            </div>
+          </div>
+          <p class="text-2xl font-bold text-gray-900 mb-1">{{ stat.value }}</p>
+          <p class="text-sm text-gray-600">{{ stat.label }}</p>
+        </div>
+      }
+    </div>
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Répartition par statut</h3>
+      <div class="grid grid-cols-3 gap-4">
+        <div class="text-center p-4 bg-amber-50 rounded-lg">
+          <p class="text-3xl font-bold text-amber-600">{{ stats().demandesEnAttente }}</p>
+          <p class="text-sm text-amber-700">En attente</p>
+        </div>
+        <div class="text-center p-4 bg-emerald-50 rounded-lg">
+          <p class="text-3xl font-bold text-emerald-600">{{ stats().demandesDelivrees }}</p>
+          <p class="text-sm text-emerald-700">Délivrées</p>
+        </div>
+        <div class="text-center p-4 bg-red-50 rounded-lg">
+          <p class="text-3xl font-bold text-red-600">{{ stats().demandesRejetees }}</p>
+          <p class="text-sm text-red-700">Rejetées</p>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+

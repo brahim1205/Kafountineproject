@@ -27,5 +27,7 @@ jobs:
           cache: npm
           cache-dependency-path: front-angular/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm run build
-      - run: npm test -- --watch=false
+      - run: npm test -- --watch=false --coverage
+      - run: npm audit --omit=dev --audit-level=high

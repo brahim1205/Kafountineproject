@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Activation : make hooks
+set -euo pipefail
+
+bash scripts/security-repo-scan.sh
+
+if git diff --cached --name-only | grep -q '^front-angular/src/'; then
+  (cd front-angular && npm run --silent lint)
+fi

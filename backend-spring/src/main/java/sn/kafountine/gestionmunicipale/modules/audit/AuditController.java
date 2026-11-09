@@ -42,13 +42,6 @@ public class AuditController {
         search == null ? "" : search.strip(), module == null ? "" : module.strip(), statut == null ? "" : statut.strip().toLowerCase(Locale.ROOT)));
   }
 
-  @PostMapping("/seed")
-  @Roles({"ADMIN", "SUPER_ADMIN"})
-  public ResponseEntity<Map<String, Object>> seed() {
-    service.seed(RequestContext.actor());
-    return Api.message("Log de démonstration généré");
-  }
-
   @PostMapping("/export")
   @Roles({"ADMIN", "SUPER_ADMIN"})
   public ResponseEntity<byte[]> export(@Body JsonNode body) {

@@ -34,11 +34,26 @@ import sn.kafountine.gestionmunicipale.shared.validation.Input;
 public class TransactionService {
   /** Critères communs à la liste et à l'export ; `categories` est rempli par {@link #withCategoryVariants}. */
   public record Criteria(String search, String categorie, String statut, String agentId, String startDate, String endDate, Integer year,
-      List<String> categories) {
+      List<String> categories, boolean excludeEtatCivil) {
+    Criteria(String search, String categorie, String statut, String agentId, String startDate, String endDate, Integer year, List<String> categories) {
+      this(search, categorie, statut, agentId, startDate, endDate, year, categories, false);
+    }
+
     Criteria withCategories(List<String> values) {
-      return new Criteria(search, categorie, statut, agentId, startDate, endDate, year, values);
+      return new Criteria(search, categorie, statut, agentId, startDate, endDate, year, values, excludeEtatCivil);
+    }
+
+    /** L'état civil est réservé à ses agents : le compte état civil ne voit que lui, le régisseur tout sauf lui. */
+    public Criteria scopedTo(String role) {
+      return switch (role) {
+        case "ETAT_CIVIL" -> new Criteria(search, ETAT_CIVIL_CATEGORY, statut, agentId, startDate, endDate, year, categories, false);
+        case "REGISSEUR" -> new Criteria(search, categorie, statut, agentId, startDate, endDate, year, categories, true);
+        default -> this;
+      };
     }
   }
+
+  private static final String ETAT_CIVIL_CATEGORY = "etat-civil";
 
   /** Champs du compte d'un agent rendus avec ses tickets : jamais le mot de passe. */
   private static final String AGENT_PUBLIC = "\"id\", \"email\", \"nom\", \"prenom\", \"role\", \"telephone\", \"isActive\", \"lastLogin\", \"createdAt\", \"updatedAt\"";
@@ -91,6 +106,9 @@ public class TransactionService {
     } else if (criteria.categorie() != null && !criteria.categorie().isEmpty()) {
       clauses.add("t.\"categorie\" = :categorie");
       params.addValue("categorie", criteria.categorie());
+    }
+    if (criteria.excludeEtatCivil()) {
+      clauses.add("t.\"categorie\" !~* '^[eé]tat[ _-]?civil'");
     }
     if (criteria.statut() != null && !criteria.statut().isEmpty()) {
       clauses.add("t.\"statut\" = :statut");

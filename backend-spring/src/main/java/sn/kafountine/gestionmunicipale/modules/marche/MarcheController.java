@@ -127,6 +127,7 @@ public class MarcheController {
     String datePaiement = input.str("datePaiement").max(50).refine(v -> Js.parseDate(v) != null, "Date invalide").optional();
     Integer year = Common.year(input);
     input.check();
+    Common.assertOpenYear(year);
     return Api.created(service.createPayment(RequestContext.actor(), new MarcheService.PaymentInput(placeId, montant, reference, periode, statut, datePaiement, year)));
   }
 

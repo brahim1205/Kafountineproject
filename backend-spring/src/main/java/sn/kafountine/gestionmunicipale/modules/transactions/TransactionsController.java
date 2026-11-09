@@ -83,7 +83,7 @@ public class TransactionsController {
     Input query = Input.query(request.getParameterMap());
     int page = query.num("page").integer().min(1).optionalInt(1);
     int limit = query.num("limit").integer().min(1).max(300).optionalInt(20);
-    TransactionService.Criteria criteria = criteria(query);
+    TransactionService.Criteria criteria = criteria(query).scopedTo(RequestContext.user().role());
     query.check();
     Map<String, Object> result = service.list(criteria, Math.max(1, page), Math.min(300, Math.max(1, limit)));
     return Api.okWithMeta(result.get("data"), (Map<String, Object>) result.get("meta"));
@@ -122,7 +122,7 @@ public class TransactionsController {
     query.check();
     int year = Common.yearOrCurrent(parsed.year());
     TransactionService.Criteria criteria = new TransactionService.Criteria(parsed.search(), parsed.categorie(), parsed.statut(), parsed.agentId(),
-        parsed.startDate(), parsed.endDate(), year, null);
+        parsed.startDate(), parsed.endDate(), year, null).scopedTo(RequestContext.user().role());
     response.setStatus(200);
     response.setHeader("Content-Type", "text/csv; charset=utf-8");
     response.setHeader("Content-Disposition", "attachment; filename=\"tickets_" + year + ".csv\"");

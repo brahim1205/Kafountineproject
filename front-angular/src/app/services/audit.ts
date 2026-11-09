@@ -62,10 +62,6 @@ export class AuditApi {
   return this.api.request<AuditResponse>(`/audit${query}`);
 }
 
-  async seedAuditLogs(): Promise<{ success: boolean; message: string }> {
-  return this.api.request<{ success: boolean; message: string }>('/audit/seed', { method: 'POST' });
-}
-
   async exportAuditLogs(year: number): Promise<Blob> {
   const response = await fetch(`${API_BASE_URL}/audit/export`, {
     method: 'POST',

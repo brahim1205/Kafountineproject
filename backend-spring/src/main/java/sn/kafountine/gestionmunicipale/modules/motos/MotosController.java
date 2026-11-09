@@ -139,6 +139,7 @@ public class MotosController {
     String mois = input.str("mois").max(80).optional();
     Integer year = Common.year(input);
     input.check();
+    Common.assertOpenYear(year);
     return Api.created(service.createPayment(RequestContext.actor(), new MotoService.PaymentInput(motoId, type, reference, mois, year)));
   }
 }

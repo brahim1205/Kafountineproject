@@ -15,8 +15,16 @@ export async function restoreAdminSession(page: Page) {
 }
 
 export async function loginAsAdmin(page: Page) {
+  await loginAs(page, 'admin@kafountine.gouv.sn');
+}
+
+export async function loginAsSuperAdmin(page: Page) {
+  await loginAs(page, 'superadmin@kafountine.gouv.sn');
+}
+
+async function loginAs(page: Page, email: string) {
   await page.goto('/login');
-  await page.getByLabel('Adresse email').fill('admin@kafountine.gouv.sn');
+  await page.getByLabel('Adresse email').fill(email);
   const password = process.env.SEED_DEFAULT_PASSWORD;
   if (!password) throw new Error('SEED_DEFAULT_PASSWORD must match the test database seed');
   await page.getByLabel('Mot de passe').fill(password);

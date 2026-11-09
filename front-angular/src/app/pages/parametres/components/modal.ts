@@ -17,7 +17,7 @@ export class Modal {
 
   readonly titleSlot = input(false);
 
-  readonly close = output<void>();
+  readonly closed = output<void>();
 
   readonly wide = input<boolean | undefined>(undefined);
 }

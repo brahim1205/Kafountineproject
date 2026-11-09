@@ -55,7 +55,7 @@ public class MediasController {
       for (MultipartFile file : entry.getValue()) {
         if (!entry.getKey().equals("image") || found != null) throw internal();
         if (!ALLOWED.contains(String.valueOf(file.getContentType()))) throw AppException.validation("Type de fichier non autorisé. Utilisez JPG, PNG ou WEBP.");
-        if (file.getSize() > Env.MAX_UPLOAD_FILE_SIZE_BYTES) throw internal();
+        if (file.getSize() > Env.MAX_UPLOAD_FILE_SIZE_BYTES) throw new AppException(413, "Image trop volumineuse.");
         found = file;
       }
     }

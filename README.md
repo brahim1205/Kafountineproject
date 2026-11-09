@@ -35,7 +35,6 @@ Production : <https://orbyteconsulting.tech>
 ```text
 .
 ├── front-angular/          # Interface en production (Angular 22)
-├── front/                  # Ancienne interface React, conservée jusqu'à la recette
 ├── backend-spring/         # API REST Java Spring Boot
 ├── database/               # Migrations Prisma, données de démonstration, tests d'API
 ├── infra/                  # Terraform, Kubernetes, Helm, systemd
@@ -149,4 +148,4 @@ Le workflow [deploy.yml](./.github/workflows/deploy.yml) vérifie le code, const
 
 ## Versions précédentes
 
-Le tag `memoire-node-react` conserve la version avec le backend Node.js et l'interface React.
+Le tag `memoire-node-react` conserve la version avec le backend Node.js et l'interface React. Le tag `derniere-version-react` conserve la dernière version de l'interface React.

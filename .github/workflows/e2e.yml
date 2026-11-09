@@ -6,22 +6,22 @@ on:
       - main
       - develop
     paths:
-      - 'front/e2e/**'
-      - 'front/src/**'
-      - 'front/playwright.config.ts'
-      - 'front/package.json'
-      - 'front/package-lock.json'
+      - 'front-angular/e2e/**'
+      - 'front-angular/src/**'
+      - 'front-angular/playwright.config.ts'
+      - 'front-angular/package.json'
+      - 'front-angular/package-lock.json'
       - 'backend-spring/**'
       - 'database/**'
       - 'scripts/security-repo-scan.sh'
       - '.github/workflows/e2e.yml'
   pull_request:
     paths:
-      - 'front/e2e/**'
-      - 'front/src/**'
-      - 'front/playwright.config.ts'
-      - 'front/package.json'
-      - 'front/package-lock.json'
+      - 'front-angular/e2e/**'
+      - 'front-angular/src/**'
+      - 'front-angular/playwright.config.ts'
+      - 'front-angular/package.json'
+      - 'front-angular/package-lock.json'
       - 'backend-spring/**'
       - 'database/**'
       - 'scripts/security-repo-scan.sh'
@@ -41,7 +41,7 @@ jobs:
       JWT_SECRET: ci_e2e_jwt_secret_32_chars_minimum_value
       JWT_REFRESH_SECRET: ci_e2e_refresh_secret_32_chars_minimum
       SEED_DEFAULT_PASSWORD: TestPassword123!
-      CORS_ORIGIN: http://localhost:4173
+      CORS_ORIGIN: http://127.0.0.1:5174
       COOKIE_SAME_SITE: lax
       REDIS_URL: redis://127.0.0.1:6379
       # La suite se connecte des dizaines de fois depuis la même IP : on lève la limite anti-bruteforce en test.
@@ -76,22 +76,20 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: |
-            front/package-lock.json
+            front-angular/package-lock.json
             database/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: front
+        working-directory: front-angular
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-        working-directory: front
+        working-directory: front-angular
 
       - name: Build frontend
         run: npm run build
-        working-directory: front
-        env:
-          VITE_API_URL: http://localhost:3000/api/v1
+        working-directory: front-angular
 
       - uses: actions/setup-java@v4
         with:
@@ -108,16 +106,9 @@ jobs:
       - name: Repository security scan
         run: bash ./scripts/security-repo-scan.sh
 
-      - name: Start frontend for testing
-        run: npm run preview -- --host 0.0.0.0 --port 4173 > /tmp/kafontine-front.log 2>&1 &
-        working-directory: front
-        env:
-          VITE_API_URL: http://localhost:3000/api/v1
-
-      - name: Wait for services
+      - name: Wait for backend
         run: |
           sleep 10
-          curl -f http://localhost:4173 || exit 1
           for i in {1..30}; do
             if curl -f http://localhost:3000/health; then
               exit 0
@@ -130,18 +121,16 @@ jobs:
 
       - name: Run E2E tests
         run: npx playwright test
-        working-directory: front
+        working-directory: front-angular
         env:
-          FRONTEND_URL: http://localhost:4173
           CI: 'true'
-          PLAYWRIGHT_EXTERNAL_SERVER: 'true'
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: front/playwright-report/
+          path: front-angular/playwright-report/
           retention-days: 7
 
       - name: Upload Playwright traces
@@ -149,5 +138,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces
-          path: front/test-results/
+          path: front-angular/test-results/
           retention-days: 14

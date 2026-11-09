@@ -60,9 +60,9 @@ echo "Checking backend build..."
 (cd "$ROOT_DIR/backend-spring" && mvn -q -Dmaven.test.skip=true package >/dev/null)
 
 echo "Checking frontend build..."
-(cd "$ROOT_DIR/front" && npm run build >/dev/null)
+(cd "$ROOT_DIR/front-angular" && npm run build >/dev/null)
 
 echo "Checking frontend tests..."
-(cd "$ROOT_DIR/front" && npm run test:run >/dev/null)
+(cd "$ROOT_DIR/front-angular" && npm test -- --watch=false >/dev/null)
 
 echo "Production preflight passed."

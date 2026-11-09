@@ -136,7 +136,7 @@ describeIntegration('services municipaux (intégration)', () => {
   });
 
   describe('recettes', () => {
-    // Payload exact de createTransaction (front/src/services/taxes.ts), envoyé par Recettes et Taxes.
+    // Payload exact de createTransaction (front-angular/src/app/services/taxes.ts), envoyé par Recettes et Taxes.
     it('enregistre un ticket avec la catégorie envoyée par le frontend', async () => {
       const res = await agent.post('/transactions', {
         contribuableId,

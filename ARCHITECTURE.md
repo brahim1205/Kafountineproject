@@ -54,7 +54,7 @@
 ```bash
 # Démarrer l'environnement local
 make backend-local   # Backend + DB + Redis
-make front-local     # Frontend Vite
+make front-local     # Interface Angular
 ```
 
 ---

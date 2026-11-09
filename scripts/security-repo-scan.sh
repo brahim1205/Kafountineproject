@@ -18,7 +18,7 @@ local_env_files="$(
     -not -name '*.sample' \
     -not -name '*.template' \
     -not -path './node_modules/*' \
-    -not -path './front/node_modules/*' \
+    -not -path './front-angular/node_modules/*' \
     -not -path './database/node_modules/*' \
     -not -path './pg_data/*' |
     sort || true
@@ -41,7 +41,7 @@ secret_hits="$(
     ':!*.sample' \
     ':!*.template' \
     ':!package-lock.json' \
-    ':!front/package-lock.json' \
+    ':!front-angular/package-lock.json' \
     ':!database/package-lock.json' |
     grep -v -E "(=(__SET_|CHANGE_ME|local-dev|postgres123|redis://:__SET_|postgresql://postgres:__SET_|postgresql://\\.\\.\\.|process\.env|\\$\\{|CHANGE_ME_)|='\\.\\.\\.'|=\\\"\\$\\{[A-Z_]+:\\?)" || true
 )"
@@ -54,8 +54,7 @@ fi
 
 frontend_third_party_assets="$(
   git grep -n -I -E 'https://(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com|images\.unsplash\.com|ui-avatars\.com)' -- \
-    'front/index.html' \
-    'front/src' || true
+    'front-angular/src' || true
 )"
 if [[ -n "$frontend_third_party_assets" ]]; then
   echo "Frontend runtime third-party asset URLs detected:" >&2
@@ -63,9 +62,9 @@ if [[ -n "$frontend_third_party_assets" ]]; then
   failures=1
 fi
 
-if grep -Eq '/etc/nginx/templates/.*\.template' front/Dockerfile.prod &&
-   grep -Eq '\$(host|remote_addr|proxy_add_x_forwarded_for|scheme)' front/nginx.conf &&
-   ! grep -Eq 'NGINX_ENVSUBST_FILTER=.*NGINX_BACKEND_URL' front/Dockerfile.prod; then
+if grep -Eq '/etc/nginx/templates/.*\.template' front-angular/Dockerfile.prod &&
+   grep -Eq '\$(host|remote_addr|proxy_add_x_forwarded_for|scheme)' front-angular/nginx.conf &&
+   ! grep -Eq 'NGINX_ENVSUBST_FILTER=.*NGINX_BACKEND_URL' front-angular/Dockerfile.prod; then
   echo "Nginx template uses native Nginx variables without NGINX_ENVSUBST_FILTER." >&2
   failures=1
 fi

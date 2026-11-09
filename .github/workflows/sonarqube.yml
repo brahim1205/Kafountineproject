@@ -7,14 +7,14 @@ on:
     paths:
       - 'backend-spring/**'
       - 'database/**'
-      - 'front/**'
+      - 'front-angular/**'
       - 'sonar-project.properties'
       - '.github/workflows/sonarqube.yml'
   pull_request:
     paths:
       - 'backend-spring/**'
       - 'database/**'
-      - 'front/**'
+      - 'front-angular/**'
       - 'sonar-project.properties'
       - '.github/workflows/sonarqube.yml'
   workflow_dispatch:
@@ -57,12 +57,12 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: front/package-lock.json
+          cache-dependency-path: front-angular/package-lock.json
 
       - name: Install frontend dependencies
         if: steps.sonar-check.outputs.enabled == 'true'
         run: npm ci
-        working-directory: front
+        working-directory: front-angular
 
       - uses: actions/setup-java@v4
         if: steps.sonar-check.outputs.enabled == 'true'
@@ -79,17 +79,17 @@ jobs:
       - name: Lint frontend
         if: steps.sonar-check.outputs.enabled == 'true'
         run: npm run lint
-        working-directory: front
+        working-directory: front-angular
 
       - name: Build frontend
         if: steps.sonar-check.outputs.enabled == 'true'
         run: npm run build
-        working-directory: front
+        working-directory: front-angular
 
       - name: Run frontend tests with coverage
         if: steps.sonar-check.outputs.enabled == 'true'
-        run: npm run test:coverage -- --run
-        working-directory: front
+        run: npm test -- --watch=false --coverage --coverage-reporters=lcov
+        working-directory: front-angular
 
       - name: SonarQube Scan
         if: steps.sonar-check.outputs.enabled == 'true'

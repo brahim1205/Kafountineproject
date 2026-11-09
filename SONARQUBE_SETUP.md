@@ -36,14 +36,14 @@ Le job ne s’exécute que si `SONAR_HOST_URL` et `SONAR_TOKEN` existent.
 
 Sources analysées:
 
-- `backend/src`
-- `front/src`
+- `backend-spring/src/main/java`
+- `front-angular/src`
 
 Tests déclarés:
 
-- `backend/src/test`
-- `front/src/test`
-- `front/e2e`
+- `database/test`
+- `front-angular/src` (`*.spec.ts`)
+- `front-angular/e2e`
 
 Exclusions principales:
 

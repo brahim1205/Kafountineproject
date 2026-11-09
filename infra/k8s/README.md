@@ -55,7 +55,7 @@ Ce dossier contient l'ensemble des manifestes Kubernetes pour déployer Kafontin
 | `03-postgres.yml` | StatefulSet + Service | Base de données PostgreSQL |
 | `04-redis.yml` | StatefulSet + Service | Cache Redis protégé par mot de passe |
 | `06-backend.yml` | Deployment + Service + HPA | API backend avec auto-scaling |
-| `07-frontend.yml` | Deployment + Service | Application React |
+| `07-frontend.yml` | Deployment + Service | Application Angular |
 | `09-prometheus.yml` | Deployment + Service | Métriques Prometheus |
 | `10-grafana.yml` | Deployment + Service | Dashboards Grafana |
 | `12-network-policy.yml` | NetworkPolicy | Isolation réseau |

@@ -33,6 +33,9 @@ public class AuthService {
     this.db = db;
   }
 
+  /** Empreinte vérifiée pour un compte inconnu, afin que le temps de réponse ne révèle pas son existence. */
+  private static final String UNKNOWN_ACCOUNT_HASH = PasswordPolicy.hash(UUID.randomUUID().toString());
+
   private static boolean active(Map<String, Object> user) {
     return user != null && Boolean.TRUE.equals(user.get("isActive"));
   }
@@ -43,7 +46,8 @@ public class AuthService {
 
   public Tokens login(String email, String password) {
     Map<String, Object> user = users.findByEmail(email);
-    if (!active(user) || !PasswordPolicy.matches(password, Db.str(user, "password"))) {
+    boolean passwordMatches = PasswordPolicy.matches(password, user == null ? UNKNOWN_ACCOUNT_HASH : Db.str(user, "password"));
+    if (!active(user) || !passwordMatches) {
       throw AppException.unauthorized("Identifiants invalides");
     }
     String sessionId = UUID.randomUUID().toString();

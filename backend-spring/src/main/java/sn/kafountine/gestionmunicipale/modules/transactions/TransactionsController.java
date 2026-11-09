@@ -90,7 +90,7 @@ public class TransactionsController {
   }
 
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String contribuableId = input.str("contribuableId").noTrim().uuid("ID contribuable invalide").required();

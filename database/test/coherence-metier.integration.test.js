@@ -213,6 +213,58 @@ describeIntegration('cohérence métier', () => {
     });
   });
 
+  describe('actes d’état civil', () => {
+    it('refuse les actes en ticket, quelle que soit leur écriture', async () => {
+      for (const categorie of ['etat-civil', 'État civil', 'ETAT_CIVIL']) {
+        const res = await agent.post('/transactions').send({ contribuableId, categorie, type: categorie, service: 'Acte', montant: 300 });
+        expect(res.status).toBe(400);
+      }
+      expect((await etatCivil.post('/transactions').send({ contribuableId, categorie: 'test', type: 'test', montant: 300 })).status).toBe(403);
+    });
+
+    it('garde les anciens tickets lisibles', async () => {
+      expect((await etatCivil.get('/transactions?limit=5')).status).toBe(200);
+    });
+  });
+
+  describe('loyers du marché', () => {
+    const occupee = async (periode, tarif = 4000) => {
+      serie += 1;
+      const res = await admin.post('/marche/places').send({
+        numeroPlace: `L${suffix}${serie}`, type: 'Table', zone: 'Sud', tarif, periode, year, statut: 'OCCUPEE', occupantId: await nouveauContribuable(),
+      });
+      expect(res.status).toBe(201);
+      return res.body.data;
+    };
+    const lignes = async (place) => (await admin.get(`/marche/paiements?year=${year}&page=1&limit=20&search=${place.numeroPlace}`)).body.data;
+    const mois = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    const courant = () => `${mois[new Date().getUTCMonth()]} ${new Date().getUTCFullYear()}`;
+
+    it('crée un seul loyer dû pour la période et l’encaisse sans doublon', async () => {
+      const place = await occupee('mois');
+      const dus = await lignes(place);
+      expect(dus).toHaveLength(1);
+      expect(dus[0]).toMatchObject({ statut: 'EN_ATTENTE', periode: courant(), montant: 4000 });
+      expect((await admin.put(`/marche/places/${place.id}`).send({ activite: 'Légumes' })).status).toBe(200);
+      expect(await lignes(place)).toHaveLength(1);
+
+      const impayes = async () => (await admin.get('/impayes?limit=1000')).body.data.lignes.filter((l) => l.id === dus[0].id);
+      expect(await impayes()).toHaveLength(1);
+      expect((await agent.post('/marche/paiements').send({ placeId: place.id, montant: 4000, periode: courant(), year })).status).toBe(201);
+      const apres = await lignes(place);
+      expect(apres).toHaveLength(1);
+      expect(apres[0].statut).toBe('PAYE');
+      expect(await impayes()).toHaveLength(0);
+    });
+
+    it('applique le rythme de la place et ignore une place libre', async () => {
+      const annuelle = await occupee('annee', 50000);
+      expect((await lignes(annuelle))[0]).toMatchObject({ periode: `Année ${year}`, montant: 50000 });
+      const libre = await nouvellePlace();
+      expect(await lignes(libre)).toHaveLength(0);
+    });
+  });
+
   describe('recouvrement', () => {
     it('présente la situation d’un contribuable et cloisonne l’état civil', async () => {
       const id = await nouveauContribuable();

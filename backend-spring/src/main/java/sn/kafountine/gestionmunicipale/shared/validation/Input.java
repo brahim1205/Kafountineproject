@@ -4,10 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -31,7 +27,6 @@ public final class Input {
   private static final Pattern UUID = Pattern.compile("^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$");
 
   private final ObjectNode node;
-  private final boolean query;
   private final Set<String> declared = new LinkedHashSet<>();
   private final List<Map<String, String>> issues;
   /** Chemin d'un objet imbriqué (« modules.1 »), vide à la racine. */
@@ -43,9 +38,8 @@ public final class Input {
   private boolean aborted;
   private final List<Object[]> refinements = new ArrayList<>();
 
-  private Input(ObjectNode node, boolean query) {
+  private Input(ObjectNode node) {
     this.node = node;
-    this.query = query;
     this.issues = new ArrayList<>();
     this.prefix = "";
     this.parent = null;
@@ -54,7 +48,6 @@ public final class Input {
   /** Objet imbriqué (élément d'un tableau) : ses erreurs rejoignent celles du parent, préfixées de son chemin. */
   private Input(ObjectNode node, Input parent, String prefix) {
     this.node = node;
-    this.query = false;
     this.issues = parent.issues;
     this.prefix = prefix;
     this.parent = parent;
@@ -92,14 +85,14 @@ public final class Input {
 
   /** Corps JSON d'une requête (absent ou non-objet : objet vide, comme express.json). */
   public static Input body(JsonNode body) {
-    if (body == null || body.isNull() || body.isMissingNode()) return new Input(JsonNodeFactory.instance.objectNode(), false);
+    if (body == null || body.isNull() || body.isMissingNode()) return new Input(JsonNodeFactory.instance.objectNode());
     if (!body.isObject()) {
-      Input input = new Input(JsonNodeFactory.instance.objectNode(), false);
+      Input input = new Input(JsonNodeFactory.instance.objectNode());
       input.abortingIssue("", "Entrée invalide : objet attendu, " + received(body) + " reçu");
       input.rootFailed = true;
       return input;
     }
-    return new Input((ObjectNode) body, false);
+    return new Input((ObjectNode) body);
   }
 
   /** Paramètres de requête (chaînes) : les nombres et booléens sont convertis comme z.coerce. */
@@ -115,13 +108,13 @@ public final class Input {
         for (String value : values) array.add(value);
       }
     });
-    return new Input(node, true);
+    return new Input(node);
   }
 
   public static Input params(Map<String, String> pathVariables) {
     ObjectNode node = JsonNodeFactory.instance.objectNode();
     pathVariables.forEach(node::put);
-    return new Input(node, true);
+    return new Input(node);
   }
 
   /** Erreur de type, d'énumération ou d'union : elle interrompt les .refine() de l'objet. */

@@ -81,7 +81,7 @@
       <div class="p-6 border-b border-gray-200">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h2 class="text-lg font-semibold text-gray-900">Historique des transactions</h2>
-          @if (auth.canWriteRole(userRole()) && isCurrentYear()) {
+          @if (auth.canWriteRole(userRole()) && isCurrentYear() && categorieId() !== 'etat-civil') {
             <button (click)="router.navigateByUrl('/taxes/nouvelle-transaction')" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-600 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-600/30 whitespace-nowrap">
               <i class="ri-add-line"></i>Nouvelle transaction</button>
           }

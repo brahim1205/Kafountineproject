@@ -12,7 +12,7 @@ export const routes: Routes = [
       { path: 'dashboard', loadComponent: () => import('./pages/dashboard/page').then((m) => m.Dashboard) },
       { path: 'recettes', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'regisseur'])], loadComponent: () => import('./pages/recettes/page').then((m) => m.Recettes) },
       { path: 'taxes', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/taxes/page').then((m) => m.TaxesPage) },
-      { path: 'taxes/nouvelle-transaction', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/taxes/components/nouvelle-transaction').then((m) => m.NouvelleTransaction) },
+      { path: 'taxes/nouvelle-transaction', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/taxes/components/nouvelle-transaction').then((m) => m.NouvelleTransaction) },
       { path: 'taxes/:categorieId', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/taxes/components/categorie-detail').then((m) => m.CategorieDetail) },
       { path: 'etat-civil/nouvelle', canActivate: [roleGuard(['etat_civil'])], data: { section: 'nouvelle' }, loadComponent: () => import('./pages/etat-civil/etat-civil-section-page').then((m) => m.EtatCivilSectionPage) },
       { path: 'etat-civil/a-traiter', canActivate: [roleGuard(['etat_civil'])], data: { section: 'a-traiter' }, loadComponent: () => import('./pages/etat-civil/etat-civil-section-page').then((m) => m.EtatCivilSectionPage) },

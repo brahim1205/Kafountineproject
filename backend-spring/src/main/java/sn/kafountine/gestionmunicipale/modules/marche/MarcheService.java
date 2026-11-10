@@ -41,9 +41,11 @@ public class MarcheService {
   private final AuditTrail auditTrail;
 
   private final CaisseService caisse;
+  private final LoyerService loyers;
   private final NumeroSequence numeros;
 
-  public MarcheService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, CaisseService caisse, NumeroSequence numeros) {
+  public MarcheService(Db db, ContribuableLookup contribuables, AuditTrail auditTrail, CaisseService caisse, NumeroSequence numeros, LoyerService loyers) {
+    this.loyers = loyers;
     this.numeros = numeros;
     this.caisse = caisse;
     this.db = db;
@@ -127,6 +129,7 @@ public class MarcheService {
         "dateAttribution", occupantId != null ? Timestamp.from(Instant.now()) : null, "tarif", tarif, "periode", periode, "statut", statut, "year", year));
     putOccupant(row, occupant);
     auditTrail.record(actor, "Création place marché", "Marché", "Place " + row.get("numeroPlace") + " créée (" + row.get("type") + ")");
+    loyers.genererInterne(Db.str(row, "id"));
     return placeView(row);
   }
 
@@ -161,6 +164,7 @@ public class MarcheService {
         "statut", truthy(input.statut()) ? normalizePlaceStatus(input.statut()) : existing.get("statut"), "year", nextYear));
     putOccupant(row, occupant);
     auditTrail.record(actor, "Mise à jour place marché", "Marché", "Place " + row.get("numeroPlace") + " mise à jour");
+    loyers.genererInterne(Db.str(row, "id"));
     return placeView(row);
   }
 

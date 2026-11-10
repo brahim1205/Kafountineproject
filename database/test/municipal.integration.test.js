@@ -258,10 +258,15 @@ describeIntegration('services municipaux (intégration)', () => {
     });
 
     it('étend le filtre de catégorie à toutes ses formes stockées', async () => {
-      const ticket = (categorie) => ({ contribuableId, categorie, type: categorie, service: 'Acte', quantite: 1, montant: 300 });
+      // Ces formes n'existent plus que dans l'historique : les actes passent désormais par une demande.
+      const { id: agentId } = await prisma.user.findUnique({ where: { email: 'agent@kafountine.gouv.sn' } });
+      const ancien = (categorie, n) => prisma.transaction.create({ data: {
+        numero: `ANC-${suffix}-${n}`, contribuableId, agentId, categorie, service: 'Acte', quantite: 1,
+        tarifUnitaire: 300, montant: 300, modePaiement: 'ESPECE', statut: 'PAYE', year,
+      } });
       const before = (await agent.get(`/transactions?categorie=etat-civil&year=${year}&limit=1`)).body.meta;
-      expect((await agent.post('/transactions', ticket('ETAT_CIVIL'))).status).toBe(201);
-      expect((await agent.post('/transactions', ticket('État civil'))).status).toBe(201);
+      await ancien('ETAT_CIVIL', 1);
+      await ancien('État civil', 2);
       const after = (await agent.get(`/transactions?categorie=etat-civil&year=${year}&limit=1`)).body.meta;
       expect(after.total - before.total).toBe(2);
       expect(after.montantPaye - before.montantPaye).toBe(600);
@@ -553,12 +558,12 @@ describeIntegration('services municipaux (intégration)', () => {
   });
 
   describe('protection des recettes', () => {
-    const base = () => ({ contribuableId, categorie: 'etat-civil', type: 'etat-civil', service: 'Naissance - Extrait de naissance', quantite: 2, montant: 1 });
+    const base = () => ({ contribuableId, categorie: 'urbanisme-habitat', type: 'urbanisme-habitat', service: 'Permis - Permis construire habitation', quantite: 2, montant: 1 });
 
     it('applique le tarif du catalogue au lieu du montant envoyé', async () => {
       const res = await agent.post('/transactions', base());
       expect(res.status).toBe(201);
-      expect(Number(res.body.data.montant)).toBe(600);
+      expect(Number(res.body.data.montant)).toBe(50000);
     });
 
     it('ne crée qu’une recette quand une requête est rejouée', async () => {

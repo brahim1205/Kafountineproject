@@ -56,10 +56,6 @@ export class NouvelleTransaction {
     }).categorieId)
     : '');
 
-  protected readonly isEtatCivil = computed(() => this.auth.role() === 'etat_civil');
-
-  protected readonly isRegisseur = computed(() => this.auth.role() === 'regisseur');
-
   protected readonly etape = signal(1);
 
   protected readonly showSuccessMessage = signal(false);
@@ -77,7 +73,7 @@ export class NouvelleTransaction {
   protected readonly isSubmitting = signal(false);
 
   protected readonly formData = signal({
-    categorie: this.isEtatCivil() ? 'etat-civil' : this.preselectedCategoryId(),
+    categorie: this.preselectedCategoryId(),
     service: '',
     contribuable: '',
     cni: '',
@@ -176,7 +172,7 @@ export class NouvelleTransaction {
     this.etape.set(this.etape() - 1);
     }
     else {
-    this.router.navigateByUrl(this.isEtatCivil() ? '/taxes/etat-civil' : '/taxes');
+    this.router.navigateByUrl('/taxes');
     }
     }
 
@@ -222,10 +218,10 @@ export class NouvelleTransaction {
 
   constructor() {
     effect(() => {
-      this.preselectedCategoryId(); this.isEtatCivil(); this.isRegisseur();
+      this.preselectedCategoryId();
       untracked(() => {
     this.taxesApi.getTaxCategories().then((data) => {
-    const nextCategories = (data || []).filter((category) => (this.isEtatCivil() ? category.id === 'etat-civil' : !this.isRegisseur() || category.id !== 'etat-civil'));
+    const nextCategories = (data || []).filter((category) => category.id !== 'etat-civil');
     this.categories.set(nextCategories);
     if (this.preselectedCategoryId() && !nextCategories.some((category) => category.id === this.preselectedCategoryId())) {
     this.formData.update((current) => ({ ...current, categorie: '' }));

@@ -44,6 +44,8 @@ Production : <https://orbyteconsulting.tech>
 
 Un encaissement porte son mode de paiement et la personne qui l'a reçu. Une recette n'est jamais effacée : elle est annulée ou rejetée, et la trace reste au journal. Une année close ou une caisse clôturée ne se modifie plus.
 
+Un acte d'état civil s'enregistre uniquement par une demande, jamais en ticket. Le loyer de chaque place occupée est créé automatiquement pour la période en cours (mois, trimestre, semestre ou année), et les places sont reconduites à chaque nouvelle année.
+
 ## Architecture
 
 ```text

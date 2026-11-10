@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.Year;
 import java.time.ZoneId;
 import sn.kafountine.gestionmunicipale.shared.validation.Common;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -364,8 +365,9 @@ public class TransactionService {
     String categorie = firstNonEmpty(input.categorie(), input.type(), "TAXE");
     String service = firstNonEmpty(input.service(), input.categorie(), input.type(), "Taxe");
     int quantite = input.quantite() == null || input.quantite() == 0 ? 1 : input.quantite();
-    if ("REGISSEUR".equals(actor.role()) && "etat-civil".equals(categorie)) {
-      throw AppException.forbidden("Permissions insuffisantes pour cette action");
+    // Un acte s'enregistre comme demande d'état civil : un ticket en plus compterait deux fois la recette.
+    if (acteEtatCivil(categorie)) {
+      throw AppException.validation("Les actes d'état civil s'enregistrent depuis « Nouvelle demande », pas en ticket.");
     }
     double montant = montantReglementaire(categorie, service, quantite, input.montant() == null ? 0 : input.montant());
     Instant date;
@@ -394,6 +396,11 @@ public class TransactionService {
 
   private Map<String, Object> summary(String id) {
     return db.one("SELECT \"numero\", \"montant\", \"service\" FROM \"Transaction\" WHERE \"id\" = :id", Db.params("id", id));
+  }
+
+  static boolean acteEtatCivil(String categorie) {
+    String sansAccent = Normalizer.normalize(categorie == null ? "" : categorie, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+    return sansAccent.strip().toLowerCase(Locale.ROOT).replaceAll("[ _-]+", "-").startsWith("etat-civil");
   }
 
   /** Année close ou caisse clôturée : le ticket est arrêté. */

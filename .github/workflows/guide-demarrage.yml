@@ -32,13 +32,18 @@ jobs:
       - name: Suivre le guide
         shell: bash
         run: |
-          set -u
+          # GitHub lance « shell: bash » avec -e : on le retire pour noter chaque étape jusqu'au bout.
+          set +e -u
           RESULTS="$RUNNER_TEMP/resultats.md"
           LOGS="$RUNNER_TEMP/journaux"
           mkdir -p "$LOGS"
           note() { echo "| $1 | $2 | $3 |" >> "$RESULTS"; echo "[$2] $1 — $3"; }
-          wait_for() { # url secondes
-            for _ in $(seq 1 "$2"); do curl -fsS -o /dev/null --max-time 5 "$1" && return 0; sleep 1; done
+          wait_for() { # url secondes pid : s'arrête dès que le processus attendu s'est terminé
+            for _ in $(seq 1 "$2"); do
+              curl -fsS -o /dev/null --max-time 5 "$1" 2>/dev/null && return 0
+              kill -0 "$3" 2>/dev/null || return 1
+              sleep 1
+            done
             return 1
           }
           {
@@ -55,7 +60,7 @@ jobs:
           # Terminal 1 : make backend-local
           nohup make backend-local > "$LOGS/backend-local.log" 2>&1 &
           BACK=$!
-          if wait_for http://localhost:3000/ready 600; then
+          if wait_for http://localhost:3000/ready 600 "$BACK"; then
             note "make backend-local (base, Redis, migrations, données, API)" "Réussi" "API prête sur le port 3000"
           elif ! kill -0 "$BACK" 2>/dev/null; then
             note "make backend-local (base, Redis, migrations, données, API)" "Bloqué" "Arrêt : $(grep -m1 -iE 'error|erreur|exception|missing|introuvable|not found' "$LOGS/backend-local.log" | cut -c1-180 | tr '|' '/')"
@@ -66,7 +71,7 @@ jobs:
           # Terminal 2 : make front-local
           nohup make front-local > "$LOGS/front-local.log" 2>&1 &
           FRONT=$!
-          if wait_for http://localhost:4200 420; then
+          if wait_for http://localhost:4200 420 "$FRONT"; then
             note "make front-local (interface sur http://localhost:4200)" "Réussi" "Interface servie sur le port 4200"
           elif ! kill -0 "$FRONT" 2>/dev/null; then
             note "make front-local (interface sur http://localhost:4200)" "Bloqué" "Arrêt : $(grep -m1 -iE 'error|erreur|not found|introuvable' "$LOGS/front-local.log" | cut -c1-180 | tr '|' '/')"
@@ -79,7 +84,7 @@ jobs:
           if [ -z "$PASSWORD" ]; then
             note "Connexion avec un compte de démonstration" "Bloqué" "SEED_DEFAULT_PASSWORD absent de database/.env"
           else
-            CODE="$(curl -s -o "$LOGS/login.json" -w '%{http_code}' -X POST http://localhost:4200/api/v1/auth/login \
+            CODE="$(curl -s --max-time 30 -o "$LOGS/login.json" -w '%{http_code}' -X POST http://localhost:4200/api/v1/auth/login \
               -H 'Content-Type: application/json' -H 'Origin: http://localhost:4200' \
               -d "{\"email\":\"superadmin@kafountine.gouv.sn\",\"password\":\"$PASSWORD\"}")"
             if [ "$CODE" = 200 ]; then

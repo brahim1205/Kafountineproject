@@ -37,8 +37,11 @@ prod-smoke:
 	test -n "$(URL)" || (echo "Usage: make prod-smoke URL=https://your-domain.com" && exit 1)
 	bash ./scripts/smoke-prod.sh "$(URL)"
 
+# Le backend lit sa configuration dans l'environnement : on charge database/.env avant de le lancer.
+LOAD_DEV_ENV = set -a && . ../database/.env && set +a
+
 up-dev:
-	docker compose -f docker-compose.dev.yml up -d postgres redis
+	docker compose -f docker-compose.dev.yml up -d --wait postgres redis
 
 down-dev:
 	docker compose -f docker-compose.dev.yml down --remove-orphans
@@ -48,26 +51,27 @@ logs-dev:
 
 reset-dev:
 	docker compose -f docker-compose.dev.yml down -v --remove-orphans
-	docker compose -f docker-compose.dev.yml up -d postgres redis
+	docker compose -f docker-compose.dev.yml up -d --wait postgres redis
 
 bootstrap-dev-db:
 	cd database && test -f .env || cp .env.example .env
+	cd database && npm ci
 	cd database && npm run prisma:generate
 	cd database && npx prisma migrate deploy
 	cd database && npm run prisma:seed
 
 dev-local: up-dev bootstrap-dev-db
-	cd backend-spring && mvn spring-boot:run
+	cd backend-spring && $(LOAD_DEV_ENV) && mvn spring-boot:run
 
 backend-local: up-dev bootstrap-dev-db
-	cd backend-spring && mvn spring-boot:run
+	cd backend-spring && $(LOAD_DEV_ENV) && mvn spring-boot:run
 
 backend-local-no-db:
 	cd database && test -f .env || cp .env.example .env
-	cd backend-spring && mvn spring-boot:run
+	cd backend-spring && $(LOAD_DEV_ENV) && mvn spring-boot:run
 
 front-local:
-	cd front-angular && npm start
+	cd front-angular && (test -d node_modules || npm ci) && npm start
 
 .PHONY: hooks
 hooks:

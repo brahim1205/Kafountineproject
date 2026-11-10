@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Service;
-import sn.kafountine.gestionmunicipale.shared.audit.Actor;
-import sn.kafountine.gestionmunicipale.shared.audit.AuditTrail;
 import sn.kafountine.gestionmunicipale.shared.config.JacksonConfig;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
@@ -29,11 +27,9 @@ public class AuditService {
   static final DateTimeFormatter TIME_FR = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault());
 
   private final Db db;
-  private final AuditTrail auditTrail;
 
-  public AuditService(Db db, AuditTrail auditTrail) {
+  public AuditService(Db db) {
     this.db = db;
-    this.auditTrail = auditTrail;
   }
 
   /** Motif ILIKE « contient », en neutralisant les jokers saisis. */

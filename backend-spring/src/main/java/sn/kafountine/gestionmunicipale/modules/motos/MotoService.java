@@ -2,7 +2,6 @@ package sn.kafountine.gestionmunicipale.modules.motos;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;

@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
 import sn.kafountine.gestionmunicipale.shared.audit.AuditTrail;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
-import sn.kafountine.gestionmunicipale.shared.security.Authenticated;
 import sn.kafountine.gestionmunicipale.shared.security.Roles;
 import sn.kafountine.gestionmunicipale.shared.validation.Common;
 import sn.kafountine.gestionmunicipale.shared.validation.Input;

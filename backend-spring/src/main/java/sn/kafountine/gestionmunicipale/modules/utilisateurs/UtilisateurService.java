@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.kafountine.gestionmunicipale.modules.auth.SessionStore;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
-import sn.kafountine.gestionmunicipale.modules.auth.SessionStore;
 import sn.kafountine.gestionmunicipale.shared.audit.AuditTrail;
 import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;

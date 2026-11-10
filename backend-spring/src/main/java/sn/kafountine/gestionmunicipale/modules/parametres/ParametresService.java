@@ -1,11 +1,9 @@
 package sn.kafountine.gestionmunicipale.modules.parametres;
 
-import java.text.Collator;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +27,6 @@ public class ParametresService {
   private static final List<String> PERMISSION_MODULES = List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "Utilisateurs", "Audit", "Budget",
       "État civil", "Urbanisme", "Marché", "Motos", "Formations", "Quai de pêche", "Paramètres");
   private static final Map<String, List<String>> ROLE_MODULES = new LinkedHashMap<>();
-  private static final List<String> ASSIGNABLE_ROLES = List.of("AGENT", "SUPERVISEUR", "ADMIN", "SUPER_ADMIN");
 
   static {
     ROLE_MODULES.put("AGENT", List.of("Dashboard", "Contribuables", "Recettes", "Taxes", "État civil", "Urbanisme", "Marché", "Motos", "Formations", "Quai de pêche"));

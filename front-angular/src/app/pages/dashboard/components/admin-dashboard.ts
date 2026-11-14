@@ -72,8 +72,6 @@ export class AdminDashboard {
     title: this.periodeActive() === 0 ? 'Recettes du jour' : this.periodeActive() === 1 ? 'Recettes semaine' : 'Recettes du mois',
     value: (this.getRecettesValue() / 1000).toFixed(0),
     unit: 'KFCFA',
-    change: this.periodeActive() === 0 ? '+12.5%' : this.periodeActive() === 1 ? '+8.2%' : '+15.3%',
-    trend: 'up',
     icon: 'ri-money-dollar-circle-line',
     color: 'bg-emerald-50 text-emerald-600'
     },
@@ -81,8 +79,6 @@ export class AdminDashboard {
     title: this.periodeActive() === 0 ? 'Transactions (Jour)' : this.periodeActive() === 1 ? 'Transactions (Sem)' : 'Transactions (Mois)',
     value: this.getTransactionsValue().toString(),
     unit: 'tickets',
-    change: this.periodeActive() === 0 ? '+18' : this.periodeActive() === 1 ? '+42' : '+156',
-    trend: 'up',
     icon: 'ri-file-list-3-line',
     color: 'bg-emerald-50 text-emerald-600'
     },
@@ -90,8 +86,6 @@ export class AdminDashboard {
     title: 'Contribuables',
     value: this.stats()?.totalContribuables?.toString() || '0',
     unit: 'inscrits',
-    change: '+5%',
-    trend: 'up',
     icon: 'ri-team-line',
     color: 'bg-cyan-50 text-cyan-600'
     },
@@ -99,8 +93,6 @@ export class AdminDashboard {
     title: 'Taux recouvrement',
     value: this.stats()?.tauxRecouvrement?.toFixed(1) || '0',
     unit: '%',
-    change: '+1.8%',
-    trend: 'up',
     icon: 'ri-pie-chart-line',
     color: 'bg-amber-50 text-amber-600'
     },

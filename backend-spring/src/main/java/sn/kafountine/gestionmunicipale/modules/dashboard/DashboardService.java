@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import org.springframework.stereotype.Service;
+import sn.kafountine.gestionmunicipale.modules.recouvrement.RecouvrementService;
 import sn.kafountine.gestionmunicipale.modules.transactions.CategoryLabels;
 import sn.kafountine.gestionmunicipale.shared.config.JacksonConfig;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
@@ -50,10 +51,12 @@ public class DashboardService {
 
   private final Db db;
   private final CategoryLabels labels;
+  private final RecouvrementService recouvrement;
 
-  public DashboardService(Db db, CategoryLabels labels) {
+  public DashboardService(Db db, CategoryLabels labels, RecouvrementService recouvrement) {
     this.db = db;
     this.labels = labels;
+    this.recouvrement = recouvrement;
   }
 
   private static <T> T orElse(Supplier<T> supplier, T fallback) {
@@ -263,7 +266,7 @@ public class DashboardService {
     result.put("transactionsMois", totalTransactions);
     result.put("recettesAujourdhui", recettesAujourdhui);
     result.put("recettesMois", recettesMois);
-    result.put("tauxRecouvrement", totalContribuables > 0 ? Math.round((double) totalTransactions / totalContribuables * 100) : 0);
+    result.put("tauxRecouvrement", tauxRecouvrement(totalRecettes, num(orElse(() -> recouvrement.impayes(100_000).get("total"), 0))));
     result.put("totalTransactions", totalTransactions);
     result.put("totalUsers", totalUsers);
     result.put("totalAdmins", totalAdmins);
@@ -277,6 +280,12 @@ public class DashboardService {
     result.put("evolutionSemaine", evolutionSemaine);
     result.put("evolutionMensuelle", evolutionMensuelle);
     return result;
+  }
+
+  /** Part de ce qui était dû qui a été enregistré : recettes ÷ (recettes + impayés restants), en pourcentage. */
+  static long tauxRecouvrement(double recettes, double impayes) {
+    double du = recettes + impayes;
+    return du > 0 ? Math.round(recettes / du * 100) : 0;
   }
 
   public List<Map<String, Object>> topContribuables(int year, int limit) {

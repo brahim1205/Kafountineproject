@@ -195,7 +195,6 @@ public class RapportService {
         "Numero de recu: " + ticketNumber, "Date: " + display(input.get("date")), "Heure: " + display(input.get("time")),
         "Contribuable: " + contributor, "Type de paiement: " + type, "Montant: " + Js.localeFr(amount) + " FCFA"));
     for (String[] field : RECEIPT_FIELDS) lines.add(field[0] + ": " + display(input.get(field[1])));
-    lines.add("Verification: https://kafountine.sn/verify?recu=" + Js.encodeURIComponent(ticketNumber));
     byte[] pdf = SimplePdf.build("Recu " + ticketNumber, List.of(new SimplePdf.Section(null, lines)));
     auditTrail.record(actor, "Export PDF reçu", "recettes", "Export du reçu " + ticketNumber);
     return new Pdf("recu-" + ticketNumber + ".pdf", pdf);

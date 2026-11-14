@@ -81,8 +81,6 @@ export class SuperAdminDashboard {
     title: this.periodeActive() === 0 ? 'Recettes du jour' : this.periodeActive() === 1 ? 'Recettes semaine' : 'Recettes du mois',
     value: (this.getRecettesValue() / 1000).toFixed(0),
     unit: 'KFCFA',
-    change: this.periodeActive() === 0 ? '+12.5%' : this.periodeActive() === 1 ? '+8.2%' : '+15.3%',
-    trend: 'up',
     icon: 'ri-money-dollar-circle-line',
     color: 'bg-purple-50 text-purple-600'
     },
@@ -90,8 +88,6 @@ export class SuperAdminDashboard {
     title: this.periodeActive() === 0 ? 'Transactions (Jour)' : this.periodeActive() === 1 ? 'Transactions (Sem)' : 'Transactions (Mois)',
     value: this.getTransactionsValue().toString(),
     unit: 'tickets',
-    change: this.periodeActive() === 0 ? '+18' : this.periodeActive() === 1 ? '+42' : '+156',
-    trend: 'up',
     icon: 'ri-file-list-3-line',
     color: 'bg-purple-50 text-purple-600'
     },
@@ -99,8 +95,6 @@ export class SuperAdminDashboard {
     title: 'Contribuables',
     value: this.stats()?.totalContribuables?.toString() || '0',
     unit: 'inscrits',
-    change: '+5',
-    trend: 'up',
     icon: 'ri-user-line',
     color: 'bg-purple-50 text-purple-600'
     },
@@ -108,8 +102,6 @@ export class SuperAdminDashboard {
     title: 'Taux de recouvrement',
     value: this.stats()?.tauxRecouvrement ? this.stats()!.tauxRecouvrement.toFixed(1) : '0',
     unit: '%',
-    change: '+2.3%',
-    trend: 'up',
     icon: 'ri-percent-line',
     color: 'bg-purple-50 text-purple-600'
     },
@@ -128,13 +120,6 @@ export class SuperAdminDashboard {
     couleur: colors[index % colors.length],
     };
     }) || []);
-
-  protected readonly statsFormations = computed(() => [
-    { label: 'Formations actives', value: String(this.stats()?.totalFormations || 0), icon: 'ri-book-open-line', color: 'text-emerald-600' },
-    { label: 'Transactions année', value: String(this.stats()?.totalTransactions || this.stats()?.transactionsMois || 0), icon: 'ri-file-list-3-line', color: 'text-blue-600' },
-    { label: 'Recettes mois', value: `${Math.round((this.stats()?.recettesMois || 0) / 1000)}K`, icon: 'ri-award-line', color: 'text-purple-600' },
-    { label: 'Taux recouvrement', value: `${this.stats()?.tauxRecouvrement || 0}%`, icon: 'ri-percent-line', color: 'text-emerald-600' },
-    ]);
 
   protected readonly statsUtilisateurs = computed(() => [
     { label: 'Total utilisateurs', value: String(this.stats()?.totalUsers || 0), icon: 'ri-team-line', color: 'text-indigo-600' },

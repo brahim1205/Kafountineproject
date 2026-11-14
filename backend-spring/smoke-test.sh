@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Parcours rapide sur un serveur de développement : crée puis supprime ses propres données.
+# Parcours rapide sur un serveur de développement : crée ses propres données, puis les retire.
+# Un contribuable qui a un ticket, même annulé, ne se supprime pas : sa fiche est désactivée.
 # À ne pas lancer en production.
 set -euo pipefail
 
@@ -33,5 +34,6 @@ CONTRIBUABLE="$(call POST /contribuables "{\"nin\":\"$NIN\",\"nom\":\"Smoke\",\"
 TICKET="$(call POST /transactions "{\"contribuableId\":\"$CONTRIBUABLE\",\"type\":\"test\",\"service\":\"Smoke\",\"montant\":25,\"statut\":\"EN_ATTENTE\"}" | field data.id)"
 
 call DELETE "/transactions/$TICKET" >/dev/null
-call DELETE "/contribuables/$CONTRIBUABLE" >/dev/null
+ACTIF="$(call PUT "/contribuables/$CONTRIBUABLE" '{"isActive":false}' | field data.isActive)"
+[ "$ACTIF" = "false" ] || { echo "La fiche du contribuable n'a pas été désactivée." >&2; exit 1; }
 echo "SPRING_SMOKE=ok"

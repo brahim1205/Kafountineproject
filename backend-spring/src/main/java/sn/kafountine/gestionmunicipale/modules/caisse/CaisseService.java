@@ -27,7 +27,8 @@ public class CaisseService {
 
   private static final String ENCAISSEMENTS = """
       WITH encaissements AS (
-        SELECT 'Tickets'::text AS source, "numero"::text AS numero, "service"::text AS libelle, "montant", "modePaiement" AS mode, "createdAt" AS d, "agentId"
+        -- Les anciens tickets d'acte d'état civil comptent comme état civil, comme dans l'activité des agents.
+        SELECT CASE WHEN "categorie" ~* '^[eé]tat[ _-]?civil' THEN 'État civil' ELSE 'Tickets' END AS source, "numero"::text AS numero, "service"::text AS libelle, "montant", "modePaiement" AS mode, "createdAt" AS d, "agentId"
           FROM "Transaction" WHERE "statut" = 'PAYE'
         UNION ALL
         SELECT 'Marché', COALESCE("numeroRecu", "reference", "id"), "periode", "montant", "modePaiement", COALESCE("datePaiement", "createdAt"), "agentId"

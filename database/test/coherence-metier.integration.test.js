@@ -314,6 +314,12 @@ describeIntegration('cohérence métier', () => {
       expect(syntheseRegisseur.agents.some((a) => a.agentId === propre.agentId)).toBe(false);
       expect((await regisseur.post('/caisse/clotures').send({ agentId: propre.agentId, montantCompte: 0, observations: 'test' })).status).toBe(403);
 
+      // Même périmètre partout : la caisse du jour et l'activité du jour donnent le même total au régisseur.
+      const jour = new Date().toISOString().slice(0, 10);
+      const activiteRegisseur = (await regisseur.get(`/caisse/activite?periode=jour&date=${jour}`)).body.data;
+      const caisseRegisseur = (await regisseur.get(`/caisse/synthese?date=${jour}`)).body.data;
+      expect(caisseRegisseur.total).toBeCloseTo(activiteRegisseur.total, 2);
+
       const syntheseAdmin = (await superadmin.get('/caisse/synthese')).body.data;
       expect(syntheseAdmin.agents.find((a) => a.agentId === propre.agentId).montant).toBe(propre.total);
     });

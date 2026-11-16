@@ -1,39 +1,118 @@
-  <div class="space-y-6">
+<div class="space-y-6">
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Régie municipale</h1>
-      <p class="text-sm text-gray-600 mt-1">Vos équipes et le suivi des recettes</p>
+      <p class="text-sm text-gray-600 mt-1 first-letter:uppercase">{{ dateLisible }}</p>
     </div>
-    <div>
-      <h2 class="text-lg font-semibold text-gray-900 mb-3">Équipes</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        @for (equipe of EQUIPES; track equipe.role) {
-          <a routerLink="/utilisateurs" class="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 hover:border-gray-300">
-            <div [class]="`w-11 h-11 rounded-lg flex items-center justify-center ${equipe.color}`">
-              <i [class]="`${equipe.icon} text-xl`"></i>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">{{ equipe.label }}</p>
-              <p class="text-2xl font-bold text-gray-900">{{ activeMembers(equipe) }}</p>
-            </div>
-          </a>
-        }
-      </div>
-    </div>
-    <div>
-      <h2 class="text-lg font-semibold text-gray-900 mb-3">Motos Jakarta</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        @for (card of [ { label: 'Motos enregistrées', value: `${motos().totalMotos || 0}` }, { label: 'En retard', value: `${motos().enRetard || 0}` }, { label: 'Recettes de l’année', value: `${Number(motos().recettesAnnee || 0).toLocaleString('fr-FR')} FCFA` }, ]; track card.label) {
-          <a routerLink="/motos" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300">
-            <p class="text-sm text-gray-600">{{ card.label }}</p>
-            <p class="text-2xl font-bold text-gray-900 mt-1">{{ card.value }}</p>
-          </a>
-        }
-      </div>
-    </div>
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
-      @for (action of ACTIONS; track action.to) {
-        <a [attr.to]="action.to" class="rounded-xl p-4 flex flex-col items-center gap-2 text-sm font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors">
-          <i [class]="`${action.icon} text-xl`"></i>{{ action.label }}</a>
-      }
-    </div>
+    <p class="text-sm text-gray-600">
+      {{ equipes() }} · <a routerLink="/utilisateurs" class="font-medium text-emerald-700 hover:text-emerald-800">Gérer les équipes</a>
+    </p>
   </div>
+
+  @if (!isCurrentYear()) {
+    <p class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      Vous consultez l’année {{ selectedYear() }} : les chiffres du jour et du mois portent sur aujourd’hui.
+    </p>
+  }
+  @if (erreur()) {
+    <p role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ erreur() }}</p>
+  }
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <a routerLink="/activite-agents" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300">
+      <p class="text-sm text-gray-600">Enregistré aujourd’hui</p>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ loading() ? '…' : fcfa(jour()?.total) }}</p>
+      <p class="text-xs text-gray-500 mt-1">{{ jour()?.nombre ?? 0 }} opération{{ (jour()?.nombre ?? 0) > 1 ? 's' : '' }}</p>
+    </a>
+    <a routerLink="/activite-agents" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300">
+      <p class="text-sm text-gray-600">Enregistré ce mois</p>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ loading() ? '…' : fcfa(mois()?.total) }}</p>
+      <p class="text-xs text-gray-500 mt-1">{{ mois()?.nombre ?? 0 }} opération{{ (mois()?.nombre ?? 0) > 1 ? 's' : '' }}</p>
+    </a>
+    <a routerLink="/caisse" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300">
+      <p class="text-sm text-gray-600">Caisses à valider</p>
+      <p class="text-2xl font-bold mt-1" [class]="aValider().length ? 'text-amber-700' : 'text-gray-900'">{{ loading() ? '…' : aValider().length }}</p>
+      <p class="text-xs text-gray-500 mt-1">clôturées par les agents</p>
+    </a>
+    <a routerLink="/motos" class="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300">
+      <p class="text-sm text-gray-600">Motos en retard</p>
+      <p class="text-2xl font-bold mt-1" [class]="(motos().enRetard || 0) > 0 ? 'text-red-700' : 'text-gray-900'">{{ loading() ? '…' : motos().enRetard || 0 }}<span class="text-sm font-medium text-gray-500"> / {{ motos().totalMotos || 0 }}</span></p>
+      <p class="text-xs text-gray-500 mt-1">{{ fcfa(motos().montantEnRetard) }} dus</p>
+    </a>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+    <section class="xl:col-span-3 bg-white rounded-xl border border-gray-200" aria-labelledby="regie-jour">
+      <div class="flex items-center justify-between gap-4 px-5 py-4 border-b border-gray-200">
+        <h2 id="regie-jour" class="font-semibold text-gray-900">Aujourd’hui, par agent</h2>
+        <a routerLink="/activite-agents" class="text-sm font-medium text-emerald-700 hover:text-emerald-800 whitespace-nowrap">Semaine et mois</a>
+      </div>
+      @if (agentsDuJour().length === 0) {
+        <p class="px-5 py-8 text-center text-sm text-gray-500">{{ loading() ? 'Chargement…' : 'Aucune recette enregistrée aujourd’hui.' }}</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-xs uppercase text-gray-600">
+              <tr>
+                <th class="px-5 py-2.5 text-left font-medium">Agent</th>
+                <th class="px-5 py-2.5 text-right font-medium">Opérations</th>
+                <th class="px-5 py-2.5 text-right font-medium">Montant</th>
+                <th class="px-5 py-2.5 text-left font-medium">Caisse</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              @for (a of agentsDuJour(); track a.agentId) {
+                @let etat = etatCaisse(a);
+                <tr>
+                  <td class="px-5 py-3">
+                    <a [routerLink]="['/caisse/agent', a.agentId]" [queryParams]="{ date }" class="font-medium text-gray-900 hover:text-emerald-700">{{ a.agent }}</a>
+                  </td>
+                  <td class="px-5 py-3 text-right text-gray-700">{{ a.nombre }}</td>
+                  <td class="px-5 py-3 text-right font-medium text-gray-900 whitespace-nowrap">{{ fcfa(a.montant) }}</td>
+                  <td class="px-5 py-3" [class]="etat.classe">{{ etat.texte }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot class="border-t border-gray-200">
+              <tr>
+                <td class="px-5 py-3 font-medium text-gray-900">Total</td>
+                <td class="px-5 py-3"></td>
+                <td class="px-5 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{{ fcfa(synthese()?.total) }}</td>
+                <td class="px-5 py-3"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="xl:col-span-2 bg-white rounded-xl border border-gray-200" aria-labelledby="regie-valider">
+      <div class="flex items-center justify-between gap-4 px-5 py-4 border-b border-gray-200">
+        <h2 id="regie-valider" class="font-semibold text-gray-900">Caisses à valider</h2>
+        <a routerLink="/caisse" class="text-sm font-medium text-emerald-700 hover:text-emerald-800 whitespace-nowrap">Toutes les caisses</a>
+      </div>
+      @if (aValider().length === 0) {
+        <p class="px-5 py-8 text-center text-sm text-gray-500">{{ loading() ? 'Chargement…' : 'Aucune caisse en attente.' }}</p>
+      } @else {
+        <ul class="divide-y divide-gray-100">
+          @for (c of aValider(); track c.id) {
+            <li class="flex items-center justify-between gap-3 px-5 py-3">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ c.agent }} <span class="font-normal text-gray-500">· {{ jourLisible(c.jour) }}</span></p>
+                <p class="text-xs text-gray-600 mt-0.5">
+                  Compté {{ fcfa(c.montantCompte) }}
+                  @if (c.ecart !== 0) {
+                    · <span class="font-medium text-red-700">écart {{ c.ecart > 0 ? '+' : '' }}{{ fcfa(c.ecart) }}</span>
+                  }
+                </p>
+              </div>
+              @if (isCurrentYear()) {
+                <button type="button" (click)="valider(c)" [disabled]="enCours() === c.id" class="shrink-0 px-3 py-1.5 text-sm font-medium rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">Valider</button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  </div>
+</div>

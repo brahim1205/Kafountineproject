@@ -1,0 +1,103 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Activité des agents</h1>
+      <p class="mt-1 text-sm text-gray-600">Ce que chaque agent a enregistré, module par module</p>
+    </div>
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="inline-flex rounded-full bg-gray-100 p-1" role="group" aria-label="Période">
+        @for (p of periodes; track p.id) {
+          <button type="button" (click)="periode.set(p.id)" [attr.aria-pressed]="periode() === p.id"
+            [class]="'cursor-pointer whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ' + (periode() === p.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900')">{{ p.label }}</button>
+        }
+      </div>
+      <div>
+        <label for="date-activite" class="mb-1 block text-xs font-medium text-gray-600">{{ periode() === 'jour' ? 'Journée' : 'Date comprise dans la période' }}</label>
+        <input id="date-activite" type="date" [max]="maxDate" [value]="date()" (change)="changerDate($any($event.target).value)" class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm" />
+      </div>
+    </div>
+  </div>
+
+  @if (erreur()) {
+    <div role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ erreur() }}</div>
+  }
+
+  @if (activite(); as a) {
+    <p class="text-sm font-medium text-gray-700 first-letter:uppercase">{{ libellePeriode() }}</p>
+
+    <!-- Totaux de la période -->
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div class="col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 md:col-span-1">
+        <p class="text-xs font-medium text-emerald-800">Total enregistré</p>
+        <p class="mt-1 text-xl font-bold text-emerald-900">{{ montant(a.total) }} <span class="text-xs font-medium">FCFA</span></p>
+        <p class="mt-0.5 text-xs text-emerald-800">{{ a.nombre }} opération(s) · {{ a.agents.length }} agent(s)</p>
+      </div>
+      @for (m of a.modules; track m) {
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+          <p class="text-xs font-medium text-gray-600">{{ m }}</p>
+          <p class="mt-1 text-lg font-bold text-gray-900">{{ montant(a.parModule[m] || 0) }}</p>
+          <p class="text-xs text-gray-500">FCFA</p>
+        </div>
+      }
+    </div>
+
+    <!-- Agent par agent -->
+    <section class="rounded-xl border border-gray-200 bg-white" aria-labelledby="titre-agents">
+      <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+        <h2 id="titre-agents" class="font-semibold text-gray-900">Par agent</h2>
+        @if (loading()) {
+          <span class="text-xs text-gray-500" role="status">Mise à jour…</span>
+        }
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr class="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-600">
+              <th class="whitespace-nowrap px-4 py-3">Agent</th>
+              @for (m of a.modules; track m) {
+                <th class="whitespace-nowrap px-4 py-3 text-right">{{ m }}</th>
+              }
+              <th class="whitespace-nowrap px-4 py-3 text-right">Total</th>
+              <th class="whitespace-nowrap px-4 py-3 text-right">Opérations</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            @for (ligne of a.agents; track ligne.agentId) {
+              <tr class="hover:bg-gray-50">
+                <td class="whitespace-nowrap px-4 py-3">
+                  <p class="font-medium text-gray-900">{{ ligne.agent }}</p>
+                  <p class="text-xs text-gray-500">{{ libelleRole(ligne.role) }}</p>
+                </td>
+                @for (m of a.modules; track m) {
+                  <td [class]="'whitespace-nowrap px-4 py-3 text-right tabular-nums ' + (ligne.parModule[m] ? 'text-gray-900' : 'text-gray-300')">{{ ligne.parModule[m] ? montant(ligne.parModule[m]) : '–' }}</td>
+                }
+                <td class="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-gray-900">{{ montant(ligne.total) }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-700">{{ ligne.nombre }}</td>
+              </tr>
+            } @empty {
+              <tr><td [attr.colspan]="a.modules.length + 3" class="px-4 py-8 text-center text-gray-500">Aucune recette enregistrée sur cette période.</td></tr>
+            }
+          </tbody>
+          @if (a.agents.length > 1) {
+            <tfoot>
+              <tr class="border-t-2 border-gray-200 bg-gray-50 font-semibold text-gray-900">
+                <td class="px-4 py-3">Total</td>
+                @for (m of a.modules; track m) {
+                  <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ montant(a.parModule[m] || 0) }}</td>
+                }
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ montant(a.total) }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ a.nombre }}</td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+      <p class="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Montants en FCFA. Les recettes annulées ne sont pas comptées.</p>
+    </section>
+  } @else if (loading()) {
+    <div class="flex h-48 items-center justify-center" role="status">
+      <div class="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" aria-hidden="true"></div>
+      <span class="sr-only">Chargement</span>
+    </div>
+  }
+</div>

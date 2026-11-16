@@ -56,6 +56,19 @@ describeIntegration('cohérence métier', () => {
   });
 
   describe('recettes', () => {
+    it('facture selon l’arrêté du 8 mai 2024 : sable corrigé, gravillon, et 15 % des recettes d’une manifestation', async () => {
+      const ticket = (service, quantite) => superadmin.post('/transactions').send({
+        contribuableId, categorie: service.categorie, type: service.categorie, service: service.nom, quantite, montant: 1, modePaiement: 'ESPECE',
+      });
+      const sable = await ticket({ categorie: 'stationnement-transport', nom: 'Transport sable - Camion 4 m3' }, 2);
+      expect(sable.status).toBe(201);
+      expect(Number(sable.body.data.montant)).toBe(1000);
+      const gravillon = await ticket({ categorie: 'stationnement-transport', nom: 'Transport gravillon - Camion 16 m3' }, 1);
+      expect(Number(gravillon.body.data.montant)).toBe(3000);
+      const concert = await ticket({ categorie: 'occupation-reglementation', nom: 'Spectacles - Autre manifestation a entree payante' }, 240000);
+      expect(Number(concert.body.data.montant)).toBe(36000);
+    });
+
     it('ventile les demandes d’état civil par type d’acte, en cohérence avec les totaux', async () => {
       const stats = (await admin.get(`/etat-civil/statistiques?year=${year}`)).body.data;
       const somme = (cle) => stats.parType.reduce((total, ligne) => total + ligne[cle], 0);

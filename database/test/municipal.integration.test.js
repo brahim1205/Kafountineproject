@@ -536,7 +536,9 @@ describeIntegration('services municipaux (intégration)', () => {
     let motoId;
 
     it('encaisse l’adhésion à 5 000 F avec son reçu', async () => {
-      const created = await agent.post('/motos', moto('A'));
+      expect((await agent.post('/motos', moto('A'))).status).toBe(403);
+      const regisseur = await login('regisseur@kafountine.gouv.sn');
+      const created = await regisseur.post('/motos', moto('A'));
       expect(created.status).toBe(201);
       motoId = created.body.data.id;
       expect(created.body.data.adhesion).toMatchObject({ type: 'ADHESION', montant: 5000 });

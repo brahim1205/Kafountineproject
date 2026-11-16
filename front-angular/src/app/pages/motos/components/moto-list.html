@@ -61,9 +61,11 @@
                 <div class="flex gap-2">
                   <button (click)="paiement.emit(moto)" class="flex-1 px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap cursor-pointer">
                     <i class="ri-money-dollar-circle-line mr-1"></i>Paiement</button>
-                  <button (click)="changement.emit(moto)" title="Déclarer un changement" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors whitespace-nowrap cursor-pointer">
-                    <i class="ri-exchange-line"></i>
-                  </button>
+                  @if (canAdhesion()) {
+                    <button (click)="changement.emit(moto)" title="Déclarer un changement" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors whitespace-nowrap cursor-pointer">
+                      <i class="ri-exchange-line"></i>
+                    </button>
+                  }
                 </div>
               }
             </div>

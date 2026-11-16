@@ -36,8 +36,8 @@ Production : <https://orbyteconsulting.tech>
 |---|---|
 | Super administrateur | Tous les modules, sauvegardes, journal d'audit, annulation des paiements |
 | Administrateur | Consultation de tous les modules, sans écriture |
-| Agent | Tickets, taxes, urbanisme, marché, motos, sa caisse |
-| Régisseur | Comme l'agent, quai de pêche et équipes, annulation des paiements, validation des caisses (hors état civil) |
+| Agent | Tickets, taxes, urbanisme, marché, cotisations et retards des motos, sa caisse |
+| Régisseur | Comme l'agent, adhésion et changements des motos, quai de pêche et équipes, annulation des paiements, validation des caisses (hors état civil) |
 | Service finances | Recettes, budget, validation des caisses, impayés |
 | État civil | Ses demandes et tickets, sa caisse |
 | Quai de pêche | Son module, consultation des motos, du marché et des impayés |

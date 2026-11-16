@@ -21,6 +21,8 @@ export class MotoList {
 
   readonly canManage = input.required<boolean>();
 
+  readonly canAdhesion = input.required<boolean>();
+
   readonly paiement = output<UiMoto>();
 
   readonly changement = output<UiMoto>();

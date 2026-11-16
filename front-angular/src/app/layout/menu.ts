@@ -25,7 +25,7 @@ export const allMenuItems: MenuItem[] = [
   { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos Jakarta', roles: ['quai_peche'] },
   { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['quai_peche'] },
   { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'regisseur'] },
-  { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
+  { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['agent', 'regisseur'] },
   ...(FEATURES.formations ? [{ path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent', 'regisseur'] }] : []),
   { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
   { path: '/etat-civil', icon: 'ri-file-text-line', label: 'État Civil', roles: ['admin'] },

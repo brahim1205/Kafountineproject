@@ -33,6 +33,7 @@ export const allMenuItems: MenuItem[] = [
   { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
   { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
   { path: '/utilisateurs', icon: 'ri-team-line', label: 'Utilisateurs', roles: ['admin', 'super_admin'] },
+  { path: '/roles', icon: 'ri-shield-user-line', label: 'Rôles et permissions', roles: ['admin', 'super_admin'] },
   { path: '/budget-suivi', icon: 'ri-wallet-3-line', label: 'Suivi Budgétaire', roles: ['service_finances'] },
   { path: '/gestion-budget', icon: 'ri-money-dollar-circle-line', label: 'Gestion Budget', roles: ['service_finances'] },
   { path: '/service-finances', icon: 'ri-bank-card-line', label: 'Budget & dépenses', roles: ['admin', 'super_admin'] },

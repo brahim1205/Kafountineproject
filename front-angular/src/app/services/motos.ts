@@ -35,6 +35,9 @@ export type Moto = {
   prochainPaiement?: string | null;
   dernierPaiement?: string | null;
   joursRetard?: number;
+  /** Cotisations échues non payées et somme due (tarif + pénalité par mois). */
+  moisDus?: number;
+  montantDu?: number;
 };
 
 export type MotoStats = {

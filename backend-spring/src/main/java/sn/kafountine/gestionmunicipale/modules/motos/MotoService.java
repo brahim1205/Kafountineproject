@@ -211,6 +211,46 @@ public class MotoService {
 
   @Transactional
   public Map<String, Object> update(Actor actor, String motoId, MotoInput input) {
+    return update(actor, motoId, input, null);
+  }
+
+  /** Déclaration de changement : le nouveau titulaire remplace l'ancien, et le motif est gardé dans l'historique. */
+  @Transactional
+  public Map<String, Object> changement(Actor actor, String motoId, boolean proprietaire, String personneId, String permis, String motif) {
+    MotoInput input = proprietaire
+        ? new MotoInput(null, null, null, null, null, false, personneId, null, false, null, false, null, null, false, null, null, null, null, null)
+        : new MotoInput(null, null, null, null, null, false, null, personneId, true, permis, permis != null, null, null, false, null, null, null, null, null);
+    return update(actor, motoId, input, motif);
+  }
+
+  private static String nomComplet(Map<String, Object> personne) {
+    if (personne == null) return null;
+    String nom = (nz(personne.get("prenom")) + " " + nz(personne.get("nom"))).strip();
+    return nom.isEmpty() ? null : nom;
+  }
+
+  private void tracerChangement(Actor actor, String motoId, String role, String ancienId, String nouveauId, String motif) {
+    if (java.util.Objects.equals(emptyToNull(ancienId), emptyToNull(nouveauId))) return;
+    db.update("""
+        INSERT INTO "MotoHolderChange" ("id", "motoId", "role", "ancienId", "ancienNom", "nouveauId", "nouveauNom", "motif", "parId", "parNom")
+        VALUES (:id, :motoId, :role, :ancienId, :ancienNom, :nouveauId, :nouveauNom, :motif, :parId, :parNom)
+        """, Db.params("id", Db.uuid(), "motoId", motoId, "role", role,
+        "ancienId", emptyToNull(ancienId), "ancienNom", truthy(ancienId) ? nomComplet(contribuables.findById(ancienId)) : null,
+        "nouveauId", emptyToNull(nouveauId), "nouveauNom", truthy(nouveauId) ? nomComplet(contribuables.findById(nouveauId)) : null,
+        "motif", motif == null || motif.isBlank() ? null : motif.strip(), "parId", actor.userId(), "parNom", auditTrail.displayName(actor.userId())));
+  }
+
+  public List<Map<String, Object>> historique(String motoId) {
+    if (findIdBy("id", motoId) == null) throw AppException.notFound("Moto introuvable.");
+    List<Map<String, Object>> result = new ArrayList<>();
+    for (Map<String, Object> row : db.list("SELECT * FROM \"MotoHolderChange\" WHERE \"motoId\" = :id ORDER BY \"createdAt\" DESC", Db.params("id", motoId))) {
+      result.add(Api.map("id", row.get("id"), "role", row.get("role"), "ancien", row.get("ancienNom"), "nouveau", row.get("nouveauNom"),
+          "motif", row.get("motif"), "par", row.get("parNom"), "date", JacksonConfig.iso(Db.date(row, "createdAt"))));
+    }
+    return result;
+  }
+
+  private Map<String, Object> update(Actor actor, String motoId, MotoInput input, String motif) {
     Map<String, Object> existing = findById(motoId);
     if (existing == null) throw AppException.notFound("Moto introuvable.");
     // Échéance et pénalité font la dette : seul un responsable peut les corriger.
@@ -246,6 +286,8 @@ public class MotoService {
             "montantPenalite", input.montantPenalite() == null ? existing.get("montantPenalite") : input.montantPenalite(),
             "prochainPaiement", prochain, "dernierPaiement", dernier, "year", input.year() == null ? existing.get("year") : input.year()));
     row.putAll(people(found[0], found[1]));
+    tracerChangement(actor, motoId, "PROPRIETAIRE", Db.str(existing, "proprietaireId"), nextProprietaireId, motif);
+    tracerChangement(actor, motoId, "CONDUCTEUR", Db.str(existing, "conducteurId"), nextConducteurId, motif);
     auditTrail.record(actor, "Mise à jour moto", "Motos", "Moto " + row.get("matricule") + " mise à jour");
     return motoView(row);
   }

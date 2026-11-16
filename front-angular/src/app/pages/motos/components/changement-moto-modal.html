@@ -38,6 +38,28 @@
             }
           </div>
         </div>
+        <section aria-labelledby="historique-titre">
+          <h3 id="historique-titre" class="font-semibold text-gray-900 mb-3">Historique des changements</h3>
+          @if (historiqueErreur()) {
+            <p class="text-sm text-red-600">{{ historiqueErreur() }}</p>
+          } @else if (historique().length === 0) {
+            <p class="text-sm text-gray-500">Aucun changement déclaré pour cette moto.</p>
+          } @else {
+            <ol class="divide-y divide-gray-100 border border-gray-200 rounded-lg">
+              @for (c of historique(); track c.id) {
+                <li class="px-4 py-3 text-sm">
+                  <p class="text-gray-900">
+                    <span class="font-medium">{{ c.role === 'PROPRIETAIRE' ? 'Propriétaire' : 'Conducteur' }}</span> :
+                    {{ c.ancien || 'aucun' }} → {{ c.nouveau || 'aucun' }}
+                  </p>
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    {{ formatDate(c.date) }}@if (c.par) { · par {{ c.par }} }@if (c.motif) { · {{ c.motif }} }
+                  </p>
+                </li>
+              }
+            </ol>
+          }
+        </section>
         <div>
           <h3 class="font-semibold text-gray-900 mb-3">Nouvelles informations</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -49,8 +71,8 @@
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Motif du changement</label>
-          <textarea aria-label="Motif du changement" [rows]="3" placeholder="Précisez le motif..." [class]="`${INPUT_CLASS} resize-none`"></textarea>
+          <label for="motif-changement" class="block text-sm font-medium text-gray-700 mb-1">Motif du changement <span class="text-red-500">*</span></label>
+          <textarea id="motif-changement" name="motif" required minlength="3" maxlength="500" [rows]="3" placeholder="Vente, départ du conducteur…" [class]="`${INPUT_CLASS} resize-none`"></textarea>
         </div>
         <app-form-error [message]="error()"></app-form-error>
         <div class="flex gap-3">

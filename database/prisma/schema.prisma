@@ -287,11 +287,31 @@ model MotoRegistration {
   proprietaire Contribuable  @relation("MotoOwner", fields: [proprietaireId], references: [id], onDelete: Cascade)
   conducteur   Contribuable? @relation("MotoDriver", fields: [conducteurId], references: [id], onDelete: SetNull)
   payments     MotoPayment[]
+  changements  MotoHolderChange[]
 
   @@index([year])
   @@index([statut])
   @@index([proprietaireId])
   @@index([conducteurId])
+}
+
+/// Changement de propriétaire ou de conducteur (noms recopiés au moment du changement).
+model MotoHolderChange {
+  id         String   @id @default(uuid())
+  motoId     String
+  role       String
+  ancienId   String?
+  ancienNom  String?
+  nouveauId  String?
+  nouveauNom String?
+  motif      String?
+  parId      String?
+  parNom     String?
+  createdAt  DateTime @default(now())
+
+  moto MotoRegistration @relation(fields: [motoId], references: [id], onDelete: Cascade)
+
+  @@index([motoId, createdAt])
 }
 
 model MotoPayment {

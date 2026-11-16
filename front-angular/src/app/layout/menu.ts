@@ -1,7 +1,7 @@
 import { UiRole } from '../core/auth/auth.models';
 
 /** Modules activés dans cette version. */
-export const FEATURES = { formations: false };
+export const FEATURES = { formations: true };
 
 export interface MenuItem {
   path: string;

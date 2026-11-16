@@ -8,7 +8,7 @@ import { UiRole } from '../../core/auth/auth.models';
 import { AuthService } from '../../core/auth/auth.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { AVAILABLE_YEARS, YearService } from '../../core/year/year.service';
-import { allMenuItems, playNotificationSound, roleLabels, SECTIONS_REGISSEUR } from '../menu';
+import { allMenuItems, ORDRE_REGISSEUR, playNotificationSound, roleLabels } from '../menu';
 import { NotificationPanel } from '../notification-panel/notification-panel';
 
 interface SearchResult {
@@ -65,7 +65,16 @@ export class DashboardLayout {
   protected readonly userName = computed(() => (this.role() === 'admin' ? 'Mr le Maire' : (this.auth.session()?.userName ?? '')));
   protected readonly userInitials = computed(() => (this.role() === 'admin' ? 'MR' : (this.auth.session()?.userInitials ?? '')));
   protected readonly roleLabel = computed(() => roleLabels[this.role()]);
-  protected readonly menuItems = computed(() => allMenuItems.filter((item) => item.roles.includes(this.role())));
+  protected readonly menuItems = computed(() => {
+    const items = allMenuItems.filter((item) => item.roles.includes(this.role()));
+    if (this.role() !== 'regisseur') return items;
+    // Une entrée absente de l'ordre prévu (nouveau module) passe en fin de menu plutôt que de disparaître.
+    const rang = (path: string) => {
+      const index = ORDRE_REGISSEUR.indexOf(path);
+      return index === -1 ? ORDRE_REGISSEUR.length : index;
+    };
+    return [...items].sort((a, b) => rang(a.path) - rang(b.path));
+  });
   protected readonly avatarClass = computed(() => {
     const role = this.role();
     if (role === 'admin' || role === 'service_finances') return 'bg-emerald-100 text-emerald-700';
@@ -119,10 +128,6 @@ export class DashboardLayout {
 
   protected isActive(path: string): boolean {
     return this.currentPath() === path;
-  }
-
-  protected section(path: string, expanded: boolean): string | undefined {
-    return this.role() === 'regisseur' && expanded ? SECTIONS_REGISSEUR[path] : undefined;
   }
 
   protected toggleSidebar(): void {

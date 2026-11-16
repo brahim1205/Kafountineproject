@@ -46,6 +46,10 @@ Un encaissement porte son mode de paiement et la personne qui l'a reçu. Une rec
 
 Un acte d'état civil s'enregistre uniquement par une demande, jamais en ticket. Le loyer de chaque place occupée est créé automatiquement pour la période en cours (mois, trimestre, semestre ou année), et les places sont reconduites à chaque nouvelle année.
 
+## Documentation
+
+- [Manuel utilisateur](docs/MANUEL_UTILISATEUR.md) : utilisation de l'application, rôle par rôle.
+
 ## Architecture
 
 ```text

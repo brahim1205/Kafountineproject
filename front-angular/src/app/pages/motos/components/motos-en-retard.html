@@ -1,54 +1,91 @@
-  <div class="space-y-4">
-    @if (canManage()) {
-      <div class="flex justify-end">
-        <button (click)="exporterTout(year())" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 cursor-pointer">
-          <i class="ri-download-line"></i>Télécharger la liste</button>
-      </div>
-    }
-    @for (moto of list.items(); track moto.id) {
-      <div class="bg-red-50 rounded-lg p-4 border border-red-200">
-        <div class="flex items-start justify-between mb-3">
-          <div class="flex gap-4">
-            <app-moto-photo [src]="moto.photo" [alt]="`${moto.marque} ${moto.modele}`" sizeClass="w-24 h-20"></app-moto-photo>
-            <div>
-              <h3 class="font-semibold text-gray-900 mb-1">{{ moto.matricule }}</h3>
-              <p class="text-sm text-gray-600 mb-2">{{ moto.marque }}&ngsp;{{ moto.modele }}</p>
-              <div class="space-y-1 text-sm">
-                <div class="flex items-center gap-2 text-gray-700">
-                  <i class="ri-user-line text-base"></i>
-                  <span>{{ moto.proprietaire.nom }}</span>
-                </div>
-                <div class="flex items-center gap-2 text-gray-700">
-                  <i class="ri-phone-line text-base"></i>
-                  <span>{{ moto.proprietaire.telephone }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="text-right">
-            <span class="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded whitespace-nowrap inline-block mb-2">{{ moto.joursRetard }}
-              jours de retard</span>
-            <p class="text-sm text-gray-600">Dernier paiement</p>
-            <p class="text-sm font-medium text-gray-900">{{ formatDate(moto.dernierPaiement, 'Aucun') }}</p>
-          </div>
-        </div>
-        <div class="flex items-center justify-between pt-3 border-t border-red-200">
-          <div>
-            <p class="text-sm text-gray-600">Montant à payer (avec pénalité)</p>
-            <p class="text-xl font-bold text-red-600">{{ (motoConfig()!.tarifMensuel + (moto.montantPenalite ?? 0)).toLocaleString() }}
-              FCFA</p>
-            <p class="text-xs text-gray-500">Taxe:
-              {{ motoConfig().tarifMensuel.toLocaleString() }}
-              FCFA + Pénalité:
-              {{ moto.montantPenalite!.toLocaleString() }}
-              FCFA</p>
-          </div>
-          @if (canManage()) {
-            <button (click)="paiement.emit(moto)" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors whitespace-nowrap cursor-pointer">
-              <i class="ri-money-dollar-circle-line mr-2"></i>Effectuer le paiement</button>
-          }
-        </div>
-      </div>
-    }
-    <app-pagination [page]="list.page()" [totalPages]="list.totalPages()" [total]="list.meta().total" unit="moto en retard" (pageChange)="list.page.set($event)"></app-pagination>
+<div class="space-y-5">
+  <!-- Synthèse -->
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="rounded-xl border border-gray-200 bg-white p-4">
+      <p class="text-sm text-gray-600">Motos en retard</p>
+      <p class="mt-1 text-2xl font-bold text-gray-900">{{ (stats()?.enRetard ?? list.meta().total).toLocaleString('fr-FR') }}</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 bg-white p-4">
+      <p class="text-sm text-gray-600">Somme due</p>
+      <p class="mt-1 text-2xl font-bold text-gray-900">{{ montant(stats()?.montantEnRetard) }}</p>
+      <p class="mt-0.5 text-xs text-gray-500">dont pénalités : {{ montant(stats()?.penalitesEnCours) }}</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 bg-white p-4">
+      <p class="text-sm text-gray-600">Un paiement règle</p>
+      <p class="mt-1 text-2xl font-bold text-gray-900">{{ montant(montantPaiement()) }}</p>
+      <p class="mt-0.5 text-xs text-gray-500">1 mois : {{ montant(motoConfig().tarifMensuel) }} + pénalité {{ montant(motoConfig().penaliteRetard) }}</p>
+    </div>
   </div>
+
+  <!-- Recherche et export -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="relative sm:w-96">
+      <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
+      <input type="search" [value]="list.search()" (input)="list.search.set($any($event.target).value)" aria-label="Rechercher une moto en retard"
+        placeholder="Matricule, propriétaire, marque…" class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" />
+    </div>
+    <button type="button" (click)="exporterTout()" [disabled]="exporting() || list.meta().total === 0"
+      class="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+      <i [class]="exporting() ? 'ri-loader-4-line animate-spin' : 'ri-download-line'" aria-hidden="true"></i>Télécharger la liste</button>
+  </div>
+
+  <!-- Liste -->
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr class="text-left text-xs uppercase tracking-wide text-gray-600">
+            <th class="px-4 py-3">Moto</th>
+            <th class="px-4 py-3">Propriétaire</th>
+            <th class="px-4 py-3">Retard</th>
+            <th class="px-4 py-3">Dernier paiement</th>
+            <th class="px-4 py-3 text-right">Somme due</th>
+            @if (canManage()) {
+              <th class="px-4 py-3 text-right"><span class="sr-only">Action</span></th>
+            }
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          @if (list.loading() && list.items().length === 0) {
+            <tr><td [attr.colspan]="canManage() ? 6 : 5" class="px-4 py-10 text-center text-gray-500">Chargement…</td></tr>
+          }
+          @for (moto of list.items(); track moto.id) {
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <app-moto-photo [src]="moto.photo" [alt]="moto.marque + ' ' + moto.modele" sizeClass="w-12 h-10"></app-moto-photo>
+                  <div>
+                    <p class="font-semibold text-gray-900">{{ moto.matricule }}</p>
+                    <p class="text-xs text-gray-500">{{ moto.marque }} {{ moto.modele }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <p class="text-gray-900">{{ nomProprietaire(moto) }}</p>
+                @if (moto.proprietaire?.telephone) {
+                  <a [href]="'tel:' + moto.proprietaire.telephone" class="text-xs text-emerald-700 hover:underline"><i class="ri-phone-line mr-0.5" aria-hidden="true"></i>{{ moto.proprietaire.telephone }}</a>
+                }
+              </td>
+              <td class="px-4 py-3">
+                <span [class]="'inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ' + gravite(moto)">{{ moto.moisDus || 1 }} mois {{ (moto.moisDus || 1) > 1 ? 'dus' : 'dû' }}</span>
+                <p class="mt-1 text-xs text-gray-500">{{ moto.joursRetard || 0 }} jour{{ (moto.joursRetard || 0) > 1 ? 's' : '' }} de retard</p>
+              </td>
+              <td class="whitespace-nowrap px-4 py-3 text-gray-700">{{ formatDate(moto.dernierPaiement, 'Aucun') }}</td>
+              <td class="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-gray-900">{{ montant(moto.montantDu) }}</td>
+              @if (canManage()) {
+                <td class="px-4 py-3 text-right">
+                  <button type="button" (click)="paiement.emit(moto)" class="whitespace-nowrap rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800">Enregistrer un paiement</button>
+                </td>
+              }
+            </tr>
+          } @empty {
+            @if (!list.loading()) {
+              <tr><td [attr.colspan]="canManage() ? 6 : 5" class="px-4 py-10 text-center text-gray-500">{{ list.search() ? 'Aucune moto en retard ne correspond à la recherche.' : 'Aucune moto en retard pour cet exercice.' }}</td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <app-pagination [page]="list.page()" [totalPages]="list.totalPages()" [total]="list.meta().total" unit="moto" (pageChange)="list.page.set($event)"></app-pagination>
+</div>

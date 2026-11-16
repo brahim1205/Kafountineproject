@@ -148,7 +148,10 @@ public class MotoService {
     if ("retard".equals(etat)) where.append(" AND ").append(RETARD);
     if ("ajour".equals(etat)) where.append(" AND NOT ").append(RETARD);
     List<Map<String, Object>> data = new ArrayList<>();
-    for (Map<String, Object> row : db.list(SELECT_MOTO + where + " ORDER BY m.\"createdAt\" DESC, m.\"id\" DESC LIMIT :limit OFFSET :offset", params)) data.add(motoView(row));
+    // Les retards se lisent du plus ancien au plus récent : l'échéance la plus dépassée d'abord.
+    String ordre = "retard".equals(etat) ? " ORDER BY m.\"prochainPaiement\" ASC NULLS FIRST, m.\"id\" ASC"
+        : " ORDER BY m.\"createdAt\" DESC, m.\"id\" DESC";
+    for (Map<String, Object> row : db.list(SELECT_MOTO + where + ordre + " LIMIT :limit OFFSET :offset", params)) data.add(motoView(row));
     long total = db.count("SELECT COUNT(*) FROM \"MotoRegistration\" m INNER JOIN \"Contribuable\" p ON p.\"id\" = m.\"proprietaireId\" LEFT JOIN \"Contribuable\" d ON d.\"id\" = m.\"conducteurId\"" + where, params);
     return Api.map("data", data, "meta", paging.meta(total));
   }
@@ -455,6 +458,10 @@ public class MotoService {
     view.put("prochainPaiement", prochain == null ? null : JacksonConfig.iso(prochain));
     view.put("dernierPaiement", dernier == null ? null : JacksonConfig.iso(dernier));
     view.put("joursRetard", joursRetard);
+    // Cotisations échues non payées et somme due (tarif + pénalité par mois), comme dans les statistiques.
+    int mois = enRetard ? moisDus(prochain, Boolean.TRUE.equals(row.get("enRetard")), Instant.now()) : 0;
+    view.put("moisDus", mois);
+    view.put("montantDu", montantDu(mois));
     return view;
   }
 

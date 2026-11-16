@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const plugin = require('tailwindcss/plugin');
+
 module.exports = {
   content: ['./src/**/*.{html,ts}'],
   darkMode: 'class',
@@ -15,5 +17,12 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Écrans bas (portables, navigateur zoomé) : la page de connexion se resserre pour tenir sans défilement.
+    // Variantes plutôt que « screens » : des screens en hauteur désactiveraient les variantes max-sm:, max-md:…
+    plugin(({ addVariant }) => {
+      addVariant('short', '@media (max-height: 760px)');
+      addVariant('tiny', '@media (max-height: 600px)');
+    }),
+  ],
 };

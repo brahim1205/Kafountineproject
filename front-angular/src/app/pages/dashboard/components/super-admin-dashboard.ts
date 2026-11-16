@@ -70,7 +70,7 @@ export class SuperAdminDashboard {
   protected getTransactionsValue() {
     switch (this.periodeActive()) {
     case 0: return this.stats()?.transactionsAujourdhui || 0;
-    case 1: return Math.round((this.stats()?.transactionsMois || 0) / 4);
+    case 1: return this.stats()?.transactionsSemaine || 0;
     case 2: return this.stats()?.transactionsMois || 0;
     default: return 0;
     }
@@ -130,7 +130,7 @@ export class SuperAdminDashboard {
   protected readonly validations = computed(() => [
     { label: 'Urbanisme', value: this.stats()?.stats?.urbanisme?.enAttente || 0, icon: 'ri-building-line', link: '/urbanisme', color: 'bg-rose-50 text-rose-700 border-rose-200' },
     { label: 'Budget', value: this.stats()?.stats?.budget?.enAttente || 0, icon: 'ri-bank-card-line', link: '/service-finances', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    { label: 'Quai de pêche', value: this.stats()?.stats?.quaiPeche?.enAttente || 0, icon: 'ri-ship-line', link: '/quai-peche/commissions', color: 'bg-sky-50 text-sky-700 border-sky-200' },
+    { label: 'Quai de pêche', value: this.stats()?.stats?.quaiPeche?.enAttente || 0, icon: 'ri-ship-line', link: null, color: 'bg-sky-50 text-sky-700 border-sky-200' },
     ]);
 
   protected evolutionSemaineSummary() {

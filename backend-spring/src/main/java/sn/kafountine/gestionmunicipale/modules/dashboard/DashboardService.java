@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import org.springframework.stereotype.Service;
+import sn.kafountine.gestionmunicipale.modules.motos.MotoService;
 import sn.kafountine.gestionmunicipale.modules.recouvrement.RecouvrementService;
 import sn.kafountine.gestionmunicipale.modules.transactions.CategoryLabels;
 import sn.kafountine.gestionmunicipale.shared.config.JacksonConfig;
@@ -128,8 +129,10 @@ public class DashboardService {
   }
 
   private Map<String, Object> motosStats(int year) {
-    List<Map<String, Object>> motos = db.list("SELECT \"enRetard\" FROM \"MotoRegistration\" WHERE \"year\" = :year", Db.params("year", year));
-    long enRetard = motos.stream().filter(row -> Boolean.TRUE.equals(row.get("enRetard"))).count();
+    // Même règle que la page des motos : échéance dépassée ou retard signalé.
+    List<Map<String, Object>> motos = db.list("SELECT \"enRetard\", \"prochainPaiement\" FROM \"MotoRegistration\" WHERE \"year\" = :year", Db.params("year", year));
+    Instant now = Instant.now();
+    long enRetard = motos.stream().filter(row -> MotoService.estEnRetard(row, now)).count();
     return Api.map("totalMotos", motos.size(), "enRetard", enRetard);
   }
 
@@ -214,6 +217,11 @@ public class DashboardService {
     for (Map<String, Object> item : categories) byCategory.merge(label.apply(Db.str(item, "categorie")), Db.num(item, "montant"), Double::sum);
 
     long transactionsAujourdhui = count("SELECT COUNT(*) FROM \"Transaction\" WHERE \"year\" = :year AND \"createdAt\" >= :today", "year", year, "today", today);
+    // Mêmes fenêtres que les recettes affichées à côté : les 7 derniers jours, puis le mois civil en cours.
+    Instant debutSemaine = now.minusDays(6).atStartOfDay(ZoneId.systemDefault()).toInstant();
+    Instant debutMois = now.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+    long transactionsSemaine = count("SELECT COUNT(*) FROM \"Transaction\" WHERE \"year\" = :year AND \"createdAt\" >= :from", "year", year, "from", Timestamp.from(debutSemaine));
+    long transactionsMois = count("SELECT COUNT(*) FROM \"Transaction\" WHERE \"year\" = :year AND \"createdAt\" >= :from", "year", year, "from", Timestamp.from(debutMois));
     List<Map<String, Object>> topAgents = new ArrayList<>();
     if (!topAgentsRaw.isEmpty()) {
       Map<String, Map<String, Object>> users = new LinkedHashMap<>();
@@ -263,7 +271,8 @@ public class DashboardService {
     result.put("totalRecettes", totalRecettes);
     result.put("totalFormations", num(get(formations, "totalFormations")));
     result.put("transactionsAujourdhui", transactionsAujourdhui);
-    result.put("transactionsMois", totalTransactions);
+    result.put("transactionsSemaine", transactionsSemaine);
+    result.put("transactionsMois", transactionsMois);
     result.put("recettesAujourdhui", recettesAujourdhui);
     result.put("recettesMois", recettesMois);
     result.put("tauxRecouvrement", tauxRecouvrement(totalRecettes, num(orElse(() -> recouvrement.impayes(100_000).get("total"), 0))));

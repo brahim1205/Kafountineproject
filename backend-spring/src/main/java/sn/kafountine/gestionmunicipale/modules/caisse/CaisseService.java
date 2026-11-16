@@ -57,6 +57,11 @@ public class CaisseService {
     return actor.role() != null && SUPERVISEURS.contains(actor.role().toUpperCase(Locale.ROOT));
   }
 
+  /** Le régisseur supervise les recettes de la régie ; l'état civil relève de l'administration. */
+  private static String horsPerimetre(Actor actor) {
+    return actor.role() != null && "REGISSEUR".equals(actor.role().toUpperCase(Locale.ROOT)) ? " AND source <> 'État civil'" : "";
+  }
+
   private static String cible(Actor actor, String agentId) {
     if (agentId == null || agentId.isBlank() || agentId.equals(actor.userId())) return actor.userId();
     if (!superviseur(actor)) throw AppException.forbidden("Vous ne pouvez consulter que votre propre caisse.");
@@ -109,14 +114,18 @@ public class CaisseService {
   }
 
   public Map<String, Object> journal(Actor actor, LocalDate demande, String agentId) {
-    LocalDate date = demande == null ? aujourdhui() : demande;
     String cible = cible(actor, agentId);
+    return journal(actor, demande, cible, cible.equals(actor.userId()) ? "" : horsPerimetre(actor));
+  }
+
+  private Map<String, Object> journal(Actor actor, LocalDate demande, String cible, String filtre) {
+    LocalDate date = demande == null ? aujourdhui() : demande;
     var params = jour(date).addValue("agentId", cible);
     List<Map<String, Object>> lignes = new ArrayList<>();
     Map<String, Double> parMode = new LinkedHashMap<>();
     Map<String, Double> parSource = new LinkedHashMap<>();
     double total = 0;
-    for (Map<String, Object> row : db.list(ENCAISSEMENTS + " SELECT * FROM encaissements" + DU_JOUR + " AND \"agentId\" = :agentId ORDER BY d ASC", params)) {
+    for (Map<String, Object> row : db.list(ENCAISSEMENTS + " SELECT * FROM encaissements" + DU_JOUR + " AND \"agentId\" = :agentId" + filtre + " ORDER BY d ASC", params)) {
       double montant = Db.num(row, "montant");
       total += montant;
       parMode.merge(Db.str(row, "mode"), montant, Double::sum);
@@ -131,20 +140,22 @@ public class CaisseService {
   }
 
   /** Vue du superviseur : tout ce qui a été encaissé dans la journée, agent par agent. */
-  public Map<String, Object> synthese(LocalDate demande) {
+  public Map<String, Object> synthese(Actor actor, LocalDate demande) {
     LocalDate date = demande == null ? aujourdhui() : demande;
     Map<String, Map<String, Object>> agents = new LinkedHashMap<>();
     double total = 0;
     for (Map<String, Object> row : db.list(ENCAISSEMENTS + """
          SELECT e."agentId", TRIM(COALESCE(u."prenom", '') || ' ' || COALESCE(u."nom", '')) AS "agent", SUM(e."montant") AS "montant", COUNT(*)::int AS "nombre"
          FROM encaissements e INNER JOIN "User" u ON u."id" = e."agentId"
-         WHERE e.d >= CAST(:debut AS timestamp) AND e.d < CAST(:fin AS timestamp) GROUP BY 1, 2 ORDER BY 3 DESC
+         WHERE e.d >= CAST(:debut AS timestamp) AND e.d < CAST(:fin AS timestamp)""" + horsPerimetre(actor).replace("source", "e.source") + """
+         GROUP BY 1, 2 ORDER BY 3 DESC
         """, jour(date))) {
       double montant = Db.num(row, "montant");
       total += montant;
       agents.put(Db.str(row, "agentId"), Api.map("agentId", row.get("agentId"), "agent", row.get("agent"), "montant", montant, "nombre", row.get("nombre"), "cloture", null));
     }
-    for (Map<String, Object> row : db.list(SELECT_CLOTURE + " WHERE c.\"jour\" = CAST(:jour AS date)", Db.params("jour", date.toString()))) {
+    for (Map<String, Object> row : db.list(SELECT_CLOTURE + " WHERE c.\"jour\" = CAST(:jour AS date)"
+        + (horsPerimetre(actor).isEmpty() ? "" : " AND u.\"role\" <> 'ETAT_CIVIL'"), Db.params("jour", date.toString()))) {
       Map<String, Object> agent = agents.computeIfAbsent(Db.str(row, "agentId"), k -> Api.map("agentId", row.get("agentId"), "agent", row.get("agent"), "montant", 0d, "nombre", 0, "cloture", null));
       agent.put("cloture", clotureVue(row));
     }
@@ -252,8 +263,12 @@ public class CaisseService {
     String cible = cible(actor, agentId);
     if (cloture(cible, date) != null) throw AppException.conflict("Cette caisse est déjà clôturée pour le " + date + ".");
     // Attendu recalculé ici : un écart ne dépend jamais d'un total envoyé par le navigateur.
-    Map<String, Object> journal = journal(actor, date, cible);
+    Map<String, Object> journal = journal(actor, date, cible, "");
     double attendu = ((Number) journal.get("total")).doubleValue();
+    if (!cible.equals(actor.userId()) && !horsPerimetre(actor).isEmpty()
+        && attendu != ((Number) journal(actor, date, cible, horsPerimetre(actor)).get("total")).doubleValue()) {
+      throw AppException.forbidden("Cette caisse comporte des actes d'état civil : sa clôture revient à l'administration.");
+    }
     double ecart = montantCompte - attendu;
     if (ecart != 0 && (observations == null || observations.isBlank())) {
       throw AppException.validation("Un écart de caisse doit être expliqué dans les observations.");

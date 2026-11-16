@@ -76,35 +76,31 @@
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-1 bg-white rounded-xl p-6 border border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Objectif du jour</h3>
-        <div class="flex flex-col items-center">
-          <div class="relative w-36 h-36 mb-4">
-            <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="#f3f4f6" stroke-width="10"></circle>
-              <circle cx="60" cy="60" r="52" fill="none" [attr.stroke]="progression() >= 100 ? '#10b981' : '#14b8a6'" stroke-width="10" stroke-linecap="round" [attr.stroke-dasharray]="`${progression() * 3.267} 326.7`"></circle>
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center">
-              <span class="text-2xl font-bold text-gray-900">{{ Math.round(progression()) }}%</span>
-              <span class="text-xs text-gray-500">atteint</span>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Mon mois</h3>
+        @if (isCurrentYear()) {
+          <dl class="space-y-4">
+            <div>
+              <dt class="text-sm text-gray-600">Tickets payés depuis le 1er du mois</dt>
+              <dd class="text-2xl font-bold text-gray-900">{{ mois().nombre.toLocaleString('fr-FR') }}</dd>
             </div>
-          </div>
-          <p class="text-sm text-gray-600 text-center">
-            <strong class="text-gray-900">{{ totalJour().toLocaleString() }}
-              FCFA</strong>
-            sur
-            {{ objectifJour().toLocaleString() }}
-            FCFA</p>
-          <p class="text-xs text-gray-500 mt-1">Reste :
-            {{ Math.max(0, objectifJour() - totalJour()).toLocaleString() }}
-            FCFA</p>
-        </div>
+            <div>
+              <dt class="text-sm text-gray-600">Montant enregistré</dt>
+              <dd class="text-2xl font-bold text-gray-900">{{ mois().montant.toLocaleString('fr-FR') }} <span class="text-sm font-medium text-gray-500">FCFA</span></dd>
+            </div>
+          </dl>
+          <a routerLink="/caisse" class="mt-5 inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-800">
+            Voir ma caisse <i class="ri-arrow-right-s-line"></i>
+          </a>
+        } @else {
+          <p class="text-sm text-gray-600">Le cumul du mois ne concerne que l'année en cours.</p>
+        }
       </div>
       <div class="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900 mb-1">Tâches en attente</h3>
         <p class="text-sm text-gray-600 mb-4">Éléments nécessitant votre attention</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           @for (tache of tachesEnCours(); track idx; let idx = $index) {
-            <a [attr.to]="tache.link" class="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer group">
+            <a [routerLink]="tache.link" class="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-sm transition-all cursor-pointer group">
               <div [class]="`w-11 h-11 rounded-lg ${tache.color} flex items-center justify-center flex-shrink-0`">
                 <i [class]="`${tache.icon} text-xl`"></i>
               </div>

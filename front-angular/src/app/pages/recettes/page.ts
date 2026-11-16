@@ -6,7 +6,6 @@ import { TransactionStats, UsedCategory } from '../../services/taxes';
 import { downloadCsv, today } from '../../utils/csv';
 import { getErrorMessage } from '../../utils/form-validation';
 import { ModifierTicketModal } from './components/modifier-ticket-modal';
-import { NouveauTicketModal } from './components/nouveau-ticket-modal';
 import { RecettesStats } from './components/recettes-stats';
 import { RecettesTable } from './components/recettes-table';
 import { TicketDetailModal } from './components/ticket-detail-modal';
@@ -19,7 +18,6 @@ import { TaxesApi } from '../../services/taxes';
 const PAGE_SIZE = 20;
 
 type ModalState =
-  | { type: 'nouveau' }
   | { type: 'modifier' | 'detail'; row: RecetteRow }
   | { type: 'recu'; receipt: ReceiptData }
   | null;
@@ -28,7 +26,7 @@ type ModalState =
   selector: 'app-recettes',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RecettesStats, RecettesTable, Pagination, NouveauTicketModal, ModifierTicketModal, TicketDetailModal, RecuPDF],
+  imports: [RouterLink, RecettesStats, RecettesTable, Pagination, ModifierTicketModal, TicketDetailModal, RecuPDF],
   templateUrl: './page.html',
 })
 export class Recettes {

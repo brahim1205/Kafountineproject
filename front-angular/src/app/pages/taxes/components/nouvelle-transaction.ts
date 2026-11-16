@@ -87,8 +87,14 @@ export class NouvelleTransaction {
 
   protected readonly serviceSelectionne = computed(() => this.services().find(s => s.id === this.formData().service));
 
-  protected readonly montantTotal = computed(() => this.serviceSelectionne() ? this.serviceSelectionne()!.tarif * this.formData().quantite
-    : 0);
+  /** Droit en pourcentage (15 % des recettes d'une manifestation payante) : la quantité saisie est le montant des recettes. */
+  protected readonly enPourcentage = computed(() => this.serviceSelectionne()?.calcul === 'pourcentage');
+
+  protected readonly montantTotal = computed(() => {
+    const service = this.serviceSelectionne();
+    if (!service) return 0;
+    return this.enPourcentage() ? Math.round((service.tarif * this.formData().quantite) / 100) : service.tarif * this.formData().quantite;
+  });
 
   protected async handleSubmit(e: Event) {
     e.preventDefault();

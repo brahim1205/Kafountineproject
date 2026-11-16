@@ -78,6 +78,7 @@ model Transaction {
 
   contribuable Contribuable @relation(fields: [contribuableId], references: [id], onDelete: Cascade)
   agent        User         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  expedition   ShippingExpedition?
 
   @@index([year])
   @@index([contribuableId])
@@ -286,11 +287,31 @@ model MotoRegistration {
   proprietaire Contribuable  @relation("MotoOwner", fields: [proprietaireId], references: [id], onDelete: Cascade)
   conducteur   Contribuable? @relation("MotoDriver", fields: [conducteurId], references: [id], onDelete: SetNull)
   payments     MotoPayment[]
+  changements  MotoHolderChange[]
 
   @@index([year])
   @@index([statut])
   @@index([proprietaireId])
   @@index([conducteurId])
+}
+
+/// Changement de propriétaire ou de conducteur (noms recopiés au moment du changement).
+model MotoHolderChange {
+  id         String   @id @default(uuid())
+  motoId     String
+  role       String
+  ancienId   String?
+  ancienNom  String?
+  nouveauId  String?
+  nouveauNom String?
+  motif      String?
+  parId      String?
+  parNom     String?
+  createdAt  DateTime @default(now())
+
+  moto MotoRegistration @relation(fields: [motoId], references: [id], onDelete: Cascade)
+
+  @@index([motoId, createdAt])
 }
 
 model MotoPayment {
@@ -467,11 +488,14 @@ model ShippingExpedition {
   statut       String   @default("PLANIFIEE")
   observations String?
   camionId     String
+  /// Ticket qui trace la taxe de passage du camion (arrêté du 8 mai 2024, section VI).
+  transactionId String?  @unique
   year         Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
 
-  camion RefrigeratedTruck @relation(fields: [camionId], references: [id], onDelete: Cascade)
+  camion      RefrigeratedTruck @relation(fields: [camionId], references: [id], onDelete: Cascade)
+  transaction Transaction?      @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
   @@index([year])
   @@index([statut])

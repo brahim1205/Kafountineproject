@@ -56,6 +56,19 @@ describeIntegration('cohérence métier', () => {
   });
 
   describe('recettes', () => {
+    it('facture selon l’arrêté du 8 mai 2024 : sable corrigé, gravillon, et 15 % des recettes d’une manifestation', async () => {
+      const ticket = (service, quantite) => superadmin.post('/transactions').send({
+        contribuableId, categorie: service.categorie, type: service.categorie, service: service.nom, quantite, montant: 1, modePaiement: 'ESPECE',
+      });
+      const sable = await ticket({ categorie: 'stationnement-transport', nom: 'Transport sable - Camion 4 m3' }, 2);
+      expect(sable.status).toBe(201);
+      expect(Number(sable.body.data.montant)).toBe(1000);
+      const gravillon = await ticket({ categorie: 'stationnement-transport', nom: 'Transport gravillon - Camion 16 m3' }, 1);
+      expect(Number(gravillon.body.data.montant)).toBe(3000);
+      const concert = await ticket({ categorie: 'occupation-reglementation', nom: 'Spectacles - Autre manifestation a entree payante' }, 240000);
+      expect(Number(concert.body.data.montant)).toBe(36000);
+    });
+
     it('ventile les demandes d’état civil par type d’acte, en cohérence avec les totaux', async () => {
       const stats = (await admin.get(`/etat-civil/statistiques?year=${year}`)).body.data;
       const somme = (cle) => stats.parType.reduce((total, ligne) => total + ligne[cle], 0);
@@ -104,6 +117,16 @@ describeIntegration('cohérence métier', () => {
       const sum = stats.recettesParSource.reduce((total, item) => total + item.montant, 0);
       expect(sum).toBeGreaterThan(0);
       expect(sum).toBeCloseTo(stats.recettesAnnee ?? stats.totalRecettes ?? sum, 2);
+    });
+
+    it('compte les tickets par jour, semaine et mois, et les motos en retard comme la page Motos', async () => {
+      expect((await ticket(agent, 100, 'ESPECE')).status).toBe(201);
+      const stats = (await admin.get(`/dashboard/statistiques?year=${year}`)).body.data;
+      expect(stats.transactionsAujourdhui).toBeGreaterThanOrEqual(1);
+      expect(stats.transactionsSemaine).toBeGreaterThanOrEqual(stats.transactionsAujourdhui);
+      expect(stats.transactionsMois).toBeLessThanOrEqual(stats.totalTransactions);
+      const motos = (await admin.get(`/motos/statistiques?year=${year}`)).body.data;
+      expect(stats.stats.motos.enRetard).toBe(motos.enRetard);
     });
   });
 
@@ -176,10 +199,34 @@ describeIntegration('cohérence métier', () => {
   });
 
   describe('droits de lecture', () => {
+    it('montre l’activité de chaque agent par module, sans l’état civil pour le régisseur', async () => {
+      const jour = new Date().toISOString().slice(0, 10);
+      expect((await agent.get(`/caisse/activite?periode=jour&date=${jour}`)).status).toBe(403);
+      expect((await admin.get(`/caisse/activite?periode=annee&date=${jour}`)).status).toBe(400);
+
+      const duJour = (await admin.get(`/caisse/activite?periode=jour&date=${jour}`)).body.data;
+      const synthese = (await admin.get(`/caisse/synthese?date=${jour}`)).body.data;
+      expect(duJour.modules).toEqual(['Taxes', 'Marché', 'Motos', 'État civil', 'Urbanisme']);
+      expect(duJour.total).toBe(synthese.total);
+      duJour.agents.forEach((ligne) => {
+        expect(Object.values(ligne.parModule).reduce((a, b) => a + b, 0)).toBe(ligne.total);
+      });
+
+      const mois = (await admin.get(`/caisse/activite?periode=mois&date=${jour}`)).body.data;
+      expect(mois.debut.endsWith('-01')).toBe(true);
+      expect(mois.total).toBeGreaterThanOrEqual(duJour.total);
+
+      const semaine = (await regisseur.get(`/caisse/activite?periode=semaine&date=${jour}`)).body.data;
+      expect(new Date(`${semaine.debut}T12:00:00Z`).getUTCDay()).toBe(1);
+      expect(semaine.modules).not.toContain('État civil');
+      semaine.agents.forEach((ligne) => expect(ligne.parModule['État civil']).toBeUndefined());
+    });
+
     it('limite chaque liste aux rôles qui ont un écran', async () => {
       expect((await quaipeche.get('/transactions?limit=1')).status).toBe(403);
       expect((await quaipeche.get('/urbanisme')).status).toBe(403);
-      expect((await quaipeche.get('/contribuables')).status).toBe(403);
+      // Le quai cherche le payeur des taxes de passage et des droits du quai.
+      expect((await quaipeche.get('/contribuables')).status).toBe(200);
       expect((await quaipeche.get('/motos?limit=1')).status).toBe(200);
       expect((await quaipeche.get('/marche/places')).status).toBe(200);
       expect((await agent.get('/quai-peche/pecheurs')).status).toBe(403);
@@ -190,6 +237,29 @@ describeIntegration('cohérence métier', () => {
     it('réserve l’encaissement moto et marché aux rôles qui ont l’écran', async () => {
       expect((await finances.post('/motos/paiements').send({})).status).toBe(403);
       expect((await finances.post('/marche/paiements').send({})).status).toBe(403);
+    });
+  });
+
+  describe('changements de titulaire d’une moto', () => {
+    it('garde l’historique des propriétaires et conducteurs, avec le motif', async () => {
+      const ancien = await nouveauContribuable();
+      const moto = await nouvelleMoto(ancien);
+      const nouveau = await nouveauContribuable();
+      const conducteur = await nouveauContribuable();
+      const base = `/motos/${moto.id}/changements`;
+      expect((await regisseur.post(base).send({ type: 'proprietaire', personneId: nouveau })).status).toBe(400);
+      expect((await agent.post(base).send({ type: 'proprietaire', personneId: nouveau, motif: 'Vente' })).status).toBe(403);
+      expect((await regisseur.post(base).send({ type: 'proprietaire', personneId: nouveau, motif: 'Vente de la moto' })).status).toBe(200);
+      expect((await regisseur.post(base).send({ type: 'conducteur', personneId: conducteur, motif: 'Nouveau conducteur' })).status).toBe(200);
+
+      const historique = (await agent.get(`/motos/${moto.id}/historique`)).body.data;
+      expect(historique).toHaveLength(2);
+      expect(historique.map((c) => c.role).sort()).toEqual(['CONDUCTEUR', 'PROPRIETAIRE']);
+      const vente = historique.find((c) => c.role === 'PROPRIETAIRE');
+      expect(vente).toMatchObject({ motif: 'Vente de la moto' });
+      expect(vente.ancien).toContain('Coherence');
+      expect(vente.nouveau).toContain('Coherence');
+      expect(vente.par).toBeTruthy();
     });
   });
 
@@ -230,6 +300,22 @@ describeIntegration('cohérence métier', () => {
 
       const synthese = (await regisseur.get('/caisse/synthese')).body.data;
       expect(synthese.agents.find((a) => a.agentId === un.id).cloture.statut).toBe('VALIDEE');
+    });
+
+    it('laisse l’état civil hors de la vue du régisseur, pas de celle de l’administration', async () => {
+      const types = (await etatCivil.get('/etat-civil/types-documents')).body.data;
+      expect((await etatCivil.post('/etat-civil').send({ contribuableId, typeDocument: types[0].id, exemplaires: 1, montant: 900, statut: 'DELIVREE' })).status).toBe(201);
+      const propre = (await etatCivil.get('/caisse/journal')).body.data;
+      expect(propre.parSource['État civil']).toBeGreaterThanOrEqual(900);
+
+      const vueRegisseur = (await regisseur.get(`/caisse/journal?agentId=${propre.agentId}`)).body.data;
+      expect(vueRegisseur.lignes.some((l) => l.source === 'État civil')).toBe(false);
+      const syntheseRegisseur = (await regisseur.get('/caisse/synthese')).body.data;
+      expect(syntheseRegisseur.agents.some((a) => a.agentId === propre.agentId)).toBe(false);
+      expect((await regisseur.post('/caisse/clotures').send({ agentId: propre.agentId, montantCompte: 0, observations: 'test' })).status).toBe(403);
+
+      const syntheseAdmin = (await superadmin.get('/caisse/synthese')).body.data;
+      expect(syntheseAdmin.agents.find((a) => a.agentId === propre.agentId).montant).toBe(propre.total);
     });
   });
 

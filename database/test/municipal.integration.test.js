@@ -619,6 +619,10 @@ describeIntegration('services municipaux (intégration)', () => {
       expect(meta(page).total).toBeGreaterThanOrEqual(page.body.data.length);
       const retards = await admin.get(`/motos?year=${year}&page=1&limit=500&etat=retard`);
       expect(retards.body.data.every((moto) => moto.enRetard)).toBe(true);
+      // Chaque retard porte ses mois dus et sa somme due, et la liste commence par l'échéance la plus ancienne.
+      expect(retards.body.data.every((moto) => moto.moisDus >= 1 && moto.montantDu === moto.moisDus * 12000)).toBe(true);
+      const echeances = retards.body.data.map((moto) => (moto.prochainPaiement ? Date.parse(moto.prochainPaiement) : -Infinity));
+      expect(echeances).toEqual([...echeances].sort((a, b) => a - b));
       const ajour = await admin.get(`/motos?year=${year}&page=1&limit=500&etat=ajour`);
       expect(ajour.body.data.every((moto) => !moto.enRetard)).toBe(true);
       expect(meta(retards).total + meta(ajour).total).toBe(meta(page).total);

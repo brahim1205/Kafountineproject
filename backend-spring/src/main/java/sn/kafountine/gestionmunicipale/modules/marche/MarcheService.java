@@ -342,6 +342,7 @@ public class MarcheService {
     long occupees = places.stream().filter(p -> "OCCUPEE".equals(p.get("statut"))).count();
     double payes = 0;
     double retard = 0;
+    long enAttente = 0;
     double payesMois = 0;
     YearMonth courant = YearMonth.now(ZoneOffset.UTC);
     for (Map<String, Object> p : paiements) {
@@ -350,12 +351,15 @@ public class MarcheService {
         Instant date = Db.date(p, "datePaiement");
         if (date != null && YearMonth.from(date.atZone(ZoneOffset.UTC)).equals(courant)) payesMois += Db.num(p, "montant");
       }
-      else if (!"ANNULE".equals(p.get("statut"))) retard += Db.num(p, "montant");
+      else if (!"ANNULE".equals(p.get("statut"))) {
+        retard += Db.num(p, "montant");
+        enAttente++;
+      }
     }
     return Api.map("placesTotales", totales, "placesOccupees", occupees, "placesDisponibles", Math.max(totales - occupees, 0),
         "recettesMois", payesMois, "recettesAnnee", payes, "tauxOccupation", totales > 0 ? Math.round((double) occupees / totales * 100) : 0,
         "nouveauxCommercants", places.stream().filter(p -> p.get("occupantId") != null && !p.get("occupantId").toString().isEmpty()).count(),
-        "recettesEnRetard", retard);
+        "recettesEnRetard", retard, "paiementsEnAttente", enAttente);
   }
 
   private static Map<String, Object> placeView(Map<String, Object> row) {

@@ -213,6 +213,89 @@ public class FormationService {
     auditTrail.record(actor, "Inscription jeune", "Formations", "Jeune " + jeuneId + " inscrit à la formation " + formationId);
   }
 
+  /** Assiduité minimale pour être certifié à la clôture de la session (en %). */
+  public static final int SEUIL_CERTIFICATION = 75;
+
+  /** Taux d'assiduité arrondi : présences ÷ séances pointées ; 0 tant qu'aucune séance n'est pointée. */
+  public static long tauxAssiduite(long presences, long absences) {
+    long seances = presences + absences;
+    return seances == 0 ? 0 : Math.round(presences * 100.0 / seances);
+  }
+
+  /** Statut final à la clôture : certifié au-delà du seuil d'assiduité, non certifié sinon. */
+  public static String statutFinal(long presences, long absences) {
+    return presences + absences > 0 && tauxAssiduite(presences, absences) >= SEUIL_CERTIFICATION ? "Certifié" : "Non certifié";
+  }
+
+  private Map<String, Object> inscription(String jeuneId, String formationId) {
+    Map<String, Object> row = db.one("""
+        SELECT e.*, f."statut" AS "formationStatut" FROM "YouthEnrollment" e INNER JOIN "TrainingProgram" f ON f."id" = e."formationId"
+        WHERE e."jeuneId" = :j AND e."formationId" = :f FOR UPDATE OF e
+        """, Db.params("j", jeuneId, "f", formationId));
+    if (row == null) throw AppException.notFound("Ce jeune n'est pas inscrit à cette formation.");
+    return row;
+  }
+
+  /** Retire un jeune d'une formation (sa fiche est conservée) ; impossible une fois la session clôturée. */
+  @Transactional
+  public void desinscrire(Actor actor, String jeuneId, String formationId) {
+    Map<String, Object> row = inscription(jeuneId, formationId);
+    if ("TERMINEE".equals(row.get("formationStatut"))) throw AppException.conflict("La session est clôturée : son résultat est conservé.");
+    db.update("DELETE FROM \"YouthEnrollment\" WHERE \"id\" = :id", Db.params("id", row.get("id")));
+    auditTrail.record(actor, "Désinscription jeune", "Formations", "Jeune " + jeuneId + " retiré de la formation " + formationId);
+  }
+
+  /** Pointe une séance : présent ou absent ; l'assiduité est recalculée. Seulement pendant la session. */
+  @Transactional
+  public Map<String, Object> pointer(Actor actor, String jeuneId, String formationId, boolean present) {
+    Map<String, Object> row = inscription(jeuneId, formationId);
+    if (!"EN_COURS".equals(row.get("formationStatut"))) throw AppException.conflict("Les présences se pointent pendant la session (formation « en cours »).");
+    long presences = (long) Db.num(row, "presences") + (present ? 1 : 0);
+    long absences = (long) Db.num(row, "absences") + (present ? 0 : 1);
+    long taux = tauxAssiduite(presences, absences);
+    db.update("""
+        UPDATE "YouthEnrollment" SET "presences" = :p, "absences" = :a, "tauxAssiduite" = :t, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = :id
+        """, Db.params("p", presences, "a", absences, "t", taux, "id", row.get("id")));
+    auditTrail.record(actor, "Présence formation", "Formations", "Jeune " + jeuneId + (present ? " présent" : " absent") + " (formation " + formationId + ")");
+    return Api.map("presences", presences, "absences", absences, "tauxAssiduite", taux);
+  }
+
+  /** Clôture la session : formation terminée et statut final de chaque inscrit selon son assiduité. */
+  @Transactional
+  public Map<String, Object> cloturer(Actor actor, String formationId) {
+    Map<String, Object> formation = db.one("SELECT * FROM \"TrainingProgram\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", formationId));
+    if (formation == null) throw AppException.notFound("Formation introuvable.");
+    if ("TERMINEE".equals(formation.get("statut"))) throw AppException.conflict("Cette session est déjà clôturée.");
+    long certifies = 0;
+    List<Map<String, Object>> inscrits = db.list("SELECT * FROM \"YouthEnrollment\" WHERE \"formationId\" = :f", Db.params("f", formationId));
+    for (Map<String, Object> e : inscrits) {
+      String statut = statutFinal((long) Db.num(e, "presences"), (long) Db.num(e, "absences"));
+      if ("Certifié".equals(statut)) certifies++;
+      db.update("UPDATE \"YouthEnrollment\" SET \"statutFinal\" = :s, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id", Db.params("s", statut, "id", e.get("id")));
+    }
+    db.update("UPDATE \"TrainingProgram\" SET \"statut\" = 'TERMINEE', \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id", Db.params("id", formationId));
+    auditTrail.record(actor, "Clôture formation", "Formations", "Formation " + formation.get("nom") + " clôturée : " + certifies + " certifié(s) sur " + inscrits.size());
+    return Api.map("inscrits", inscrits.size(), "certifies", certifies, "seuil", SEUIL_CERTIFICATION);
+  }
+
+  /** Données de l'attestation d'un jeune certifié (numéro stable dérivé de son inscription). */
+  public Map<String, Object> attestation(String jeuneId, String formationId) {
+    Map<String, Object> row = db.one("""
+        SELECT e."id" AS "inscriptionId", e."statutFinal", e."tauxAssiduite", e."presences", e."absences",
+               j."nom", j."prenom", j."cni", j."sexe", j."dateNaiss",
+               f."nom" AS "formation", f."domaine", f."duree", f."responsable", f."dateDebut", f."dateFin", f."year", f."statut"
+        FROM "YouthEnrollment" e INNER JOIN "YouthProfile" j ON j."id" = e."jeuneId" INNER JOIN "TrainingProgram" f ON f."id" = e."formationId"
+        WHERE e."jeuneId" = :j AND e."formationId" = :f
+        """, Db.params("j", jeuneId, "f", formationId));
+    if (row == null) throw AppException.notFound("Ce jeune n'est pas inscrit à cette formation.");
+    if (!"Certifié".equals(row.get("statutFinal"))) throw AppException.conflict("L'attestation est délivrée aux jeunes certifiés, après la clôture de la session.");
+    String numero = "ATT-" + row.get("year") + "-" + Db.str(row, "inscriptionId").replace("-", "").substring(0, 8).toUpperCase(Locale.ROOT);
+    return Api.map("numero", numero, "nom", row.get("nom"), "prenom", row.get("prenom"), "cni", row.get("cni"), "sexe", row.get("sexe"),
+        "dateNaissance", JacksonConfig.iso(Db.date(row, "dateNaiss")), "formation", row.get("formation"), "domaine", row.get("domaine"),
+        "duree", row.get("duree"), "responsable", row.get("responsable"), "dateDebut", JacksonConfig.iso(Db.date(row, "dateDebut")),
+        "dateFin", JacksonConfig.iso(Db.date(row, "dateFin")), "tauxAssiduite", Db.num(row, "tauxAssiduite"));
+  }
+
   private static Map<String, Object> formationView(Map<String, Object> row) {
     long inscrits = (long) Db.num(row, "nombreInscrits");
     long certifies = (long) Db.num(row, "nombreCertifies");

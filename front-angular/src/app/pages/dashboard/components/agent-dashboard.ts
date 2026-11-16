@@ -84,7 +84,7 @@ export class AgentDashboard {
 
   protected readonly isCurrentYear = computed(() => this.selectedYear() === this.currentYear());
 
-  protected readonly agentName = computed(() => this.auth.userName() || 'Kouassi Jean');
+  protected readonly agentName = computed(() => this.auth.userName() || '');
 
   protected readonly agentId = computed(() => this.auth.userId());
 
@@ -94,9 +94,8 @@ export class AgentDashboard {
     { icon: 'ri-store-2-line', label: 'Paiements marché à encaisser', count: this.tachesCounts().marche, color: 'text-emerald-600 bg-emerald-50', link: '/marche' },
     ]);
 
-  protected readonly objectifJour = computed(() => 80000);
-
-  protected readonly progression = computed(() => Math.min((this.totalJour() / this.objectifJour()) * 100, 100));
+  /** Tickets enregistrés par l'agent sur le mois civil en cours (aucun objectif n'est fixé par la mairie). */
+  protected readonly mois = signal({ montant: 0, nombre: 0 });
 
   protected handlePrintRecu(collecte: AgentCollecte) {
     this.selectedRecu.set({
@@ -129,8 +128,12 @@ export class AgentDashboard {
     const todayKey = new Date().toISOString().slice(0, 10);
     const dayOf = (day: string) => this.taxesApi.getTransactions({ agentId: this.agentId() || undefined, year: this.selectedYear(), startDate: day, endDate: day, limit: DAY_LIST_LIMIT });
     try {
-    const [todayResult, motosStats, urbanismeStats, marcheStats] = await Promise.all([
+    const debutMois = `${todayKey.slice(0, 8)}01`;
+    const [todayResult, moisResult, motosStats, urbanismeStats, marcheStats] = await Promise.all([
     this.agentId() ? dayOf(todayKey) : Promise.resolve(null),
+    this.agentId() && this.isCurrentYear()
+      ? this.taxesApi.getTransactions({ agentId: this.agentId() || undefined, year: this.selectedYear(), startDate: debutMois, endDate: todayKey, limit: 1 }).catch(() => null)
+      : Promise.resolve(null),
     this.motosApi.getMotosStats(this.selectedYear()).catch(() => null),
     this.urbanismeApi.getUrbanismeStats(this.selectedYear()).catch(() => null),
     this.marcheApi.getMarcheStats(this.selectedYear()).catch(() => null),
@@ -162,16 +165,18 @@ export class AgentDashboard {
     this.nombreJour.set(0);
     this.resumeLabel.set("Aucune collecte enregistrée pour l'année sélectionnée");
     }
+    this.mois.set({ montant: moisResult?.montantPaye || 0, nombre: moisResult?.nombrePaye || 0 });
     this.tachesCounts.set({
     motos: Number(motosStats?.enRetard || 0),
     urbanisme: Number(urbanismeStats?.enAttente || (urbanismeStats as { data?: { enAttente?: number } })?.data?.enAttente || 0),
-    marche: Number((marcheStats as { recettesEnRetard?: unknown })?.recettesEnRetard ? 1 : 0),
+    marche: Number(marcheStats?.paiementsEnAttente || 0),
     });
     }
     catch {
     this.mesCollectes.set([]);
     this.totalJour.set(0);
     this.resumeLabel.set("Impossible de charger les collectes");
+    this.mois.set({ montant: 0, nombre: 0 });
     this.tachesCounts.set({ motos: 0, urbanisme: 0, marche: 0 });
     }
     }
@@ -179,6 +184,7 @@ export class AgentDashboard {
     this.mesCollectes.set([]);
     this.totalJour.set(0);
     this.resumeLabel.set("Impossible de charger les collectes");
+    this.mois.set({ montant: 0, nombre: 0 });
     this.tachesCounts.set({ motos: 0, urbanisme: 0, marche: 0 });
     }
     finally {

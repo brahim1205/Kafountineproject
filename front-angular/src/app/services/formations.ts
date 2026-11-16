@@ -96,6 +96,23 @@ export type CreateJeunePayload = {
   year?: number;
 };
 
+/** Attestation de formation d'un jeune certifié. */
+export interface Attestation {
+  numero: string;
+  nom: string;
+  prenom: string;
+  cni: string;
+  sexe: string;
+  dateNaissance: string;
+  formation: string;
+  domaine: string;
+  duree: string;
+  responsable: string;
+  dateDebut: string;
+  dateFin: string;
+  tauxAssiduite: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FormationsApi {
   private readonly api = inject(ApiService);
@@ -190,5 +207,27 @@ export class FormationsApi {
   return this.api.request<{ success?: boolean }>(`/jeunes/${jeuneId}/formations/${formationId}`, {
     method: 'POST',
   });
+}
+
+  /** Retire le jeune de la formation (sa fiche est conservée). */
+  async desinscrireJeuneFormation(jeuneId: string, formationId: string) {
+  return this.api.request<{ success?: boolean }>(`/jeunes/${jeuneId}/formations/${formationId}`, { method: 'DELETE' });
+}
+
+  /** Pointe une séance pour un jeune : présent ou absent. */
+  async pointerPresence(jeuneId: string, formationId: string, present: boolean) {
+  return this.api.request<{ presences: number; absences: number; tauxAssiduite: number }>(`/jeunes/${jeuneId}/formations/${formationId}/presences`, {
+    method: 'POST',
+    body: JSON.stringify({ present }),
+  });
+}
+
+  /** Clôture la session : statut final de chaque inscrit selon son assiduité. */
+  async cloturerFormation(formationId: string) {
+  return this.api.request<{ inscrits: number; certifies: number; seuil: number }>(`/formations/${formationId}/cloture`, { method: 'POST', body: '{}' });
+}
+
+  async getAttestation(jeuneId: string, formationId: string): Promise<Attestation> {
+  return this.api.request<Attestation>(`/jeunes/${jeuneId}/formations/${formationId}/attestation`);
 }
 }

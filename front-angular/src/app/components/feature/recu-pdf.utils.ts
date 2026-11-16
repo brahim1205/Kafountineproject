@@ -214,11 +214,12 @@ export function buildReceiptPayload(recuData: RecuData) {
 }
 
 /** Contenu du QR code : le résumé du reçu, lisible par n'importe quel lecteur (aucune page de vérification en ligne n'existe). */
+/** Adresse de vérification publique d'un reçu : le QR code y mène, sans connexion. */
+export function receiptVerificationUrl(numero: string, origin = globalThis.location?.origin ?? ''): string {
+  return `${origin}/verification?recu=${encodeURIComponent(numero)}`;
+}
+
+/** Le QR code ouvre la page publique qui confirme le reçu (numéro, objet, montant, validité). */
 export function buildReceiptQrData(recuData: RecuData): string {
-  return [
-    'Commune de Kafountine - Reçu officiel',
-    `N° ${recuData.ticketNumber}`,
-    `Montant : ${Number(recuData.amount || 0).toLocaleString('fr-FR')} FCFA`,
-    `Date : ${recuData.date}${recuData.time ? ` ${recuData.time}` : ''}`,
-  ].join('\n');
+  return receiptVerificationUrl(String(recuData.ticketNumber || ''));
 }

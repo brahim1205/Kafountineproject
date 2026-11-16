@@ -38,6 +38,8 @@ export type MarcheStats = {
   recettesMois?: number;
   recettesAnnee?: number;
   tauxOccupation?: number;
+  recettesEnRetard?: number;
+  paiementsEnAttente?: number;
 };
 
 export type CreatePlaceMarchePayload = {

@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Pagination } from '../../shared/ui/pagination/pagination';
 import { RecuPDF } from '../../components/feature/recu-pdf';
 import { TransactionStats, UsedCategory } from '../../services/taxes';
 import { downloadCsv, today } from '../../utils/csv';
 import { getErrorMessage } from '../../utils/form-validation';
 import { ModifierTicketModal } from './components/modifier-ticket-modal';
-import { RouterLink } from '@angular/router';
 import { RecettesStats } from './components/recettes-stats';
 import { RecettesTable } from './components/recettes-table';
 import { TicketDetailModal } from './components/ticket-detail-modal';
@@ -15,7 +15,7 @@ import { ToastService } from '../../shared/ui/toast/toast.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { TaxesApi } from '../../services/taxes';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 type ModalState =
   | { type: 'modifier' | 'detail'; row: RecetteRow }
@@ -44,6 +44,9 @@ export class Recettes {
   protected readonly canCreate = computed(() => this.isCurrentYear() && (this.role() === 'agent' || this.role() === 'regisseur' || this.role() === 'super_admin'));
 
   protected readonly canEdit = computed(() => this.role() === 'super_admin' || this.role() === 'regisseur');
+
+  /** L'administration consulte la grille des tarifs depuis ici : « Taxes » n'est plus dans son menu. */
+  protected readonly canSeeTarifs = computed(() => this.role() === 'admin' || this.role() === 'super_admin');
 
   protected readonly canSeeYearStats = computed(() => this.role() === 'admin' || this.role() === 'super_admin' || this.role() === 'service_finances' || this.role() === 'regisseur');
 

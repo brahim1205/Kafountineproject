@@ -10,6 +10,8 @@ import java.util.function.Function;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sn.kafountine.gestionmunicipale.modules.transactions.TaxCatalog;
+import sn.kafountine.gestionmunicipale.modules.transactions.TransactionService;
 import sn.kafountine.gestionmunicipale.shared.audit.Actor;
 import sn.kafountine.gestionmunicipale.shared.audit.AuditTrail;
 import sn.kafountine.gestionmunicipale.shared.config.JacksonConfig;
@@ -18,6 +20,7 @@ import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.numbering.NumeroSequence;
 import sn.kafountine.gestionmunicipale.shared.persistence.Db;
 import sn.kafountine.gestionmunicipale.shared.persistence.Sql;
+import sn.kafountine.gestionmunicipale.shared.text.Js;
 import sn.kafountine.gestionmunicipale.shared.validation.Common;
 
 /** Quai de pêche : pêcheurs, embarcations, commissions, camions, expéditions (QuaiPecheService côté Node). */
@@ -47,17 +50,31 @@ public class QuaiPecheService {
       FROM "RefrigeratedTruck" t""";
   private static final String SELECT_EXPEDITION = """
       SELECT e.*, t."immatriculation" AS "camionImmatriculation", t."marque" AS "camionMarque", t."modele" AS "camionModele",
-             t."capacite" AS "camionCapacite", t."chauffeur" AS "camionChauffeur", t."telephone" AS "camionTelephone", t."statut" AS "camionStatut"
-      FROM "ShippingExpedition" e INNER JOIN "RefrigeratedTruck" t ON t."id" = e."camionId\"""";
+             t."capacite" AS "camionCapacite", t."chauffeur" AS "camionChauffeur", t."telephone" AS "camionTelephone", t."statut" AS "camionStatut",
+             x."numero" AS "ticketNumero", x."statut" AS "ticketStatut", x."montant" AS "ticketMontant", x."modePaiement" AS "ticketMode",
+             x."service" AS "ticketService", x."createdAt" AS "ticketDate",
+             TRIM(COALESCE(k."prenom", '') || ' ' || COALESCE(k."nom", '')) AS "ticketPayeur",
+             TRIM(COALESCE(u."prenom", '') || ' ' || COALESCE(u."nom", '')) AS "ticketAgent"
+      FROM "ShippingExpedition" e INNER JOIN "RefrigeratedTruck" t ON t."id" = e."camionId"
+      LEFT JOIN "Transaction" x ON x."id" = e."transactionId"
+      LEFT JOIN "Contribuable" k ON k."id" = x."contribuableId"
+      LEFT JOIN "User" u ON u."id" = x."agentId\"""";
+
+  /** Catégorie du catalogue qui porte la taxe des camions frigorifiques (arrêté du 8 mai 2024, section VI). */
+  static final String CATEGORIE_CAMIONS = "stationnement-transport";
 
   private final Db db;
   private final AuditTrail auditTrail;
   private final NumeroSequence numeros;
+  private final TaxCatalog catalog;
+  private final TransactionService transactions;
 
-  public QuaiPecheService(Db db, AuditTrail auditTrail, NumeroSequence numeros) {
+  public QuaiPecheService(Db db, AuditTrail auditTrail, NumeroSequence numeros, TaxCatalog catalog, TransactionService transactions) {
     this.db = db;
     this.auditTrail = auditTrail;
     this.numeros = numeros;
+    this.catalog = catalog;
+    this.transactions = transactions;
   }
 
   // --- Conversions de QuaiPecheService.ts ---------------------------------------------------------
@@ -178,9 +195,14 @@ public class QuaiPecheService {
     }
     Map<String, Object> meta = paging.meta(total);
     meta.put("counts", counts);
-    String sum = collection == Collection.commissions ? "poids" : collection == Collection.expeditions ? "montant" : null;
-    if (sum != null) {
-      meta.put("somme", db.sum("SELECT COALESCE(SUM(\"" + sum + "\"), 0) AS \"total\" FROM \"" + table + "\" WHERE \"year\" = :year", Db.params("year", year)));
+    if (collection == Collection.commissions) {
+      meta.put("somme", db.sum("SELECT COALESCE(SUM(\"poids\"), 0) AS \"total\" FROM \"FishCommission\" WHERE \"year\" = :year", Db.params("year", year)));
+    } else if (collection == Collection.expeditions) {
+      // Recettes réelles : les taxes de passage payées (tickets), pas les anciens montants saisis à la main.
+      meta.put("somme", db.sum("""
+          SELECT COALESCE(SUM(x."montant"), 0) AS "total" FROM "ShippingExpedition" e
+          INNER JOIN "Transaction" x ON x."id" = e."transactionId" WHERE e."year" = :year AND x."statut" = 'PAYE'
+          """, Db.params("year", year)));
     }
     return Api.map("data", data, "meta", meta);
   }
@@ -211,6 +233,58 @@ public class QuaiPecheService {
     return Api.map("totalCommissions", commissions.size(), "totalPoids", poids,
         "commissionsEnAttente", commissions.stream().filter(c -> "ENREGISTREE".equals(c.get("statut"))).count(),
         "totalPecheurs", pecheurs, "totalEmbarcations", embarcations);
+  }
+
+  // --- Taxe de passage des camions frigorifiques -----------------------------------------------
+
+  /**
+   * Libellé du catalogue pour un passage de camion (arrêté du 8 mai 2024, section VI) : vide ou chargé,
+   * puis la tranche de tonnage de la capacité du camion (0 à 1 t, 1 à 10 t, 10 à 20 t, plus de 20 t).
+   * Sans capacité connue, le poids chargé sert de référence.
+   */
+  static String tarifPassage(Double capaciteKg, double poidsKg) {
+    boolean charge = poidsKg > 0;
+    double reference = capaciteKg != null && capaciteKg > 0 ? capaciteKg : poidsKg;
+    if (reference <= 0) {
+      throw AppException.validation("Indiquez la capacité du camion (ou le poids chargé) pour calculer la taxe de passage.");
+    }
+    double tonnes = reference / 1000;
+    String tranche = tonnes <= 1 ? "0-1 tonne" : tonnes <= 10 ? "1-10 tonnes" : tonnes <= 20 ? "10-20 tonnes" : "+20 tonnes";
+    return "Camions frigorifiques " + (charge ? "charge" : "vide") + " - " + tranche;
+  }
+
+  /**
+   * Enregistre la taxe de passage d'un camion : un ticket numéroté (reçu, mode de paiement, agent) au tarif
+   * officiel, relié à l'expédition. Il compte ensuite dans les recettes, la caisse et les rapports comme
+   * tout autre ticket, et ne s'annule qu'avec un motif. Une expédition ne paie qu'une fois.
+   */
+  @Transactional
+  public Map<String, Object> enregistrerPaiement(Actor actor, String expeditionId, String contribuableId, String modePaiement) {
+    db.one("SELECT \"id\" FROM \"ShippingExpedition\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", expeditionId));
+    Map<String, Object> expedition = required(Collection.expeditions, find(Collection.expeditions, expeditionId));
+    if ("PAYE".equals(expedition.get("ticketStatut"))) {
+      throw AppException.conflict("La taxe de passage de cette expédition est déjà enregistrée (ticket " + expedition.get("ticketNumero") + ").");
+    }
+    if ("ANNULEE".equals(expedition.get("statut"))) {
+      throw AppException.validation("Une expédition annulée ne donne pas lieu à une taxe de passage.");
+    }
+    if (db.one("SELECT \"id\" FROM \"Contribuable\" WHERE \"id\" = :id", Db.params("id", contribuableId)) == null) {
+      throw AppException.notFound("Contribuable introuvable.");
+    }
+    Object capacite = expedition.get("camionCapacite");
+    String service = tarifPassage(capacite == null ? null : Db.num(expedition, "camionCapacite"), Db.num(expedition, "poids"));
+    double tarif = catalog.listServices(CATEGORIE_CAMIONS).stream()
+        .filter(item -> service.equals(item.get("nom")))
+        .mapToDouble(item -> ((Number) item.get("tarif")).doubleValue())
+        .findFirst()
+        .orElseThrow(() -> AppException.validation("Tarif introuvable dans le catalogue : « " + service + " ». Vérifiez les tarifs dans les paramètres."));
+    Map<String, Object> ticket = transactions.create(actor, new TransactionService.CreateInput(contribuableId, actor.userId(), CATEGORIE_CAMIONS,
+        CATEGORIE_CAMIONS, service, 1, tarif, modePaiement, "PAYE", null));
+    db.update("UPDATE \"ShippingExpedition\" SET \"transactionId\" = :ticket, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id",
+        Db.params("ticket", ticket.get("id"), "id", expeditionId));
+    audit(actor, "Taxe de passage camion", "Expédition " + expedition.get("numero") + " : ticket " + ticket.get("numero")
+        + " (" + service + ", " + Js.num(tarif) + " FCFA)");
+    return expeditionView(required(Collection.expeditions, find(Collection.expeditions, expeditionId)));
   }
 
   // --- Écritures ---------------------------------------------------------------------------------
@@ -297,7 +371,8 @@ public class QuaiPecheService {
             VALUES (:id, :numero, CURRENT_TIMESTAMP, :poids, :destination, :montant, :statut, :observations, :camionId, :year, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING *
             """, Db.params("id", Db.uuid(), "numero", numero, "poids", input.get("poids") == null ? 0.0 : input.get("poids"),
-            "destination", optionalText(input.get("destination")), "montant", optionalNumber(input.get("montant")),
+            // Plus de montant saisi à la main : la taxe passe par un ticket (enregistrerPaiement).
+            "destination", optionalText(input.get("destination")), "montant", null,
             "statut", status(input.get("statut"), "PLANIFIEE"), "observations", optionalText(input.get("observations")), "camionId", truck.get("id"), "year", year));
         putTruck(row, truck, false);
         audit(actor, "Création expédition", "Expédition " + row.get("numero") + " créée");
@@ -372,18 +447,27 @@ public class QuaiPecheService {
               "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=:id RETURNING *
             """, Db.params("id", id, "poids", pick(input, "poids", current.get("poids"), v -> v),
             "destination", pick(input, "destination", current.get("destination"), v -> text(v).isEmpty() ? null : text(v)),
-            "montant", pick(input, "montant", current.get("montant"), v -> v),
+            // L'ancien montant saisi reste en historique ; il n'est plus modifiable.
+            "montant", current.get("montant"),
             "statut", pick(input, "statut", current.get("statut"), v -> status(v, current.get("statut"))),
             "observations", pick(input, "observations", current.get("observations"), v -> text(v).isEmpty() ? null : text(v))));
-        putTruck(row, current, true);
         audit(actor, "Mise à jour expédition", "Expédition " + row.get("numero") + " mise à jour");
-        return expeditionView(row);
+        return expeditionView(required(Collection.expeditions, find(Collection.expeditions, id)));
       }
     }
   }
 
   @Transactional
   public void delete(Actor actor, Collection collection, String id) {
+    // Une taxe de passage enregistrée est une recette : l'expédition (ou le camion) qui la porte reste.
+    String paye = switch (collection) {
+      case expeditions -> "SELECT COUNT(*) FROM \"ShippingExpedition\" WHERE \"id\" = :id AND \"transactionId\" IS NOT NULL";
+      case camions -> "SELECT COUNT(*) FROM \"ShippingExpedition\" WHERE \"camionId\" = :id AND \"transactionId\" IS NOT NULL";
+      default -> null;
+    };
+    if (paye != null && db.count(paye, Db.params("id", id)) > 0) {
+      throw AppException.conflict("Impossible de supprimer : une taxe de passage est enregistrée. Annulez le ticket si nécessaire ; la trace reste.");
+    }
     if (db.update("DELETE FROM \"" + TABLE.get(collection) + "\" WHERE \"id\" = :id", Db.params("id", id)) == 0) {
       throw AppException.notFound(NOT_FOUND.get(collection));
     }
@@ -487,7 +571,13 @@ public class QuaiPecheService {
     view.put("date", iso(row, "date"));
     view.put("poids", Db.num(row, "poids"));
     putIfTruthy(view, "destination", row.get("destination"));
-    if (row.get("montant") != null) view.put("montant", Db.num(row, "montant"));
+    // Montant saisi avant le paiement par ticket : conservé, mais sans valeur de recette.
+    if (row.get("montant") != null) view.put("montantSaisi", Db.num(row, "montant"));
+    if (row.get("ticketNumero") != null) {
+      view.put("paiement", Api.map("transactionId", row.get("transactionId"), "numero", row.get("ticketNumero"), "statut", row.get("ticketStatut"),
+          "montant", Db.num(row, "ticketMontant"), "modePaiement", row.get("ticketMode"), "service", row.get("ticketService"),
+          "date", iso(row, "ticketDate"), "payeur", row.get("ticketPayeur"), "agent", row.get("ticketAgent")));
+    }
     view.put("statut", row.get("statut"));
     putIfTruthy(view, "observations", row.get("observations"));
     view.put("camionId", row.get("camionId"));

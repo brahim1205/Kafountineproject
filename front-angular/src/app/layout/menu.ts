@@ -1,7 +1,7 @@
 import { UiRole } from '../core/auth/auth.models';
 
 /** Modules activés dans cette version. */
-export const FEATURES = { formations: false };
+export const FEATURES = { formations: true };
 
 export interface MenuItem {
   path: string;
@@ -22,10 +22,11 @@ export const allMenuItems: MenuItem[] = [
   { path: '/quai-peche/pecheurs', icon: 'ri-user-line', label: 'Pêcheurs', roles: ['quai_peche', 'regisseur'] },
   { path: '/quai-peche/embarcations', icon: 'ri-ship-2-line', label: 'Embarcations', roles: ['quai_peche', 'regisseur'] },
   { path: '/quai-peche/camions', icon: 'ri-truck-line', label: 'Camions Frigorifiques', roles: ['quai_peche', 'regisseur'] },
+  { path: '/quai-peche/droits', icon: 'ri-coins-line', label: 'Droits du quai', roles: ['quai_peche'] },
   { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos Jakarta', roles: ['quai_peche'] },
   { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['quai_peche'] },
   { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'regisseur'] },
-  { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
+  { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['agent', 'regisseur'] },
   ...(FEATURES.formations ? [{ path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent', 'regisseur'] }] : []),
   { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
   { path: '/etat-civil', icon: 'ri-file-text-line', label: 'État Civil', roles: ['admin'] },
@@ -33,10 +34,12 @@ export const allMenuItems: MenuItem[] = [
   { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
   { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
   { path: '/utilisateurs', icon: 'ri-team-line', label: 'Utilisateurs', roles: ['admin', 'super_admin'] },
+  { path: '/roles', icon: 'ri-shield-user-line', label: 'Rôles et permissions', roles: ['admin', 'super_admin'] },
   { path: '/budget-suivi', icon: 'ri-wallet-3-line', label: 'Suivi Budgétaire', roles: ['service_finances'] },
   { path: '/gestion-budget', icon: 'ri-money-dollar-circle-line', label: 'Gestion Budget', roles: ['service_finances'] },
   { path: '/service-finances', icon: 'ri-bank-card-line', label: 'Budget & dépenses', roles: ['admin', 'super_admin'] },
-  { path: '/caisse', icon: 'ri-safe-2-line', label: 'Caisse', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'] },
+  { path: '/caisse', icon: 'ri-safe-2-line', label: 'Caisse', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur', 'quai_peche'] },
+  { path: '/activite-agents', icon: 'ri-bar-chart-grouped-line', label: 'Activité des agents', roles: ['admin', 'super_admin', 'regisseur'] },
   { path: '/impayes', icon: 'ri-error-warning-line', label: 'Impayés', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'quai_peche', 'regisseur'] },
   { path: '/contribuables', icon: 'ri-group-line', label: 'Contribuables', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'] },
   { path: '/audit', icon: 'ri-file-list-3-line', label: 'Journal Audit', roles: ['super_admin'] },
@@ -52,12 +55,16 @@ export const roleLabels: Record<UiRole, string> = {
   regisseur: 'Régisseur'
 };
 
-export const SECTIONS_REGISSEUR: Record<string, string> = {
-  '/utilisateurs': 'Équipes',
-  '/quai-peche/commissions': 'Quai de pêche',
-  '/recettes': 'Recettes et taxes',
-  '/urbanisme': 'Services',
-};
+/**
+ * Ordre du menu du régisseur, sans titres de rubrique : d'abord le suivi de l'argent,
+ * puis les services, le quai de pêche, et enfin les contribuables et les équipes.
+ */
+export const ORDRE_REGISSEUR = [
+  '/dashboard', '/recettes', '/caisse', '/impayes', '/taxes', '/penalites',
+  '/marche', '/motos', '/urbanisme',
+  '/quai-peche/commissions', '/quai-peche/pecheurs', '/quai-peche/embarcations', '/quai-peche/camions',
+  '/contribuables', '/utilisateurs',
+];
 
 export const playNotificationSound = () => {
   try {

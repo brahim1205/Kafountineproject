@@ -55,7 +55,19 @@ public class CaisseController {
     Input query = Input.query(request.getParameterMap());
     String date = query.str("date").max(10).optional();
     query.check();
-    return Api.ok(service.synthese(date(date)));
+    return Api.ok(service.synthese(RequestContext.actor(), date(date)));
+  }
+
+  /** Activité des agents sur le jour, la semaine ou le mois, ventilée par module (admin, super admin, régisseur). */
+  @GetMapping("/activite")
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> activite(HttpServletRequest request) {
+    Input query = Input.query(request.getParameterMap());
+    String periode = query.str("periode").oneOf("jour", "semaine", "mois").optional();
+    String date = query.str("date").max(10).optional();
+    query.check();
+    CaisseService.Periode p = periode == null ? CaisseService.Periode.JOUR : CaisseService.Periode.valueOf(periode.toUpperCase(java.util.Locale.ROOT));
+    return Api.ok(service.activite(RequestContext.actor(), p, date(date)));
   }
 
   @GetMapping("/clotures")

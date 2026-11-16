@@ -49,6 +49,29 @@ export interface SyntheseCaisse {
   agents: SyntheseAgent[];
 }
 
+export type PeriodeActivite = 'jour' | 'semaine' | 'mois';
+
+export interface ActiviteAgent {
+  agentId: string;
+  agent: string;
+  role: string;
+  total: number;
+  nombre: number;
+  parModule: Record<string, number>;
+}
+
+/** Ce que chaque agent a enregistré sur la période, ventilé par module. */
+export interface ActiviteAgents {
+  periode: PeriodeActivite;
+  debut: string;
+  fin: string;
+  modules: string[];
+  total: number;
+  nombre: number;
+  parModule: Record<string, number>;
+  agents: ActiviteAgent[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class CaisseApi {
   private readonly api = inject(ApiService);
@@ -57,6 +80,10 @@ export class CaisseApi {
     const query = new URLSearchParams({ date });
     if (agentId) query.set('agentId', agentId);
     return this.api.request<JournalCaisse>(`/caisse/journal?${query}`);
+  }
+
+  activite(periode: PeriodeActivite, date: string): Promise<ActiviteAgents> {
+    return this.api.request<ActiviteAgents>(`/caisse/activite?${new URLSearchParams({ periode, date })}`);
   }
 
   synthese(date: string): Promise<SyntheseCaisse> {

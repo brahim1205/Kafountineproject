@@ -21,12 +21,31 @@
                 <td class="px-6 py-4 text-sm text-gray-700 font-mono">{{ expedition.camion?.immatriculation || '-' }}</td>
                 <td class="px-6 py-4 text-sm text-gray-700">{{ formatKg(expedition.poids) }}</td>
                 <td class="px-6 py-4 text-sm text-gray-700">{{ expedition.destination || '-' }}</td>
-                <td class="px-6 py-4 text-sm text-gray-700">{{ formatFcfa(expedition.montant) }}</td>
+                <td class="px-6 py-4 text-sm">
+                  @if (expedition.paiement?.statut === 'PAYE') {
+                    <span class="font-medium text-gray-900">{{ formatFcfa(expedition.paiement!.montant) }}</span>
+                    <span class="block text-xs text-gray-500">Ticket {{ expedition.paiement!.numero }}</span>
+                  } @else if (expedition.statut === 'ANNULEE') {
+                    <span class="text-gray-400">Non due</span>
+                  } @else {
+                    <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">{{ expedition.paiement ? 'Ticket annulé' : 'À enregistrer' }}</span>
+                    @if (expedition.montantSaisi) {
+                      <span class="block text-xs text-gray-400" title="Montant saisi à la main avant la taxe par ticket : sans reçu, non compté dans les recettes">Ancien montant saisi : {{ formatFcfa(expedition.montantSaisi) }}</span>
+                    }
+                  }
+                </td>
                 <td class="px-6 py-4 text-sm text-gray-700">{{ formatDate(expedition.date) }}</td>
                 <td class="px-6 py-4">
                   <app-statut-badge [statut]="expedition.statut" [statuts]="STATUTS_EXPEDITION"></app-statut-badge>
                 </td>
-                <td class="px-6 py-4 text-right">
+                <td class="whitespace-nowrap px-6 py-4 text-right">
+                  @if (expedition.paiement?.statut === 'PAYE') {
+                    <button type="button" (click)="recu.emit(expedition)" class="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors" title="Imprimer le reçu" [attr.aria-label]="`Reçu de la taxe de passage ${expedition.numero}`">
+                      <i class="ri-printer-line"></i>
+                    </button>
+                  } @else if (canPay() && expedition.statut !== 'ANNULEE') {
+                    <button type="button" (click)="payer.emit(expedition)" class="mr-1 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800">Enregistrer la taxe</button>
+                  }
                   <button (click)="view.emit(expedition)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Voir" [attr.aria-label]="`Voir l'expédition ${expedition.numero}`">
                     <i class="ri-eye-line"></i>
                   </button>

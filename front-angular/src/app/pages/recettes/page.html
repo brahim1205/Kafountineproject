@@ -5,13 +5,19 @@
         <h1 class="text-2xl font-bold text-gray-900">Gestion des recettes</h1>
         <p class="text-sm text-gray-600 mt-1">Enregistrement et suivi des paiements</p>
       </div>
+      <div class="flex flex-wrap items-center gap-2">
+      @if (canSeeTarifs()) {
+        <a routerLink="/taxes" class="flex items-center gap-2 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+          <i class="ri-price-tag-3-line text-lg" aria-hidden="true"></i>Grille des tarifs</a>
+      }
       @if (canCreate()) {
         <!-- Un seul formulaire de ticket : celui des taxes, qui applique la grille de l'arrêté. -->
         <a routerLink="/taxes/nouvelle-transaction" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap">
           <i class="ri-add-line text-lg"></i>Nouveau ticket</a>
       }
+      </div>
     </div>
-    <app-recettes-stats [total]="totals().total" [count]="totals().count"></app-recettes-stats>
+    <app-recettes-stats [total]="totals().total" [count]="totals().count" [categories]="canSeeYearStats() ? (stats()?.annee?.categories ?? []) : []"></app-recettes-stats>
     <div class="bg-white rounded-xl p-6 border border-gray-200">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>

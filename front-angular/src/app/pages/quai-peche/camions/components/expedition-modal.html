@@ -14,16 +14,14 @@
         </select>
       </app-field>
       <div class="grid grid-cols-2 gap-4">
-        <app-field label="Poids (kg)" [required]="true">
-          <input name="poids" type="number" min="0.1" step="0.1" data-required="true" placeholder="Ex: 1500" [class]="INPUT_CLASS" />
+        <app-field label="Poids chargé (kg)" [required]="true">
+          <input name="poids" type="number" min="0" step="0.1" data-required="true" placeholder="0 si le camion repart vide" [class]="INPUT_CLASS" />
         </app-field>
-        <app-field label="Montant (FCFA)">
-          <input name="montant" type="number" min="0" placeholder="Ex: 25000" [class]="INPUT_CLASS" />
+        <app-field label="Destination">
+          <input name="destination" placeholder="Ville de destination" [class]="INPUT_CLASS" />
         </app-field>
       </div>
-      <app-field label="Destination">
-        <input name="destination" placeholder="Ville de destination" [class]="INPUT_CLASS" />
-      </app-field>
+      <p class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">La taxe de passage se calcule selon l’arrêté du 8 mai 2024 (camion vide ou chargé, capacité) et s’enregistre ensuite depuis la liste, avec un reçu.</p>
       <app-field label="Observations">
         <textarea name="observations" [rows]="3" placeholder="Observations..." [class]="`${INPUT_CLASS} resize-none`"></textarea>
       </app-field>

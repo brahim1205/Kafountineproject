@@ -103,6 +103,26 @@ public class MotosController {
         null, false, null, null, false, null, null, null, null, null)));
   }
 
+  @PostMapping("/{id}/changements")
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> declarerChangement(@PathVariable String id, @Body JsonNode body) {
+    String motoId = Common.id(id);
+    Input input = Input.body(body);
+    String type = input.str("type").oneOf("proprietaire", "conducteur").required();
+    String personneId = input.str("personneId").noTrim().uuid("Identifiant invalide").required();
+    String permis = input.str("permis").max(50).optional();
+    String motif = input.str("motif").trimmed(3, 500, "Précisez le motif du changement").required();
+    input.check();
+    return Api.ok(service.changement(RequestContext.actor(), motoId, "proprietaire".equals(type), personneId,
+        permis == null || permis.isBlank() ? null : permis.strip(), motif));
+  }
+
+  @GetMapping("/{id}/historique")
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> historique(@PathVariable String id) {
+    return Api.ok(service.historique(Common.id(id)));
+  }
+
   @GetMapping("/statistiques")
   @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> stats(HttpServletRequest request) {

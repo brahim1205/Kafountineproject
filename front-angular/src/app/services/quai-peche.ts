@@ -67,13 +67,28 @@ export interface CamionFrigorifique {
   _count?: { expeditions: number };
 }
 
+/** Ticket qui trace la taxe de passage d'un camion (arrêté du 8 mai 2024, section VI). */
+export interface ExpeditionPaiement {
+  transactionId: string;
+  numero: string;
+  statut: string;
+  montant: number;
+  modePaiement: string;
+  service: string;
+  date: string;
+  payeur: string;
+  agent: string;
+}
+
 export interface Expedition {
   id: string;
   numero: string;
   date: string;
   poids: number;
   destination?: string;
-  montant?: number;
+  /** Montant saisi à la main avant la taxe par ticket : historique, sans valeur de recette. */
+  montantSaisi?: number;
+  paiement?: ExpeditionPaiement;
   statut: string;
   observations?: string;
   camionId: string;
@@ -321,7 +336,6 @@ export class QuaiPecheApi {
   camionId: string;
   poids: number;
   destination?: string;
-  montant?: number;
   observations?: string;
 }): Promise<Expedition> {
   return this.api.request<Expedition>('/quai-peche/expeditions', {
@@ -336,12 +350,21 @@ export class QuaiPecheApi {
   async updateExpedition(id: string, payload: {
   poids?: number;
   destination?: string;
-  montant?: number;
   observations?: string;
   statut?: string;
 }): Promise<Expedition> {
   return this.api.request<Expedition>(`/quai-peche/expeditions/${id}`, {
     method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+  /** Enregistre la taxe de passage : le serveur calcule le tarif de l'arrêté et crée le ticket. */
+  async payerExpedition(id: string, payload: { contribuableId: string; modePaiement: string }): Promise<Expedition> {
+  return this.api.request<Expedition>(`/quai-peche/expeditions/${id}/paiement`, {
+    method: 'POST',
+    // Un double clic ne crée pas deux tickets.
+    headers: { 'idempotency-key': crypto.randomUUID() },
     body: JSON.stringify(payload),
   });
 }

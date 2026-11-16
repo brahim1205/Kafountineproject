@@ -2,6 +2,17 @@ import { Injectable, inject } from '@angular/core';
 import { ApiService } from '../core/api/api.service';
 import { PageMeta } from '../core/api/api.models';
 
+/** Un changement de propriétaire ou de conducteur, tel qu'il a été déclaré. */
+export type ChangementMoto = {
+  id: string;
+  role: 'PROPRIETAIRE' | 'CONDUCTEUR';
+  ancien: string | null;
+  nouveau: string | null;
+  motif: string | null;
+  par: string | null;
+  date: string;
+};
+
 export type Moto = {
   id: string;
   matricule: string;
@@ -35,6 +46,9 @@ export type Moto = {
   prochainPaiement?: string | null;
   dernierPaiement?: string | null;
   joursRetard?: number;
+  /** Cotisations échues non payées et somme due (tarif + pénalité par mois). */
+  moisDus?: number;
+  montantDu?: number;
 };
 
 export type MotoStats = {
@@ -164,6 +178,14 @@ export class MotosApi {
     },
     body: JSON.stringify(payload),
   });
+}
+
+  async declarerChangement(id: string, payload: { type: 'proprietaire' | 'conducteur'; personneId: string; permis?: string; motif: string }): Promise<Moto> {
+  return this.api.request<Moto>(`/motos/${id}/changements`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+  async getHistorique(id: string): Promise<ChangementMoto[]> {
+  return this.api.request<ChangementMoto[]>(`/motos/${id}/historique`);
 }
 
   async updateMoto(id: string, payload: UpdateMotoPayload): Promise<Moto> {

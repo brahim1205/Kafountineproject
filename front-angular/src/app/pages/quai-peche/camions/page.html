@@ -60,7 +60,7 @@
     @if (activeTab() === 'camions') {
       <app-camions-table [camions]="camionsList.items()" [loading]="loading()" [canManage]="canDelete()" (view)="modal.set({ type: 'detail-camion', item: $event })" (delete)="supprimerCamion($event)"></app-camions-table>
     } @else {
-      <app-expeditions-table [expeditions]="expeditionsList.items()" [loading]="loading()" (view)="modal.set({ type: 'detail-expedition', item: $event })"></app-expeditions-table>
+      <app-expeditions-table [expeditions]="expeditionsList.items()" [loading]="loading()" [canPay]="canPay()" (view)="modal.set({ type: 'detail-expedition', item: $event })" (payer)="modal.set({ type: 'paiement', item: $event })" (recu)="modal.set({ type: 'recu', item: $event })"></app-expeditions-table>
     }
   </div>
   <app-pagination [page]="list().page()" [totalPages]="list().totalPages()" [total]="list().meta().total" [unit]="activeTab() === 'camions' ? 'camion' : 'expédition'" (pageChange)="list().setPage($event)"></app-pagination>
@@ -75,4 +75,10 @@
   }
   @if (activeModal?.type === 'detail-expedition') {
     <app-detail-modal kind="expedition" [item]="asDetail(activeModal.item)" [canManage]="canManage()" (closed)="modal.set(null)" (changed)="afterChange()"></app-detail-modal>
+  }
+  @if (activeModal?.type === 'paiement') {
+    <app-paiement-expedition-modal [expedition]="activeModal.item" (closed)="modal.set(null)" (paid)="apresPaiement($event)"></app-paiement-expedition-modal>
+  }
+  @if (activeModal?.type === 'recu' && activeModal.item.paiement; as p) {
+    <app-recu-pdf [ticketNumber]="p.numero" [date]="p.date.slice(0, 10)" [time]="recuHeure(p.date)" [contributor]="p.payeur" [type]="p.service + ' · expédition ' + activeModal.item.numero + ' · camion ' + (activeModal.item.camion?.immatriculation || '')" [amount]="p.montant" [agent]="p.agent" (closed)="modal.set(null)"></app-recu-pdf>
   }

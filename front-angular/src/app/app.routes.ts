@@ -1,3 +1,4 @@
+import { FEATURES } from './layout/menu';
 import { Routes } from '@angular/router';
 import { authGuard, publicOnlyGuard, roleGuard } from './core/auth/auth.guards';
 
@@ -24,7 +25,8 @@ export const routes: Routes = [
       { path: 'urbanisme', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/urbanisme/page').then((m) => m.UrbanismePage) },
       { path: 'marche', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'quai_peche', 'regisseur'])], loadComponent: () => import('./pages/marche/page').then((m) => m.MarchePage) },
       { path: 'motos', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'quai_peche', 'regisseur'])], loadComponent: () => import('./pages/motos/page').then((m) => m.MotosPage) },
-      { path: 'formations', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/formations/page').then((m) => m.FormationsPage) },
+      // Module masqué tant que FEATURES.formations est désactivé : l'adresse directe renvoie au tableau de bord.
+      ...(FEATURES.formations ? [{ path: 'formations', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/formations/page').then((m) => m.FormationsPage) }] : [{ path: 'formations', redirectTo: 'dashboard' }]),
       { path: 'penalites', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/penalites/page').then((m) => m.Penalites) },
       { path: 'roles', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/roles/page').then((m) => m.RolesPage) },
       { path: 'utilisateurs', canActivate: [roleGuard(['admin', 'super_admin', 'regisseur'])], loadComponent: () => import('./pages/utilisateurs/page').then((m) => m.Utilisateurs) },

@@ -1,7 +1,7 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">État civil</h1>
+        <h1 class="text-2xl font-bold text-gray-900">État Civil</h1>
         <p class="text-sm text-gray-600 mt-1">{{ showHistorique() ? 'Traitement des demandes et génération de documents' : 'Suivi des demandes et des recettes de l’état civil' }}</p>
       </div>
       @if (auth.canWriteRole()) {

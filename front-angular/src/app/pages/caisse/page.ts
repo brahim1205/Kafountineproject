@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { CaisseApi, Cloture, JournalCaisse, SyntheseCaisse } from '../../services/caisse';
 import { ToastService } from '../../shared/ui/toast/toast.service';
@@ -13,7 +15,7 @@ const aujourdhui = () => new Date().toISOString().slice(0, 10);
   selector: 'app-caisse',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AnnulationModal],
+  imports: [AnnulationModal, RouterLink],
   templateUrl: './page.html',
 })
 export class Caisse {
@@ -26,8 +28,20 @@ export class Caisse {
   protected readonly superviseur = computed(() => SUPERVISEURS.has(this.auth.role() ?? ''));
   protected readonly peutEcrire = computed(() => this.auth.canWriteRole());
 
-  protected readonly date = signal(aujourdhui());
-  protected readonly agentId = signal<string | undefined>(undefined);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly params = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
+  private readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
+
+  /** Page de détail /caisse/agent/:agentId : la caisse d'un agent seule, avec un retour vers la liste. */
+  protected readonly agentId = computed(() => this.params().get('agentId') ?? undefined);
+  protected readonly detail = computed(() => this.agentId() !== undefined);
+  /** La journée suit l'adresse (?date=), pour la garder entre la liste et le détail. */
+  protected readonly date = computed(() => {
+    const value = this.query().get('date');
+    return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : aujourdhui();
+  });
+  protected readonly monId = computed(() => this.auth.userId());
   protected readonly journal = signal<JournalCaisse | null>(null);
   protected readonly synthese = signal<SyntheseCaisse | null>(null);
   protected readonly montantCompte = signal('');
@@ -63,12 +77,22 @@ export class Caisse {
     return new Date(value).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }
 
+  protected changerDate(value: string): void {
+    if (!value) return;
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { date: value }, replaceUrl: true });
+  }
+
+  /**
+   * Liste (responsables) : le tableau de tous les agents, sans détail en dessous.
+   * Détail, ou agent qui consulte sa propre caisse : le journal seul.
+   */
   private async charger(): Promise<void> {
     this.erreur.set('');
+    const liste = this.superviseur() && !this.detail();
     try {
       const [journal, synthese] = await Promise.all([
-        this.api.journal(this.date(), this.agentId()),
-        this.superviseur() ? this.api.synthese(this.date()) : Promise.resolve(null),
+        liste ? Promise.resolve(null) : this.api.journal(this.date(), this.agentId()),
+        liste ? this.api.synthese(this.date()) : Promise.resolve(null),
       ]);
       this.journal.set(journal);
       this.synthese.set(synthese);

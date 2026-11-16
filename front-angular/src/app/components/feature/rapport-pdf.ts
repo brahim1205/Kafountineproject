@@ -1,3 +1,4 @@
+import { imprimerDocument } from '../../utils/impression';
 import { ChangeDetectionStrategy, Component, input, output, ViewEncapsulation } from '@angular/core';
 
 interface ModuleStat {
@@ -38,7 +39,9 @@ export class RapportPDF {
   protected readonly Number = Number;
   protected readonly Math = Math;
   protected readonly String = String;
-  protected readonly window = window;
+  protected imprimer(): void {
+    imprimerDocument(document.getElementById('rapport-content'));
+  }
 
   readonly year = input.required<number>();
 

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output, computed, effect, untracked, ViewEncapsulation } from '@angular/core';
 import { QRCodeSVG } from './qr-code-svg';
+import { imprimerDocument } from '../../utils/impression';
 import { buildReceiptQrData, formatDateInFrench, normalizeRecuData, numberToWords } from './recu-pdf.utils';
 
 @Component({
@@ -131,7 +132,7 @@ export class RecuPDF {
   protected readonly verificationHote = `${globalThis.location?.host ?? ''}/verification`;
 
   protected handlePrint() {
-    window.print();
+    imprimerDocument(document.getElementById('recu-content'));
     }
 
   protected readonly amountInWords = computed(() => numberToWords(this.recuData().amount));

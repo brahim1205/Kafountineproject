@@ -127,6 +127,9 @@ export class RecuPDF {
     return buildReceiptQrData(this.recuData());
     });
 
+  /** Adresse affichée sous le QR code, pour vérifier le reçu sans téléphone. */
+  protected readonly verificationHote = `${globalThis.location?.host ?? ''}/verification`;
+
   protected handlePrint() {
     window.print();
     }

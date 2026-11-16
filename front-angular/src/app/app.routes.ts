@@ -3,6 +3,8 @@ import { authGuard, publicOnlyGuard, roleGuard } from './core/auth/auth.guards';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
+  // Vérification publique d'un reçu (interface contribuable) : accessible sans connexion.
+  { path: 'verification', loadComponent: () => import('./features/verification/verification').then((m) => m.Verification) },
   { path: 'login', canActivate: [publicOnlyGuard], loadComponent: () => import('./features/login/login').then((m) => m.Login) },
   {
     path: '',

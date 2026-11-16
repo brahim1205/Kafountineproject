@@ -25,6 +25,7 @@ export class Login {
   protected readonly showPassword = signal(false);
   protected readonly showForgot = signal(false);
   protected readonly clearFieldError = clearFieldValidationError;
+  protected readonly year = new Date().getFullYear();
 
   protected async submit(event: Event): Promise<void> {
     if (!validateFormElement(event.currentTarget as HTMLFormElement)) return;

@@ -8,6 +8,8 @@ import { ExpeditionsTable } from './components/expeditions-table';
 import { CamionModal } from './components/camion-modal';
 import { ExpeditionModal } from './components/expedition-modal';
 import { DetailModal } from './components/detail-modal';
+import { PaiementExpeditionModal } from './components/paiement-expedition-modal';
+import { RecuPDF } from '../../../components/feature/recu-pdf';
 import { STATUTS_CAMION, STATUTS_EXPEDITION, formatDate } from './components/statuts';
 import { YearService } from '../../../core/year/year.service';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -20,13 +22,15 @@ type ModalState =
   | { type: 'camion' | 'expedition' }
   | { type: 'detail-camion'; item: CamionFrigorifique }
   | { type: 'detail-expedition'; item: Expedition }
+  | { type: 'paiement'; item: Expedition }
+  | { type: 'recu'; item: Expedition }
   | null;
 
 @Component({
   selector: 'app-camions-page',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CamionsTable, ExpeditionsTable, Pagination, CamionModal, ExpeditionModal, DetailModal],
+  imports: [CamionsTable, ExpeditionsTable, Pagination, CamionModal, ExpeditionModal, DetailModal, PaiementExpeditionModal, RecuPDF],
   templateUrl: './page.html',
 })
 export class CamionsPage {
@@ -41,6 +45,18 @@ export class CamionsPage {
   protected readonly role = computed(() => this.auth.role());
 
   protected readonly canManage = computed(() => this.isCurrentYear() && (this.role() === 'admin' || this.role() === 'super_admin' || this.role() === 'quai_peche' || this.role() === 'regisseur'));
+
+  /** La taxe de passage s'enregistre par l'agent du quai, le régisseur ou le super administrateur (l'administrateur consulte). */
+  protected readonly canPay = computed(() => this.isCurrentYear() && (this.role() === 'super_admin' || this.role() === 'quai_peche' || this.role() === 'regisseur'));
+
+  protected recuHeure(value: string): string {
+    return new Date(value).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  protected async apresPaiement(expedition: Expedition) {
+    await this.loadData();
+    this.modal.set({ type: 'recu', item: expedition });
+  }
 
   protected readonly canDelete = computed(() => this.isCurrentYear() && (this.role() === 'admin' || this.role() === 'super_admin'));
 
@@ -89,7 +105,7 @@ export class CamionsPage {
     { label: 'Camions actifs', value: this.camionsList.counts().ACTIF || 0, icon: 'ri-checkbox-circle-line', tone: 'bg-green-100 text-green-600' },
     { label: 'Expéditions', value: this.expeditionsList.yearTotal(), icon: 'ri-send-plane-line', tone: 'bg-emerald-100 text-emerald-600' },
     {
-    label: 'Recettes transport',
+    label: 'Taxes de passage payées',
     value: `${(this.expeditionsList.meta().somme || 0).toLocaleString('fr-FR')} FCFA`,
     icon: 'ri-money-dollar-circle-line',
     tone: 'bg-emerald-100 text-emerald-600',
@@ -128,13 +144,14 @@ export class CamionsPage {
     else {
     const rows = await fetchAllPages((page, limit) => this.quaiPecheApi.pageExpeditions({ ...query, page, limit }));
     downloadCsv(`expeditions_${today()}.csv`, [
-    ['Numéro', 'Camion', 'Poids (kg)', 'Destination', 'Montant (FCFA)', 'Date', 'Statut'],
+    ['Numéro', 'Camion', 'Poids (kg)', 'Destination', 'Ticket taxe de passage', 'Taxe (FCFA)', 'Date', 'Statut'],
     ...rows.map((e) => [
     e.numero,
     e.camion?.immatriculation,
     e.poids,
     e.destination,
-    e.montant,
+    e.paiement?.statut === 'PAYE' ? e.paiement.numero : '',
+    e.paiement?.statut === 'PAYE' ? e.paiement.montant : '',
     formatDate(e.date),
     STATUTS_EXPEDITION[e.statut]?.label || e.statut,
     ]),

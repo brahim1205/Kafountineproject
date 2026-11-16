@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.security.Authenticated;
 import sn.kafountine.gestionmunicipale.shared.security.Roles;
@@ -89,8 +90,20 @@ public class TransactionsController {
     return Api.okWithMeta(result.get("data"), (Map<String, Object>) result.get("meta"));
   }
 
+  /**
+   * Droits que le compte Quai de pêche peut enregistrer lui-même (arrêté du 8 mai 2024). La taxe des camions
+   * frigorifiques passe par l'expédition, pour rester reliée au passage du camion.
+   */
+  static final Map<String, java.util.Set<String>> DROITS_QUAI = Map.of(
+      "stationnement-transport", java.util.Set.of("Transport maritime - Pecheurs saisonniers", "Transport poisson - Moto chargeant poisson"),
+      "marche", java.util.Set.of("Etals - Poissonnerie (etalage)"));
+
+  static boolean droitQuai(String categorie, String service) {
+    return categorie != null && service != null && DROITS_QUAI.getOrDefault(categorie, java.util.Set.of()).contains(service);
+  }
+
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "REGISSEUR", "QUAI_PECHE"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String contribuableId = input.str("contribuableId").noTrim().uuid("ID contribuable invalide").required();
@@ -104,6 +117,9 @@ public class TransactionsController {
     String date = input.str("date").max(50).optional();
     input.str("reference").max(120).optional();
     input.check();
+    if ("QUAI_PECHE".equalsIgnoreCase(RequestContext.user().role()) && !droitQuai(categorie, serviceName)) {
+      throw AppException.forbidden("Le quai de pêche n'enregistre que ses droits : pêcheurs saisonniers, moto chargeant du poisson, poissonnerie.");
+    }
     return Api.created(service.create(RequestContext.actor(), new TransactionService.CreateInput(contribuableId, RequestContext.user().userId(),
         categorie, type, serviceName, quantite, montant, mode == null ? "ESPECE" : mode, statut == null ? "PAYE" : statut, date)));
   }

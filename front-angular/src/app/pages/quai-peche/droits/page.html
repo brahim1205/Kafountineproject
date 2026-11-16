@@ -1,0 +1,51 @@
+<div class="mx-auto max-w-3xl space-y-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Droits du quai</h1>
+    <p class="mt-1 text-sm text-gray-600">Droits de l’arrêté du 8 mai 2024 perçus au quai, avec reçu. La taxe des camions frigorifiques s’enregistre depuis <a routerLink="/quai-peche/camions" class="font-medium text-emerald-700 underline">les expéditions</a>.</p>
+  </div>
+
+  @if (error()) {
+    <div role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</div>
+  }
+
+  <form (submit)="enregistrer($event)" novalidate class="space-y-5 rounded-xl border border-gray-200 bg-white p-6">
+    <fieldset>
+      <legend class="mb-2 block text-sm font-medium text-gray-700">Droit</legend>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        @for (d of droits(); track d.nom; let i = $index) {
+          <label [class]="'cursor-pointer rounded-lg border p-3 text-sm transition-colors ' + (choix() === i ? 'border-emerald-600 bg-emerald-50' : 'border-gray-200 hover:bg-gray-50')">
+            <input type="radio" name="droit" class="sr-only" [checked]="choix() === i" (change)="choix.set(i)" />
+            <span class="block font-medium text-gray-900">{{ d.libelle }}</span>
+            <span class="block text-gray-600">{{ montant(d.tarif) }} / {{ d.unite }}</span>
+            <span class="block text-xs text-gray-400">Arrêté, art. {{ d.article }}</span>
+          </label>
+        } @empty {
+          <p class="text-sm text-gray-500">Chargement des tarifs…</p>
+        }
+      </div>
+    </fieldset>
+
+    <app-payeur-field [inputClassName]="INPUT_CLASS"></app-payeur-field>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label for="quantite-droit" class="mb-1 block text-sm font-medium text-gray-700">Nombre de {{ droit()?.unite === 'mois' ? 'mois' : 'jours' }}</label>
+        <input id="quantite-droit" type="number" min="1" max="366" [value]="quantite()" (input)="quantite.set(Math.max(1, +$any($event.target).value || 1))" [class]="INPUT_CLASS" />
+      </div>
+      <app-mode-paiement [(value)]="mode"></app-mode-paiement>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
+      <p class="text-sm text-gray-600">Total : <span class="text-lg font-bold text-gray-900">{{ montant(total()) }}</span></p>
+      <button type="submit" [disabled]="submitting() || !droit()" class="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60">
+        {{ submitting() ? 'Enregistrement…' : 'Enregistrer et imprimer le reçu' }}
+      </button>
+    </div>
+  </form>
+
+  <p class="text-sm text-gray-600">Le total de la journée et la clôture se trouvent dans <a routerLink="/caisse" class="font-medium text-emerald-700 underline">ma caisse</a>.</p>
+</div>
+
+@if (recu(); as r) {
+  <app-recu-pdf [ticketNumber]="r.numero" [date]="r.date" [time]="r.heure" [contributor]="r.payeur" [type]="r.service" [amount]="r.montant" [agent]="r.agent" (closed)="recu.set(null)"></app-recu-pdf>
+}

@@ -51,7 +51,8 @@ export class DetailModal {
     ['Camion', this.item().camion?.immatriculation || '-'],
     ['Poids', formatKg(this.item().poids)],
     ['Destination', this.item().destination || '-'],
-    ['Montant', formatFcfa(this.item().montant)],
+    ['Taxe de passage', this.item().paiement ? `${this.item().paiement!.numero} · ${formatFcfa(this.item().paiement!.montant)}${this.item().paiement!.statut === 'PAYE' ? '' : ' (annulé)'}` : 'Non enregistrée'],
+    ...(this.item().montantSaisi ? [['Montant saisi (ancien, non tracé)', formatFcfa(this.item().montantSaisi)]] : []),
     ['Date', formatDate(this.item().date)],
     ['Observations', this.item().observations || '-'],
     ]);

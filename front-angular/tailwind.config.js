@@ -4,6 +4,11 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      // Écrans bas (portables, navigateur zoomé) : la page de connexion se resserre pour tenir sans défilement.
+      screens: {
+        short: { raw: '(max-height: 760px)' },
+        tiny: { raw: '(max-height: 600px)' },
+      },
       colors: {
         // Teintes assombries pour un contraste d'au moins 4,5:1 (WCAG 1.4.3).
         emerald: { 600: '#047857', 700: '#065f46' },

@@ -1,55 +1,58 @@
-<div class="relative min-h-screen overflow-hidden bg-gray-900">
+<!-- La page occupe exactement la hauteur de l'écran : espacements et tailles se resserrent sur les écrans bas (short, tiny). -->
+<div class="relative h-dvh overflow-hidden bg-gray-900">
   <img src="/login-kafountine.jpg" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover" />
 
-  <div class="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 sm:px-8">
-    <header class="flex items-center justify-between">
+  <div class="relative z-10 mx-auto flex h-full max-w-6xl flex-col px-4 py-5 sm:px-8 short:py-3 tiny:py-2">
+    <header class="flex shrink-0 items-center justify-between">
       <div class="flex items-center gap-3">
-        <img src="/logo.jpeg" alt="Logo Commune de Kafountine" class="h-11 w-11 rounded-xl bg-white object-contain p-1 shadow-md" />
-        <span class="text-xl font-semibold tracking-tight text-white [text-shadow:0_1px_4px_rgb(0_0_0/0.7)]">Kafountine</span>
+        <img src="/logo.jpeg" alt="Logo Commune de Kafountine" class="h-11 w-11 rounded-xl bg-white object-contain p-1 shadow-md short:h-9 short:w-9 tiny:h-7 tiny:w-7 tiny:rounded-lg" />
+        <span class="text-xl font-semibold tracking-tight text-white [text-shadow:0_1px_4px_rgb(0_0_0/0.7)] short:text-lg tiny:text-base">Kafountine</span>
       </div>
       <p class="hidden text-xs font-semibold tracking-wide text-white [text-shadow:0_1px_4px_rgb(0_0_0/0.7)] sm:block">Transparence <span class="mx-2 text-white/60">/</span> Traçabilité</p>
     </header>
 
-    <main class="grid flex-1 items-center gap-6 py-6 lg:grid-cols-2 lg:items-stretch lg:py-10">
+    <main class="grid min-h-0 flex-1 items-center gap-6 py-6 lg:grid-cols-2 lg:items-stretch lg:py-8 short:py-3 short:lg:py-4 tiny:py-2 tiny:lg:py-2">
       <!-- Panneau illustré (écrans larges) -->
-      <section class="relative hidden min-h-[540px] overflow-hidden rounded-3xl border border-white/40 shadow-2xl lg:block" aria-label="Présentation de la plateforme">
+      <section class="relative hidden overflow-hidden rounded-3xl border border-white/40 shadow-2xl lg:block" aria-label="Présentation de la plateforme">
         <img src="/login-kafountine.jpg" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover object-[72%_center]" />
-        <div class="relative flex h-full flex-col p-8">
+        <div class="relative flex h-full flex-col p-8 short:p-6 tiny:p-5">
           <div class="flex w-fit items-center gap-3 rounded-full bg-black/40 py-1.5 pl-1.5 pr-4 backdrop-blur-md">
-            <img src="/logo.jpeg" alt="" aria-hidden="true" class="h-9 w-9 rounded-full bg-white object-contain p-0.5" />
+            <img src="/logo.jpeg" alt="" aria-hidden="true" class="h-9 w-9 rounded-full bg-white object-contain p-0.5 tiny:h-7 tiny:w-7" />
             <div class="leading-tight">
               <p class="text-xs font-semibold text-white">Commune de Kafountine</p>
               <p class="text-[11px] text-white/80">Département de Bignona · Ziguinchor</p>
             </div>
           </div>
-          <div class="mt-10 [text-shadow:0_2px_6px_rgb(0_0_0/0.85),0_0_18px_rgb(0_0_0/0.55)]">
-            <h2 class="text-4xl font-semibold leading-tight tracking-tight text-white">
+          <div class="mt-10 [text-shadow:0_2px_6px_rgb(0_0_0/0.85),0_0_18px_rgb(0_0_0/0.55)] short:mt-6 tiny:mt-4">
+            <h2 class="text-4xl font-semibold leading-tight tracking-tight text-white short:text-3xl tiny:text-2xl">
               Chaque recette tracée.<br />Chaque service
               <span class="text-emerald-300">suivi.</span>
             </h2>
-            <p class="mt-4 max-w-md text-base font-medium leading-relaxed text-white">Taxes, état civil, marché, motos, quai de pêche : toute la gestion municipale réunie sur une seule plateforme.</p>
+            <p class="mt-4 max-w-md text-base font-medium leading-relaxed text-white short:mt-3 short:text-sm">Taxes, état civil, marché, motos, quai de pêche : toute la gestion municipale réunie sur une seule plateforme.</p>
           </div>
         </div>
       </section>
 
       <!-- Carte de connexion -->
-      <section class="relative mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-white/95 p-6 shadow-2xl backdrop-blur sm:p-10 lg:max-w-none">
-        <div class="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-50" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute -bottom-24 -right-10 h-48 w-48 rounded-full bg-emerald-50/70" aria-hidden="true"></div>
+      <section class="relative mx-auto max-h-full w-full max-w-lg overflow-y-auto rounded-3xl bg-white/95 p-6 shadow-2xl backdrop-blur sm:p-10 lg:max-w-none short:sm:p-7 tiny:p-5 tiny:sm:p-5">
+        <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl" aria-hidden="true">
+          <div class="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-50"></div>
+          <div class="absolute -bottom-24 -right-10 h-48 w-48 rounded-full bg-emerald-50/70"></div>
+        </div>
 
         <div class="relative mx-auto flex h-full max-w-md flex-col justify-center">
-          <i class="ri-government-line text-3xl text-emerald-800" aria-hidden="true"></i>
+          <i class="ri-government-line text-3xl text-emerald-800 short:text-2xl [@media(max-width:639px)_and_(max-height:760px)]:hidden tiny:hidden" aria-hidden="true"></i>
 
           @if (showForgot()) {
-            <div class="mt-4">
-              <h1 class="text-3xl font-medium tracking-tight text-gray-900">Mot de passe oublié ?</h1>
-              <p class="mt-2 text-sm leading-relaxed text-gray-600">Indiquez votre adresse email : l’administrateur de la plateforme sera prévenu et vous communiquera un nouveau mot de passe.</p>
+            <div class="mt-4 short:mt-2 tiny:mt-0">
+              <h1 class="text-3xl font-medium tracking-tight text-gray-900 short:text-2xl tiny:text-xl">Mot de passe oublié ?</h1>
+              <p class="mt-2 text-sm leading-relaxed text-gray-600 tiny:mt-1 tiny:text-xs">Indiquez votre adresse email : l’administrateur de la plateforme sera prévenu et vous communiquera un nouveau mot de passe.</p>
             </div>
-            <form (submit)="$event.preventDefault(); sendReset(resetEmail)" novalidate class="mt-8 space-y-4">
+            <form (submit)="$event.preventDefault(); sendReset(resetEmail)" novalidate class="mt-8 space-y-4 short:mt-5 short:space-y-3 tiny:mt-3">
               <div class="relative">
                 <label for="reset-email" class="sr-only">Adresse email</label>
                 <i class="ri-mail-line pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
-                <input #resetEmail id="reset-email" type="email" autocomplete="email" [value]="forgotEmail()" (input)="resetEmail.setCustomValidity(''); forgotEmail.set(resetEmail.value)" class="w-full rounded-full border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" placeholder="exemple@kafountine.gouv.sn" />
+                <input #resetEmail id="reset-email" type="email" autocomplete="email" [value]="forgotEmail()" (input)="resetEmail.setCustomValidity(''); forgotEmail.set(resetEmail.value)" class="w-full rounded-full border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 tiny:py-2" placeholder="exemple@kafountine.gouv.sn" />
               </div>
               @if (forgotStatus(); as status) {
                 <div [attr.role]="status.kind === 'error' ? 'alert' : 'status'" [class]="'flex items-start gap-2 rounded-xl px-3 py-2 text-sm ' + (status.kind === 'error' ? 'border border-red-200 bg-red-50 text-red-700' : 'border border-emerald-200 bg-emerald-50 text-emerald-800')">
@@ -58,8 +61,8 @@
                 </div>
               }
               <div class="flex gap-3">
-                <button type="button" (click)="closeForgot()" class="flex-1 cursor-pointer rounded-full border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">Retour</button>
-                <button type="submit" [disabled]="sendingReset()" class="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-900 py-3 text-sm font-medium text-white transition-all hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="button" (click)="closeForgot()" class="flex-1 cursor-pointer rounded-full border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 tiny:py-2">Retour</button>
+                <button type="submit" [disabled]="sendingReset()" class="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-900 py-3 text-sm font-medium text-white transition-all hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 tiny:py-2">
                   @if (sendingReset()) {
                     <i class="ri-loader-4-line animate-spin" aria-hidden="true"></i>Envoi...
                   } @else {
@@ -69,25 +72,25 @@
               </div>
             </form>
           } @else {
-            <div class="mt-4">
-              <h1 class="text-3xl font-medium tracking-tight text-gray-900">
+            <div class="mt-4 short:mt-2 tiny:mt-0">
+              <h1 class="text-3xl font-medium tracking-tight text-gray-900 short:text-2xl tiny:text-xl">
                 Bon retour,<br />
                 <span class="text-emerald-700">connectez-vous à votre espace.</span>
               </h1>
-              <p class="mt-2 text-sm text-gray-600">Plateforme de gestion municipale de la commune de Kafountine.</p>
+              <p class="mt-2 text-sm text-gray-600 [@media(max-width:639px)_and_(max-height:760px)]:hidden tiny:hidden">Plateforme de gestion municipale de la commune de Kafountine.</p>
             </div>
 
-            <form [formGroup]="form" (submit)="$event.preventDefault(); submit($event)" (input)="clearFieldError($event)" novalidate class="mt-8 space-y-4">
+            <form [formGroup]="form" (submit)="$event.preventDefault(); submit($event)" (input)="clearFieldError($event)" novalidate class="mt-8 space-y-4 short:mt-5 short:space-y-3 tiny:mt-3">
               <div class="relative">
                 <label for="email" class="sr-only">Adresse email</label>
                 <i class="ri-mail-line pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
-                <input type="email" id="email" autocomplete="username" formControlName="email" class="w-full rounded-full border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" placeholder="Adresse email" data-required="true" />
+                <input type="email" id="email" autocomplete="username" formControlName="email" class="w-full rounded-full border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 tiny:py-2" placeholder="Adresse email" data-required="true" />
               </div>
               <div>
                 <div class="relative">
                   <label for="password" class="sr-only">Mot de passe</label>
                   <i class="ri-lock-line pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
-                  <input [type]="showPassword() ? 'text' : 'password'" id="password" formControlName="password" autocomplete="current-password" (keydown)="checkCapsLock($event)" (keyup)="checkCapsLock($event)" (blur)="capsLock.set(false)" [attr.aria-describedby]="capsLock() ? 'caps-lock' : null" class="w-full rounded-full border border-gray-200 bg-white py-3 pl-11 pr-12 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" placeholder="Mot de passe" data-required="true" />
+                  <input [type]="showPassword() ? 'text' : 'password'" id="password" formControlName="password" autocomplete="current-password" (keydown)="checkCapsLock($event)" (keyup)="checkCapsLock($event)" (blur)="capsLock.set(false)" [attr.aria-describedby]="capsLock() ? 'caps-lock' : null" class="w-full rounded-full border border-gray-200 bg-white py-3 pl-11 pr-12 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 tiny:py-2" placeholder="Mot de passe" data-required="true" />
                   <button type="button" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" class="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600" aria-label="Afficher ou masquer la saisie">
                     <i [class]="showPassword() ? 'ri-eye-off-line text-lg' : 'ri-eye-line text-lg'" aria-hidden="true"></i>
                   </button>
@@ -108,7 +111,7 @@
                 <button type="button" class="cursor-pointer whitespace-nowrap rounded text-sm font-medium text-gray-900 underline underline-offset-2 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600" (click)="openForgot()">Mot de passe oublié ?</button>
               </div>
 
-              <button type="submit" [disabled]="submitting()" class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-900 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-900/25 transition-all hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="submit" [disabled]="submitting()" class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-900 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-900/25 transition-all hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 tiny:py-2">
                 @if (submitting()) {
                   <i class="ri-loader-4-line animate-spin" aria-hidden="true"></i>Connexion...
                 } @else {
@@ -117,19 +120,19 @@
               </button>
             </form>
 
-            <div class="mt-8 flex items-center gap-3 text-xs text-gray-500">
+            <div class="mt-8 flex items-center gap-3 text-xs text-gray-500 short:mt-5 [@media(max-width:639px)_and_(max-height:760px)]:hidden tiny:hidden">
               <span class="h-px flex-1 bg-gray-200"></span>
               Accès réservé aux agents de la commune
               <span class="h-px flex-1 bg-gray-200"></span>
             </div>
-            <p class="mt-4 text-center text-sm text-gray-600">Pas encore de compte ? Demandez-le à votre administrateur.</p>
+            <p class="mt-4 text-center text-sm text-gray-600 short:mt-3 tiny:mt-3 tiny:text-xs">Pas encore de compte ? Demandez-le à votre administrateur.</p>
           }
         </div>
       </section>
     </main>
 
-    <footer class="text-center [text-shadow:0_1px_4px_rgb(0_0_0/0.8)]">
-      <p class="text-xs font-medium text-white">© {{ year }} Commune de Kafountine · Tous droits réservés</p>
+    <footer class="shrink-0 px-8 text-center [text-shadow:0_1px_4px_rgb(0_0_0/0.8)]">
+      <p class="text-xs font-medium text-white tiny:text-[11px]">© {{ year }} Commune de Kafountine · Tous droits réservés</p>
     </footer>
   </div>
 
@@ -137,7 +140,7 @@
   <a href="https://commons.wikimedia.org/wiki/File:Kafountine_DSC07260_Senegal.jpg" target="_blank" rel="noopener noreferrer"
     title="Photo : Kafountine, par Christian Pirkl, Wikimedia Commons, CC BY-SA 4.0 (redimensionnée)"
     aria-label="Crédit photo : Kafountine, par Christian Pirkl, Wikimedia Commons, licence CC BY-SA 4.0"
-    class="absolute bottom-3 right-3 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/30 text-xs text-white/80 hover:bg-black/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+    class="absolute bottom-3 right-3 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-black/30 text-xs text-white/80 hover:bg-black/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white tiny:bottom-1.5 tiny:right-1.5">
     <i class="ri-information-line" aria-hidden="true"></i>
   </a>
 </div>

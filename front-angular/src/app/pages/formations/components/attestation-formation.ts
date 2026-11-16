@@ -1,21 +1,12 @@
-import { ChangeDetectionStrategy, Component, input, output, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { Attestation } from '../../../services/formations';
+import { imprimerDocument } from '../../../utils/impression';
 
 /** Attestation de formation, imprimable (A4 paysage), délivrée aux jeunes certifiés. */
 @Component({
   selector: 'app-attestation-formation',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
-  styles: [`
-    @media print {
-      @page { size: A4 landscape; margin: 0; }
-      body * { visibility: hidden !important; }
-      #attestation-content, #attestation-content * { visibility: visible !important; }
-      #attestation-content { position: fixed !important; inset: 0 !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
-      .no-print { display: none !important; }
-    }
-  `],
   template: `
     <div class="no-print fixed inset-0 z-50 bg-gray-900/50" (click)="closed.emit()"></div>
     <div class="fixed inset-0 z-50 overflow-y-auto">
@@ -68,6 +59,6 @@ export class AttestationFormation {
   }
 
   protected imprimer(): void {
-    window.print();
+    imprimerDocument(document.getElementById('attestation-content'), 'paysage');
   }
 }

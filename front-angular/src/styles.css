@@ -50,3 +50,44 @@
     display: none;
   }
 }
+
+/* Impression d'un document seul (voir utils/impression.ts) : la copie n'apparaît qu'à l'impression. */
+.zone-impression {
+  display: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 1cm;
+}
+
+@page paysage {
+  size: A4 landscape;
+  margin: 0;
+}
+
+@media print {
+  body.impression-en-cours {
+    background: white !important;
+  }
+  body.impression-en-cours > *:not(.zone-impression) {
+    display: none !important;
+  }
+  body.impression-en-cours > .zone-impression {
+    display: block !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .zone-impression-paysage {
+    page: paysage;
+  }
+  .zone-impression > * {
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+  .zone-impression .no-print {
+    display: none !important;
+  }
+}

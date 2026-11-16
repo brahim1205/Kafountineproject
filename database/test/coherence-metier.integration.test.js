@@ -20,7 +20,7 @@ describeIntegration('cohérence métier', () => {
   const nouveauContribuable = async () => (await admin.post('/contribuables').send(fiche())).body.data.id;
   const nouvelleMoto = async (proprietaireId) => {
     serie += 1;
-    const res = await agent.post('/motos').send({ matricule: `C-${suffix}-${serie}`, marque: 'Jakarta', modele: 'C90', annee: 2020, proprietaireId });
+    const res = await regisseur.post('/motos').send({ matricule: `C-${suffix}-${serie}`, marque: 'Jakarta', modele: 'C90', annee: 2020, proprietaireId });
     expect(res.status).toBe(201);
     return res.body.data;
   };
@@ -152,6 +152,17 @@ describeIntegration('cohérence métier', () => {
     it('refuse à un agent de modifier l’échéance d’une moto', async () => {
       const moto = await nouvelleMoto(await nouveauContribuable());
       expect((await agent.put(`/motos/${moto.id}`).send({ prochainPaiement: '2030-01-10' })).status).toBe(403);
+    });
+
+    it('réserve l’adhésion et les changements d’une moto au régisseur', async () => {
+      const proprietaireId = await nouveauContribuable();
+      serie += 1;
+      expect((await agent.post('/motos').send({ matricule: `C-${suffix}-${serie}`, marque: 'Jakarta', modele: 'C90', annee: 2020, proprietaireId })).status).toBe(403);
+      const moto = await nouvelleMoto(proprietaireId);
+      expect((await agent.put(`/motos/${moto.id}`).send({ couleur: 'Rouge' })).status).toBe(403);
+      expect((await agent.post(`/motos/${moto.id}/changement-conducteur`).send({ conducteurId: proprietaireId })).status).toBe(403);
+      expect((await regisseur.put(`/motos/${moto.id}`).send({ couleur: 'Rouge' })).status).toBe(200);
+      expect((await agent.post('/motos/paiements').send({ motoId: moto.id })).status).toBe(201);
     });
   });
 

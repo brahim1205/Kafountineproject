@@ -78,21 +78,22 @@ public class MotosController {
         conducteurId, conducteurId != null, permis, permis != null, statut, photo, photo != null, enRetard, penalite, prochain, dernier, year);
   }
 
+  /** L’adhésion (fiche et droit d’adhésion) relève du régisseur ; l’agent enregistre seulement les cotisations mensuelles et les retards. */
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     return Api.created(service.create(RequestContext.actor(), moto(Input.body(body), true)));
   }
 
   @PutMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String id, @Body JsonNode body) {
     String motoId = Common.id(id);
     return Api.ok(service.update(RequestContext.actor(), motoId, moto(Input.body(body), false)));
   }
 
   @PostMapping("/{id}/changement-conducteur")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> changeDriver(@PathVariable String id, @Body JsonNode body) {
     String motoId = Common.id(id);
     Input input = Input.body(body);

@@ -40,6 +40,9 @@ export class MotosPage {
 
   protected readonly canManage = computed(() => this.auth.role() !== 'quai_peche' && this.auth.canWriteRole(this.userRole()) && this.isCurrentYear());
 
+  /** L’adhésion d’une moto et ses changements relèvent du régisseur : l’agent enregistre seulement cotisations et retards. */
+  protected readonly canAdhesion = computed(() => this.canManage() && this.auth.role() !== 'agent');
+
   protected readonly activeTab = signal<Tab>(this.userRole() === 'admin' ? 'paiements' : 'liste');
 
   protected readonly modal = signal<Modal>(null);

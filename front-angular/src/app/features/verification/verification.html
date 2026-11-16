@@ -1,0 +1,46 @@
+<div class="min-h-dvh bg-gray-50 px-4 py-10">
+  <div class="mx-auto max-w-lg">
+    <div class="mb-6 flex items-center gap-3">
+      <img src="/logo.jpeg" alt="Logo Commune de Kafountine" class="h-12 w-12 rounded-xl bg-white object-contain p-1 shadow-sm" />
+      <div>
+        <p class="text-lg font-semibold text-gray-900">Commune de Kafountine</p>
+        <p class="text-sm text-gray-600">Vérification d’un reçu</p>
+      </div>
+    </div>
+
+    <form (submit)="verifier($event)" class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <label for="numero-recu" class="block text-sm font-medium text-gray-700">Numéro du reçu</label>
+      <p class="mt-1 text-xs text-gray-500">Il figure en haut du reçu, par exemple TX-2026-0042 ou MOTO-2026-00009.</p>
+      <div class="mt-3 flex gap-2">
+        <input id="numero-recu" [value]="numero()" (input)="numero.set($any($event.target).value)" autocomplete="off" spellcheck="false" placeholder="TX-2026-0042"
+          class="min-w-0 flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm uppercase outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" />
+        <button type="submit" [disabled]="chargement()" class="rounded-lg bg-emerald-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-900 disabled:opacity-60">
+          {{ chargement() ? 'Vérification…' : 'Vérifier' }}</button>
+      </div>
+    </form>
+
+    @if (erreur()) {
+      <div role="alert" class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ erreur() }}</div>
+    }
+
+    @if (recu(); as r) {
+      <section role="status" [class]="'mt-4 rounded-2xl border p-6 ' + ETATS[r.etat].classe">
+        <div class="flex items-center gap-2">
+          <i [class]="ETATS[r.etat].icone + ' text-2xl'" aria-hidden="true"></i>
+          <h1 class="text-xl font-semibold">{{ ETATS[r.etat].titre }}</h1>
+        </div>
+        <p class="mt-1 text-sm">{{ ETATS[r.etat].detail }}</p>
+        <dl class="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div><dt class="opacity-70">Numéro</dt><dd class="font-semibold">{{ r.numero }}</dd></div>
+          <div><dt class="opacity-70">Service</dt><dd class="font-semibold">{{ r.service }}</dd></div>
+          <div class="col-span-2"><dt class="opacity-70">Objet</dt><dd class="font-semibold">{{ r.objet }}</dd></div>
+          <div><dt class="opacity-70">Montant</dt><dd class="font-semibold">{{ montant(r.montant) }}</dd></div>
+          <div><dt class="opacity-70">Date</dt><dd class="font-semibold">{{ date(r.date) }}</dd></div>
+        </dl>
+        <p class="mt-5 text-xs opacity-80">Comparez ces informations avec le reçu papier : elles doivent être identiques.</p>
+      </section>
+    }
+
+    <p class="mt-8 text-center text-xs text-gray-500">Aucune donnée personnelle n’est affichée. <a routerLink="/login" class="font-medium text-emerald-800 underline">Espace agents</a></p>
+  </div>
+</div>

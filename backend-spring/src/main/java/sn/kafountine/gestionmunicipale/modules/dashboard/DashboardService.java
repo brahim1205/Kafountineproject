@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import org.springframework.stereotype.Service;
+import sn.kafountine.gestionmunicipale.modules.motos.MotoService;
 import sn.kafountine.gestionmunicipale.modules.recouvrement.RecouvrementService;
 import sn.kafountine.gestionmunicipale.modules.transactions.CategoryLabels;
 import sn.kafountine.gestionmunicipale.shared.config.JacksonConfig;
@@ -128,8 +129,9 @@ public class DashboardService {
   }
 
   private Map<String, Object> motosStats(int year) {
-    List<Map<String, Object>> motos = db.list("SELECT \"enRetard\" FROM \"MotoRegistration\" WHERE \"year\" = :year", Db.params("year", year));
-    long enRetard = motos.stream().filter(row -> Boolean.TRUE.equals(row.get("enRetard"))).count();
+    List<Map<String, Object>> motos = db.list("SELECT \"enRetard\", \"prochainPaiement\" FROM \"MotoRegistration\" WHERE \"year\" = :year", Db.params("year", year));
+    Instant now = Instant.now();
+    long enRetard = motos.stream().filter(row -> MotoService.estEnRetard(row, now)).count();
     return Api.map("totalMotos", motos.size(), "enRetard", enRetard);
   }
 
@@ -258,6 +260,7 @@ public class DashboardService {
         "quaiPeche", Api.map("enAttente", quaiPeche == null ? 0 : quaiPeche),
         "validations", Api.map("total", num(get(urbanisme, "total"))));
 
+    double impayes = num(orElse(() -> recouvrement.impayes(100_000).get("total"), 0));
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("totalContribuables", totalContribuables);
     result.put("totalRecettes", totalRecettes);
@@ -266,7 +269,8 @@ public class DashboardService {
     result.put("transactionsMois", totalTransactions);
     result.put("recettesAujourdhui", recettesAujourdhui);
     result.put("recettesMois", recettesMois);
-    result.put("tauxRecouvrement", tauxRecouvrement(totalRecettes, num(orElse(() -> recouvrement.impayes(100_000).get("total"), 0))));
+    result.put("tauxRecouvrement", tauxRecouvrement(totalRecettes, impayes));
+    result.put("impayes", impayes);
     result.put("totalTransactions", totalTransactions);
     result.put("totalUsers", totalUsers);
     result.put("totalAdmins", totalAdmins);

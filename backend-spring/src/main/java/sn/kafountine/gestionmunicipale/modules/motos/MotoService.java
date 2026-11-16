@@ -75,7 +75,8 @@ public class MotoService {
     return libelleMois(limite.atZone(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1).minusMonths(1));
   }
 
-  private static boolean estEnRetard(Map<String, Object> row, Instant now) {
+  /** Une moto est en retard si elle est marquée comme telle ou si son échéance est dépassée (règle unique, reprise par le tableau de bord). */
+  public static boolean estEnRetard(Map<String, Object> row, Instant now) {
     Instant prochain = Db.date(row, "prochainPaiement");
     return Boolean.TRUE.equals(row.get("enRetard")) || (prochain != null && prochain.isBefore(now));
   }

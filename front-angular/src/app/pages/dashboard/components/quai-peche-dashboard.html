@@ -1,256 +1,100 @@
-@if (loading()) {
-  <div class="flex items-center justify-center h-64">
-    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-  </div>
-} @else {
-  <div class="space-y-6">
-    @if (errorMsg()) {
-      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMsg() }}</div>
-    }
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Bonjour,
-          {{ userName().split(' ')[0] }}
-          — Quai de Pêche 👋</h1>
-        <p class="text-sm text-gray-600 mt-1">Gestion du quai de pêche, motos et marché</p>
+<div class="space-y-6">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Bonjour{{ prenom() ? ', ' + prenom() : '' }}</h1>
+      <p class="mt-1 text-sm text-gray-600">Quai de pêche · Exercice {{ selectedYear() }}</p>
+    </div>
+    @if (!isCurrentYear()) {
+      <div class="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-100 px-4 py-2 text-amber-800">
+        <i class="ri-eye-line" aria-hidden="true"></i>
+        <span class="text-sm font-medium">Année {{ selectedYear() }} · consultation seule</span>
       </div>
-      @if (!isCurrentYear()) {
-        <div class="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-2 rounded-lg flex items-center gap-2">
-          <i class="ri-eye-line"></i>
-          <span class="text-sm font-medium">Année
-            {{ selectedYear() }}
-            - Consultation seule</span>
+    }
+  </div>
+
+  @if (errorMsg()) {
+    <div role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMsg() }}</div>
+  }
+
+  @if (loading() && !stats()) {
+    <div class="flex h-64 items-center justify-center" role="status">
+      <div class="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" aria-hidden="true"></div>
+      <span class="sr-only">Chargement</span>
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      @for (k of indicateurs(); track k.titre) {
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-sm text-gray-600">{{ k.titre }}</p>
+              <p class="mt-1 flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold text-gray-900">{{ k.valeur }}</span>
+                @if (k.unite) {
+                  <span class="text-xs text-gray-500">{{ k.unite }}</span>
+                }
+              </p>
+            </div>
+            <span [class]="'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg ' + k.couleur">
+              <i [class]="k.icon + ' text-xl'" aria-hidden="true"></i>
+            </span>
+          </div>
         </div>
       }
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-xl p-5 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">Total Commissions</p>
-            <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ totalCommissions() }}</h3>
-          </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <i class="ri-snowy-line text-xl text-blue-600"></i>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl p-5 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">Poids Total (kg)</p>
-            <h3 class="text-2xl font-bold text-gray-900 mt-1">{{ totalPoids().toLocaleString() }}</h3>
-          </div>
-          <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-            <i class="ri-scales-line text-xl text-emerald-600"></i>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl p-5 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">Pêcheurs Actifs</p>
-            <h3 class="text-2xl font-bold text-green-600 mt-1">{{ totalPecheurs() }}</h3>
-          </div>
-          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <i class="ri-group-line text-xl text-green-600"></i>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl p-5 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">En Attente</p>
-            <h3 class="text-2xl font-bold text-amber-600 mt-1">{{ commissionsEnAttente() }}</h3>
-          </div>
-          <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-            <i class="ri-time-line text-xl text-amber-600"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="border-b border-gray-200">
-      <nav class="-mb-px flex space-x-8 overflow-x-auto">
-        @for (tab of tabs(); track tab.id) {
-          <button (click)="activeTab.set(tab.id)" [class]="`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 whitespace-nowrap ${activeTab() === tab.id ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`">
-            <i [class]="tab.icon"></i>{{ tab.label }}</button>
-        }
-      </nav>
-    </div>
-    <div class="bg-white rounded-xl p-6 border border-gray-200">
-      <div class="flex flex-col md:flex-row gap-4">
-        <div class="relative flex-1">
-          <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
-          <input type="text" placeholder="Rechercher..." [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm" />
-        </div>
-        <div class="flex items-center gap-2">
-          <select [value]="statutFilter()" (change)="statutFilter.set($any($event.target).value)" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
-            <option value="all">Tous les statuts</option>
-            <option value="ACTIF">Actif</option>
-            <option value="INACTIF">Inactif</option>
-            <option value="ENREGISTREE">Enregistrée</option>
-            <option value="VALIDEE">Validée</option>
-            <option value="OCCUPEE">Occupée</option>
-            <option value="DISPONIBLE">Libre</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              @if (activeTab() === 'commissions') {
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">N° Commission</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Pêcheur</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Poids (kg)</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Type Poisson</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Température</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Date</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Statut</th>
-                @if (isCurrentYear()) {
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
-                }
-              }
-              @if (activeTab() === 'pecheurs') {
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Nom</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Prénom</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Téléphone</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">NIN</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Statut</th>
-                @if (isCurrentYear()) {
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
-                }
-              }
-              @if (activeTab() === 'embarcations') {
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Nom</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Immatriculation</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Type</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Taille</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Statut</th>
-                @if (isCurrentYear()) {
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
-                }
-              }
-              @if (activeTab() === 'motos') {
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Matricule</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Marque</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Modèle</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Propriétaire</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Téléphone</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Statut</th>
-              }
-              @if (activeTab() === 'marche') {
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">N° Place</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Zone</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Type</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Occupant</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Activité</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase">Statut</th>
-              }
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            @if (activeTab() === 'commissions') {
-              @for (item of filteredCommissions(); track item.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ item.numero }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.pecheur?.nom || '-' }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.poids }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.typePoisson }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.temperatura }}°C</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ formatToLocaleDateString(item) }}</td>
-                  <td class="px-6 py-4">
-                    <span [class]="`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${normalizeStatus(item.statut) === 'VALIDEE' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`">{{ displayStatus(item.statut) }}</span>
-                  </td>
-                  @if (isCurrentYear()) {
-                    <td class="px-6 py-4 text-right">
-                      <div class="flex items-center justify-end gap-2">
-                        @if (normalizeStatus(item.statut) === 'ENREGISTREE') {
-                          <button (click)="handleValidate(item.id)" class="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors" title="Valider">
-                            <i class="ri-check-line"></i>
-                          </button>
-                        }
-                      </div>
-                    </td>
-                  }
-                </tr>
-              }
-            }
-            @if (activeTab() === 'pecheurs') {
-              @for (item of filteredPecheurs(); track item.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ item.nom }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.prenom }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.telephone }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.nin }}</td>
-                  <td class="px-6 py-4">
-                    <span [class]="`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${normalizeStatus(item.statut) === 'ACTIF' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`">{{ displayStatus(item.statut) }}</span>
-                  </td>
-                  @if (isCurrentYear()) {
-                    <td class="px-6 py-4 text-right">
-                      <button class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Voir">
-                        <i class="ri-eye-line"></i>
-                      </button>
-                    </td>
-                  }
-                </tr>
-              }
-            }
-            @if (activeTab() === 'embarcations') {
-              @for (item of filteredEmbarcations(); track item.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ item.nom }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700 font-mono">{{ item.immatriculation }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.type }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.taille || '-' }}</td>
-                  <td class="px-6 py-4">
-                    <span [class]="`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${normalizeStatus(item.statut) === 'ACTIF' ? 'bg-green-50 text-green-700' : normalizeStatus(item.statut) === 'EN_MAINTENANCE' ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-600'}`">{{ displayStatus(item.statut) }}</span>
-                  </td>
-                  @if (isCurrentYear()) {
-                    <td class="px-6 py-4 text-right">
-                      <button class="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Voir">
-                        <i class="ri-eye-line"></i>
-                      </button>
-                    </td>
-                  }
-                </tr>
-              }
-            }
-            @if (activeTab() === 'motos') {
-              @for (item of filteredMotos(); track item.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 text-sm font-medium text-gray-900 font-mono">{{ item.matricule }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.marque || '-' }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.modele || '-' }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ `${item.proprietaire?.prenom || ''} ${item.proprietaire?.nom || ''}`.trim() || '-' }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.proprietaire?.nin || '-' }}</td>
-                  <td class="px-6 py-4">
-                    <span [class]="`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${normalizeStatus(item.statut) === 'ACTIF' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`">{{ displayStatus(item.statut) }}</span>
-                  </td>
-                </tr>
-              }
-            }
-            @if (activeTab() === 'marche') {
-              @for (item of filteredPlacesMarche(); track item.id) {
-                <tr class="hover:bg-gray-50">
-                  <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ item.numeroPlace || item.numero }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.zone || '-' }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.type || '-' }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.occupantName }}</td>
-                  <td class="px-6 py-4 text-sm text-gray-700">{{ item.activite || '-' }}</td>
-                  <td class="px-6 py-4">
-                    <span [class]="`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${normalizeStatus(item.statut) === 'OCCUPEE' ? 'bg-green-50 text-green-700' : normalizeStatus(item.statut) === 'DISPONIBLE' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'}`">{{ displayStatus(item.statut) }}</span>
-                  </td>
-                </tr>
-              }
-            }
-          </tbody>
-        </table>
-      </div>
-      <app-pagination [page]="page()" [totalPages]="meta().totalPages" [total]="meta().total" unit="ligne" (pageChange)="page.set($event)"></app-pagination>
-    </div>
-  </div>
-}
 
+    <section class="rounded-xl border border-gray-200 bg-white" aria-labelledby="titre-attente">
+      <div class="flex items-center justify-between gap-3 border-b border-gray-200 p-6">
+        <div>
+          <h2 id="titre-attente" class="text-lg font-semibold text-gray-900">Commissions à valider</h2>
+          <p class="mt-1 text-sm text-gray-600">
+            @if (totalEnAttente() > enAttente().length) {
+              Les {{ enAttente().length }} plus récentes sur {{ totalEnAttente() }}
+            } @else {
+              {{ totalEnAttente() }} en attente
+            }
+          </p>
+        </div>
+        <a routerLink="/quai-peche/commissions" class="whitespace-nowrap text-sm font-medium text-emerald-700 hover:text-emerald-800">Toutes les commissions</a>
+      </div>
+      @if (enAttente().length === 0) {
+        <p class="p-6 text-center text-sm text-gray-500">Aucune commission en attente.</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="border-b border-gray-200 bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-600">N°</th>
+                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-600">Pêcheur</th>
+                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-600">Poisson</th>
+                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-600">Poids</th>
+                <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-600">Date</th>
+                @if (isCurrentYear()) {
+                  <th class="px-6 py-3 text-right text-xs font-medium uppercase text-gray-600">Action</th>
+                }
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              @for (c of enAttente(); track c.id) {
+                <tr class="hover:bg-gray-50">
+                  <td class="whitespace-nowrap px-6 py-3 text-sm font-medium text-gray-900">{{ c.numero }}</td>
+                  <td class="whitespace-nowrap px-6 py-3 text-sm text-gray-700">{{ c.pecheur ? (c.pecheur.prenom + ' ' + c.pecheur.nom) : '-' }}</td>
+                  <td class="whitespace-nowrap px-6 py-3 text-sm text-gray-700">{{ c.typePoisson }}</td>
+                  <td class="whitespace-nowrap px-6 py-3 text-sm text-gray-700">{{ c.poids.toLocaleString('fr-FR') }} kg</td>
+                  <td class="whitespace-nowrap px-6 py-3 text-sm text-gray-600">{{ dateCourte(c.date) }}</td>
+                  @if (isCurrentYear()) {
+                    <td class="px-6 py-3 text-right">
+                      <button type="button" (click)="valider(c)" [disabled]="validating() !== null" class="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">
+                        <i [class]="validating() === c.id ? 'ri-loader-4-line animate-spin' : 'ri-check-line'" aria-hidden="true"></i>Valider
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</div>

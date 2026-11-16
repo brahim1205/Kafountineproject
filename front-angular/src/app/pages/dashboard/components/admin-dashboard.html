@@ -1,270 +1,105 @@
-@if (loading()) {
-  <div class="flex items-center justify-center h-96">
-    <div class="flex flex-col items-center gap-4">
-      <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-      <p class="text-gray-600">Chargement des statistiques...</p>
+<div class="space-y-6">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">{{ titre() }}</h1>
+      <p class="mt-1 text-sm text-gray-600">Vue d’ensemble de la commune de Kafountine · Exercice {{ selectedYear() }}</p>
     </div>
+    @if (!isCurrentYear()) {
+      <div class="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-100 px-4 py-2 text-amber-800">
+        <i class="ri-eye-line" aria-hidden="true"></i>
+        <span class="text-sm font-medium">Année {{ selectedYear() }} · consultation seule</span>
+      </div>
+    }
   </div>
-} @else if (error()) {
-  <div class="flex items-center justify-center h-96">
-    <div class="flex flex-col items-center gap-4 text-center">
-      <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-        <svg class="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" [attr.stroke-width]="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-        </svg>
-      </div>
-      <p class="text-red-600 font-medium">Erreur:
-        {{ error() }}</p>
-      <button (click)="window.location.reload()" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700">Réessayer</button>
-    </div>
-  </div>
-} @else {
-  <div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Bonjour, Mr le Maire 👋</h1>
-        <p class="text-sm text-gray-600 mt-1">Vue d'ensemble de la Commune de Kafountine - Année
-          {{ selectedYear() }}</p>
-      </div>
-      @if (!isCurrentYear()) {
-        <div class="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-2 rounded-lg flex items-center gap-2">
-          <i class="ri-eye-line"></i>
-          <span class="text-sm font-medium">Année
-            {{ selectedYear() }}
-            - Consultation seule</span>
-        </div>
-      }
-      <div class="w-full sm:w-auto overflow-x-auto">
-        <div class="inline-flex min-w-max items-center gap-1 bg-gray-100 rounded-full p-1">
-          @for (p of periodes; track i; let i = $index) {
-            <button (click)="periodeActive.set(i)" [class]="`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${periodeActive() === i ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`">{{ p }}</button>
-          }
-        </div>
-      </div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      @for (stat of statsData(); track idx; let idx = $index) {
-        <div class="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-600 mb-1">{{ stat.title }}</p>
-              <div class="flex items-baseline gap-1.5">
-                <h3 class="text-2xl font-bold text-gray-900">{{ stat.value }}</h3>
-                <span class="text-xs text-gray-500">{{ stat.unit }}</span>
-              </div>
-            </div>
-            <div [class]="`w-12 h-12 rounded-lg ${stat.color} flex items-center justify-center`">
-              <i [class]="`${stat.icon} text-2xl`"></i>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
-    <div class="bg-white rounded-xl p-5 border border-gray-200">
-      <h3 class="text-sm font-semibold text-gray-900 mb-3">Accès rapide</h3>
-      <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
-        @for (r of raccourcis(); track idx; let idx = $index) {
-          <a [attr.to]="r.link" [class]="`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors cursor-pointer ${r.color}`">
-            <div class="w-10 h-10 flex items-center justify-center">
-              <i [class]="`${r.icon} text-2xl`"></i>
-            </div>
-            <span class="text-xs font-medium text-center leading-tight">{{ r.label }}</span>
-          </a>
-        }
-      </div>
-    </div>
-    <div class="bg-white rounded-xl p-5 border border-gray-200">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <h3 class="text-sm font-semibold text-gray-900">À valider</h3>
-          <p class="text-sm text-gray-600 mt-1">{{ stats()?.stats?.validations?.total || 0 }}
-            dossiers et demandes en attente</p>
-        </div>
-        <span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">Année
-          {{ selectedYear() }}</span>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-        @for (item of validations(); track item.label) {
-          <a [attr.to]="item.link" [class]="`rounded-xl border p-4 transition-shadow hover:shadow-sm ${item.color}`">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-sm font-medium">{{ item.label }}</p>
-                <p class="text-2xl font-bold mt-2">{{ item.count }}</p>
-                <p class="text-xs mt-1 opacity-80">En attente de validation</p>
-              </div>
-              <div class="w-10 h-10 rounded-lg bg-white/70 flex items-center justify-center">
-                <i [class]="`${item.icon} text-xl`"></i>
-              </div>
-            </div>
-          </a>
-        }
-      </div>
-    </div>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200">
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <h3 class="text-lg font-semibold text-gray-900">Évolution des recettes</h3>
-            <p class="text-sm text-gray-600 mt-1">Cette semaine</p>
-          </div>
-          <a routerLink="/rapports" class="text-sm text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer whitespace-nowrap">Voir rapports</a>
-        </div>
-        <div class="flex items-end gap-3 h-48">
-          @for (item of evolutionSemaine(); track idx; let idx = $index) {
-            @let height = (item.montant / maxEvol()) * 100;
-            @let isToday = idx === 4;
-            <div class="flex-1 flex flex-col items-center gap-2">
-              <span class="text-xs font-semibold text-gray-700">{{ (item.montant / 1000000).toFixed(1) }}M</span>
-              <div class="w-full relative" [style.height]="'140px'">
-                <div [class]="`absolute bottom-0 w-full rounded-t-lg transition-all duration-500 ${isToday ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-gradient-to-t from-gray-200 to-gray-100'}`" [style.height]="`${height}%`"></div>
-              </div>
-              <span [class]="`text-xs font-medium ${isToday ? 'text-emerald-700 font-bold' : 'text-gray-500'}`">{{ item.jour }}</span>
-            </div>
-          }
-        </div>
-        <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-          <span class="text-sm text-gray-600">Total semaine</span>
-          <span class="text-lg font-bold text-gray-900">{{ evolutionSemaineSummary() }}M FCFA</span>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl p-6 border border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900 mb-1">Répartition</h3>
-        <p class="text-sm text-gray-600 mb-5">Par source de recettes</p>
-        <div class="space-y-4">
-          @for (m of modulesRecettes(); track idx; let idx = $index) {
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <div class="flex items-center gap-2">
-                  <div [class]="`w-6 h-6 rounded ${m.barColor} flex items-center justify-center`">
-                    <i [class]="`${m.icon} text-white text-xs`"></i>
-                  </div>
-                  <span class="text-xs font-medium text-gray-700">{{ m.nom }}</span>
-                </div>
-                <span class="text-xs font-semibold text-gray-900">{{ m.pct }}%</span>
-              </div>
-              <div class="w-full bg-gray-100 rounded-full h-2">
-                <div [class]="`h-2 rounded-full ${m.barColor} transition-all duration-500`" [style.width]="`${Math.min(m.pct, 100)}%`"></div>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">{{ m.montant.toLocaleString() }}
-                FCFA</p>
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200">
-        <div class="p-6 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-gray-900">Performance des agents</h3>
-            <p class="text-sm text-gray-600 mt-1">Top 5 du jour</p>
-          </div>
-          <a routerLink="/utilisateurs" class="text-sm text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer whitespace-nowrap">Voir tous</a>
-        </div>
-        <div>
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead class="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Agent</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Collecté</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Progression</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Transactions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200">
-                @for (agent of displayAgentsTop(); track idx; let idx = $index) {
-                  @let objectif = Math.max(agent.collecte * 1.2, 500000);
-                  @let pct = Math.round((agent.collecte / objectif) * 100);
-                  <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">{{ agent.initiale || `${agent.nom?.[0] || ''}${agent.prenom?.[0] || ''}` }}</div>
-                        <span class="text-sm font-medium text-gray-900">{{ agent.nom }}</span>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <span class="text-sm font-semibold text-gray-900">{{ agent.collecte.toLocaleString() }}</span>
-                      <span class="text-xs text-gray-500 ml-1">FCFA</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                      <div class="flex items-center gap-2">
-                        <div class="w-20 bg-gray-100 rounded-full h-2">
-                          <div [class]="`h-2 rounded-full transition-all ${pct >= 90 ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-500' : 'bg-red-500'}`" [style.width]="`${Math.min(pct, 100)}%`"></div>
-                        </div>
-                        <span [class]="`text-xs font-semibold ${pct >= 90 ? 'text-emerald-600' : pct >= 70 ? 'text-amber-600' : 'text-red-600'}`">{{ pct }}%</span>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ agent.transactions }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl p-6 border border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Alertes & Notifications</h3>
-        <div class="space-y-3">
-          @for (a of alertes(); track idx; let idx = $index) {
-            <div [class]="`p-3 rounded-lg border cursor-pointer hover:shadow-sm transition-shadow ${a.type === 'danger' ? 'bg-red-50 border-red-200' : a.type === 'warning' ? 'bg-amber-50 border-amber-200' : 'bg-sky-50 border-sky-200'}`">
-              <div class="flex items-start gap-2.5">
-                <i [class]="`${a.icon} text-lg mt-0.5 ${a.type === 'danger' ? 'text-red-600' : a.type === 'warning' ? 'text-amber-600' : 'text-sky-600'}`"></i>
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs font-medium text-gray-800">{{ a.message }}</p>
-                  <p class="text-xs text-gray-500 mt-1">{{ a.date }}</p>
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-    <div class="bg-white rounded-xl border border-gray-200">
-      <div class="p-6 border-b border-gray-200 flex items-center justify-between">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900">Transactions récentes</h3>
-          <p class="text-sm text-gray-600 mt-1">Dernières opérations de la journée</p>
-        </div>
-        <a routerLink="/recettes" class="px-4 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer whitespace-nowrap">Voir tout</a>
-      </div>
-      <div>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">N° Ticket</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Type</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Contribuable</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Agent</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Montant</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Heure</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider whitespace-nowrap">Statut</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              @for (t of transactionsRecentes(); track t.id) {
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ t.id }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">{{ t.type }}</span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ t.contribuable }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ t.agent }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ t.montant.toLocaleString() }}
-                    FCFA</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ t.heure }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                      <i class="ri-check-line mr-1"></i>Complété</span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-}
 
+  @if (loading() && !stats()) {
+    <div class="flex h-64 items-center justify-center" role="status">
+      <div class="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" aria-hidden="true"></div>
+      <span class="sr-only">Chargement des statistiques</span>
+    </div>
+  } @else if (error()) {
+    <div role="alert" class="flex flex-col items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+      <p class="font-medium text-red-700">{{ error() }}</p>
+      <button type="button" (click)="charger()" class="cursor-pointer rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">Réessayer</button>
+    </div>
+  } @else {
+    <!-- Quatre chiffres clés -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      @for (k of indicateurs(); track k.titre) {
+        @if (k.lien) {
+          <a [routerLink]="k.lien" class="group block rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md">
+            <ng-container *ngTemplateOutlet="carte; context: { $implicit: k }"></ng-container>
+          </a>
+        } @else {
+          <div class="rounded-xl border border-gray-200 bg-white p-5">
+            <ng-container *ngTemplateOutlet="carte; context: { $implicit: k }"></ng-container>
+          </div>
+        }
+      }
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <!-- Recettes des sept derniers jours -->
+      <section class="rounded-xl border border-gray-200 bg-white p-6 lg:col-span-2" aria-labelledby="titre-semaine">
+        <div class="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <h2 id="titre-semaine" class="text-lg font-semibold text-gray-900">Recettes des 7 derniers jours</h2>
+            <p class="mt-1 text-sm text-gray-600">Total : <span class="font-semibold text-gray-900">{{ totalSemaine() }} FCFA</span></p>
+          </div>
+          <a routerLink="/rapports" class="whitespace-nowrap text-sm font-medium text-emerald-700 hover:text-emerald-800">Voir les rapports</a>
+        </div>
+        <div class="flex h-52 items-end gap-2 sm:gap-3">
+          @for (j of semaine(); track j.libelle) {
+            <div class="flex h-full flex-1 flex-col items-center justify-end gap-2">
+              <span class="text-[11px] font-semibold text-gray-700 sm:text-xs">{{ j.montant ? (j.montant / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' k' : '–' }}</span>
+              <div class="relative w-full flex-1">
+                <div [class]="'absolute bottom-0 w-full rounded-t-md ' + (j.aujourdhui ? 'bg-emerald-600' : 'bg-emerald-200')" [style.height.%]="j.hauteur"></div>
+              </div>
+              <span [class]="'text-[11px] capitalize sm:text-xs ' + (j.aujourdhui ? 'font-bold text-emerald-700' : 'text-gray-500')">{{ j.aujourdhui ? 'Auj.' : j.libelle }}</span>
+            </div>
+          } @empty {
+            <p class="w-full self-center text-center text-sm text-gray-500">Aucune recette sur la période.</p>
+          }
+        </div>
+      </section>
+
+      <!-- Ce qui attend une décision -->
+      <section class="rounded-xl border border-gray-200 bg-white p-6" aria-labelledby="titre-a-traiter">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 id="titre-a-traiter" class="text-lg font-semibold text-gray-900">À traiter</h2>
+          <span [class]="'rounded-full px-2.5 py-0.5 text-xs font-semibold ' + (totalATraiter() ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-700')">{{ totalATraiter() }}</span>
+        </div>
+        <ul class="divide-y divide-gray-100">
+          @for (item of aTraiter(); track item.label) {
+            <li>
+              <a [routerLink]="item.link" class="group flex items-center gap-3 py-3">
+                <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-600 group-hover:bg-emerald-50 group-hover:text-emerald-700">
+                  <i [class]="item.icon + ' text-lg'" aria-hidden="true"></i>
+                </span>
+                <span class="flex-1 text-sm text-gray-800">{{ item.label }}</span>
+                <span [class]="'text-sm font-bold ' + (item.count ? 'text-amber-700' : 'text-gray-400')">{{ item.count }}</span>
+                <i class="ri-arrow-right-s-line text-gray-400 group-hover:text-emerald-700" aria-hidden="true"></i>
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+  }
+</div>
+
+<ng-template #carte let-k>
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <p class="text-sm text-gray-600">{{ k.titre }}</p>
+      <p class="mt-1 flex items-baseline gap-1.5">
+        <span class="text-2xl font-bold text-gray-900">{{ k.valeur }}</span>
+        <span class="text-xs text-gray-500">{{ k.unite }}</span>
+      </p>
+      <p class="mt-1 truncate text-xs text-gray-500">{{ k.detail }}</p>
+    </div>
+    <span [class]="'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg ' + k.couleur">
+      <i [class]="k.icon + ' text-xl'" aria-hidden="true"></i>
+    </span>
+  </div>
+</ng-template>

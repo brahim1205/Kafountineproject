@@ -45,6 +45,8 @@ export interface GlobalStats {
   recettesAujourdhui: number;
   recettesMois: number;
   tauxRecouvrement: number;
+  /** Montant total restant dû (motos et marché), base du taux de recouvrement. */
+  impayes?: number;
   totalTransactions?: number;
   totalUsers?: number;
   totalAdmins?: number;

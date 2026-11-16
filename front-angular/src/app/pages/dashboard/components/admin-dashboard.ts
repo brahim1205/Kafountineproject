@@ -1,226 +1,92 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
-import { GlobalStats, TopAgent, EvolutionJour, TransactionRecente } from '../../../services/statistiques';
-import { YearService } from '../../../core/year/year.service';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { StatistiquesApi } from '../../../services/statistiques';
+import { YearService } from '../../../core/year/year.service';
+import { GlobalStats, StatistiquesApi } from '../../../services/statistiques';
 
-const periodes = ['Aujourd\'hui', 'Cette semaine', 'Ce mois'] as const;
+type Indicateur = { titre: string; valeur: string; unite: string; detail: string; icon: string; couleur: string; lien?: string };
 
-interface FormattedTransaction {
-  id: string;
-  type: string;
-  contribuable: string;
-  agent: string;
-  montant: number;
-  heure: string;
-  statut: string;
-}
+type ATraiter = { label: string; count: number; icon: string; link: string };
 
+type JourRecettes = { libelle: string; montant: number; aujourdhui: boolean; hauteur: number };
+
+const fcfa = (value: number) => Math.round(value).toLocaleString('fr-FR');
+
+/**
+ * Vue d'ensemble du maire (et du super administrateur) : quatre chiffres, les recettes des sept
+ * derniers jours et ce qui attend une décision. Le détail reste dans les pages des modules.
+ */
 @Component({
   selector: 'app-admin-dashboard',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [NgTemplateOutlet, RouterLink],
   templateUrl: './admin-dashboard.html',
 })
 export class AdminDashboard {
-  protected readonly periodes = periodes;
-  protected readonly Math = Math;
-  protected readonly window = window;
-  protected readonly yearService = inject(YearService);
-  protected readonly statistiquesApi = inject(StatistiquesApi);
-  protected readonly selectedYear = this.yearService.selectedYear;
+  readonly titre = input('Bonjour, Monsieur le Maire');
 
-  protected readonly currentYear = computed(() => new Date().getFullYear());
-
-  protected readonly isCurrentYear = computed(() => this.selectedYear() === this.currentYear());
+  private readonly statistiquesApi = inject(StatistiquesApi);
+  protected readonly selectedYear = inject(YearService).selectedYear;
+  protected readonly isCurrentYear = computed(() => this.selectedYear() === new Date().getFullYear());
 
   protected readonly stats = signal<GlobalStats | null>(null);
-
   protected readonly loading = signal(true);
-
   protected readonly error = signal<string | null>(null);
 
-  protected readonly periodeActive = signal<number>(0);
+  protected readonly indicateurs = computed<Indicateur[]>(() => {
+    const s = this.stats();
+    const impayes = s?.impayes ?? 0;
+    return [
+      { titre: 'Recettes du jour', valeur: fcfa(s?.recettesAujourdhui ?? 0), unite: 'FCFA', detail: `${(s?.transactionsAujourdhui ?? 0).toLocaleString('fr-FR')} ticket(s) aujourd’hui`, icon: 'ri-calendar-check-line', couleur: 'bg-emerald-50 text-emerald-700' },
+      { titre: 'Recettes du mois', valeur: fcfa(s?.recettesMois ?? 0), unite: 'FCFA', detail: new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }), icon: 'ri-calendar-2-line', couleur: 'bg-cyan-50 text-cyan-700' },
+      { titre: 'Recettes de l’année', valeur: fcfa(s?.totalRecettes ?? 0), unite: 'FCFA', detail: `Exercice ${this.selectedYear()}`, icon: 'ri-money-dollar-circle-line', couleur: 'bg-indigo-50 text-indigo-700' },
+      { titre: 'Taux de recouvrement', valeur: String(s?.tauxRecouvrement ?? 0), unite: '%', detail: `Impayés : ${fcfa(impayes)} FCFA`, icon: 'ri-pie-chart-line', couleur: 'bg-amber-50 text-amber-700', lien: '/impayes' },
+    ];
+  });
 
-  protected readonly transactionsRecentes = signal<FormattedTransaction[]>([]);
+  /** Sept derniers jours, du plus ancien à aujourd'hui (dernier élément renvoyé par le serveur). */
+  protected readonly semaine = computed<JourRecettes[]>(() => {
+    const jours = this.stats()?.evolutionSemaine ?? [];
+    const max = Math.max(...jours.map((j) => j.montant), 1);
+    return jours.map((j, index) => ({
+      libelle: new Date(`${j.jour}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }),
+      montant: j.montant,
+      aujourdhui: index === jours.length - 1,
+      hauteur: Math.max(Math.round((j.montant / max) * 100), j.montant > 0 ? 4 : 0),
+    }));
+  });
 
-  protected readonly agentsTop = signal<TopAgent[]>([]);
+  protected readonly totalSemaine = computed(() => fcfa(this.semaine().reduce((sum, j) => sum + j.montant, 0)));
 
-  protected readonly evolutionSemaine = signal<EvolutionJour[]>([]);
+  protected readonly aTraiter = computed<ATraiter[]>(() => {
+    const s = this.stats()?.stats;
+    return [
+      { label: 'Demandes d’état civil', count: s?.etatCivil?.enAttente ?? 0, icon: 'ri-file-text-line', link: '/etat-civil' },
+      { label: 'Dossiers d’urbanisme', count: s?.urbanisme?.enAttente ?? 0, icon: 'ri-building-line', link: '/urbanisme' },
+      { label: 'Demandes de dépense', count: s?.budget?.enAttente ?? 0, icon: 'ri-bank-card-line', link: '/service-finances' },
+      { label: 'Motos en retard de paiement', count: s?.motos?.enRetard ?? 0, icon: 'ri-motorbike-line', link: '/motos' },
+    ];
+  });
 
-  protected getRecettesValue() {
-    switch (this.periodeActive()) {
-    case 0: return this.stats()?.recettesAujourdhui || 0;
-    case 1: return this.stats()?.evolutionSemaine?.reduce((s, e) => s + e.montant, 0) || 0;
-    case 2: return this.stats()?.recettesMois || 0;
-    default: return 0;
-    }
-    }
-
-  protected getTransactionsValue() {
-    switch (this.periodeActive()) {
-    case 0: return this.stats()?.transactionsAujourdhui || 0;
-    case 1: return Math.round((this.stats()?.transactionsMois || 0) / 4);
-    case 2: return this.stats()?.transactionsMois || 0;
-    default: return 0;
-    }
-    }
-
-  protected readonly statsData = computed(() => [
-    {
-    title: this.periodeActive() === 0 ? 'Recettes du jour' : this.periodeActive() === 1 ? 'Recettes semaine' : 'Recettes du mois',
-    value: (this.getRecettesValue() / 1000).toFixed(0),
-    unit: 'KFCFA',
-    icon: 'ri-money-dollar-circle-line',
-    color: 'bg-emerald-50 text-emerald-600'
-    },
-    {
-    title: this.periodeActive() === 0 ? 'Transactions (Jour)' : this.periodeActive() === 1 ? 'Transactions (Sem)' : 'Transactions (Mois)',
-    value: this.getTransactionsValue().toString(),
-    unit: 'tickets',
-    icon: 'ri-file-list-3-line',
-    color: 'bg-emerald-50 text-emerald-600'
-    },
-    {
-    title: 'Contribuables',
-    value: this.stats()?.totalContribuables?.toString() || '0',
-    unit: 'inscrits',
-    icon: 'ri-team-line',
-    color: 'bg-cyan-50 text-cyan-600'
-    },
-    {
-    title: 'Taux recouvrement',
-    value: this.stats()?.tauxRecouvrement?.toFixed(1) || '0',
-    unit: '%',
-    icon: 'ri-pie-chart-line',
-    color: 'bg-amber-50 text-amber-600'
-    },
-    ]);
-
-  protected readonly totalCategories = computed(() => this.stats()?.categories?.reduce((sum, cat) => sum + (cat.montant || 0), 0) || 0);
-
-  protected readonly modulesRecettes = computed(() => this.stats()?.categories?.map((cat, idx: number) => {
-    const colors = ['bg-emerald-500', 'bg-emerald-500', 'bg-cyan-500', 'bg-amber-500', 'bg-rose-400'];
-    const icons = ['ri-file-list-3-line', 'ri-store-2-line', 'ri-motorbike-line', 'ri-file-text-line', 'ri-building-line'];
-    return {
-    nom: cat.categorie,
-    montant: cat.montant,
-    pct: this.totalCategories() > 0 ? Math.round(((cat.montant || 0) / this.totalCategories()) * 100) : 0,
-    icon: icons[idx % icons.length],
-    barColor: colors[idx % colors.length],
-    };
-    }) || []);
-
-  protected readonly maxEvol = computed(() => Math.max(...this.evolutionSemaine().map(e => e.montant), 1));
-
-  protected readonly displayAgentsTop = computed(() => this.agentsTop());
-
-  protected readonly validations = computed(() => [
-    {
-    label: 'État civil',
-    count: this.stats()?.stats?.etatCivil?.enAttente || 0,
-    icon: 'ri-file-text-line',
-    link: '/etat-civil',
-    color: 'bg-amber-50 text-amber-700 border-amber-200',
-    },
-    {
-    label: 'Urbanisme',
-    count: this.stats()?.stats?.urbanisme?.enAttente || 0,
-    icon: 'ri-building-line',
-    link: '/urbanisme',
-    color: 'bg-rose-50 text-rose-700 border-rose-200',
-    },
-    {
-    label: 'Budget',
-    count: this.stats()?.stats?.budget?.enAttente || 0,
-    icon: 'ri-bank-card-line',
-    link: '/service-finances',
-    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    },
-    {
-    label: 'Quai de pêche',
-    count: this.stats()?.stats?.quaiPeche?.enAttente || 0,
-    icon: 'ri-ship-line',
-    link: '/quai-peche/commissions',
-    color: 'bg-sky-50 text-sky-700 border-sky-200',
-    },
-    ]);
-
-  protected readonly alertes = computed(() => this.stats()?.alertes?.length
-    ? this.stats()!.alertes!.map((alerte) => ({
-    message: alerte.message,
-    type: alerte.type === 'danger' || alerte.type === 'warning' ? alerte.type : 'info',
-    date: alerte.timestamp ? new Date(alerte.timestamp).toLocaleString('fr-FR') : 'À l’instant',
-    icon: alerte.type === 'danger'
-    ? 'ri-alert-line'
-    : alerte.type === 'warning'
-    ? 'ri-error-warning-line'
-    : 'ri-information-line',
-    }))
-    : [
-    { message: `En attente de validation: ${this.stats()?.stats?.etatCivil?.enAttente || 0} dossiers d'état civil`, type: 'info', date: 'À l’instant', icon: 'ri-file-chart-line' },
-    { message: `${this.stats()?.stats?.motos?.enRetard || 0} motos en retard de paiement depuis plus de 30 jours`, type: 'danger', date: 'À l’instant', icon: 'ri-motorbike-line' },
-    ]);
-
-  protected readonly raccourcis = computed(() => [
-    { label: 'Recettes', icon: 'ri-money-dollar-circle-line', link: '/recettes', color: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' },
-    { label: 'Taxes', icon: 'ri-file-list-3-line', link: '/taxes', color: 'bg-cyan-50 text-cyan-600 hover:bg-cyan-100' },
-    { label: 'État Civil', icon: 'ri-file-text-line', link: '/etat-civil', color: 'bg-amber-50 text-amber-600 hover:bg-amber-100' },
-    { label: 'Urbanisme', icon: 'ri-building-line', link: '/urbanisme', color: 'bg-rose-50 text-rose-600 hover:bg-rose-100' },
-    { label: 'Marché', icon: 'ri-store-2-line', link: '/marche', color: 'bg-sky-50 text-sky-600 hover:bg-sky-100' },
-    { label: 'Motos', icon: 'ri-motorbike-line', link: '/motos', color: 'bg-orange-50 text-orange-600 hover:bg-orange-100' },
-    { label: 'Rapports', icon: 'ri-bar-chart-box-line', link: '/rapports', color: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' },
-    ]);
-
-  protected evolutionSemaineSummary() {
-    return (this.evolutionSemaine().reduce((s, e) => s + e.montant, 0) / 1000000).toFixed(1);
-  }
+  protected readonly totalATraiter = computed(() => this.aTraiter().reduce((sum, item) => sum + item.count, 0));
 
   constructor() {
     effect(() => {
-      this.selectedYear();
-      untracked(() => {
-    const loadStats = async () => {
-    try {
+      const year = this.selectedYear();
+      untracked(() => void this.charger(year));
+    });
+  }
+
+  protected async charger(year = this.selectedYear()): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
-    const data = await this.statistiquesApi.getGlobalStats(this.selectedYear());
-    this.stats.set(data);
-    if (data?.transactionsRecentes) {
-    const formattedTransactions = data.transactionsRecentes.map((tx: TransactionRecente) => ({
-    id: tx.numero || tx.id,
-    type: tx.type || tx.categorie || 'Transaction',
-    contribuable: tx.contribuable ? `${tx.contribuable.prenom || ''} ${tx.contribuable.nom || ''}`.trim() : tx.contribuableNom || '-',
-    agent: tx.agent ? `${tx.agent.prenom || ''} ${tx.agent.nom || ''}`.trim() : '-',
-    montant: tx.montant || 0,
-    heure: tx.createdAt ? new Date(tx.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-',
-    statut: tx.statut?.toLowerCase() || 'completed'
-    }));
-    this.transactionsRecentes.set(formattedTransactions);
+    try {
+      this.stats.set(await this.statistiquesApi.getGlobalStats(year));
+    } catch {
+      this.error.set('Impossible de charger les statistiques du tableau de bord.');
+    } finally {
+      this.loading.set(false);
     }
-    if (data?.topAgents) {
-    const formattedAgents = data.topAgents.map((agent) => ({
-    nom: `${agent.prenom || ''} ${agent.nom || ''}`.trim(),
-    collecte: agent.collecte || 0,
-    transactions: agent.transactions || 0,
-    initiales: agent.initiale || (agent.nom ? agent.nom[0] : '?')
-    }));
-    this.agentsTop.set(formattedAgents);
-    }
-    if (data?.evolutionSemaine) {
-    this.evolutionSemaine.set(data.evolutionSemaine);
-    }
-    }
-    catch (err) {
-    this.error.set(err instanceof Error ? err.message : 'Erreur lors du chargement des statistiques');
-    }
-    finally {
-    this.loading.set(false);
-    }
-    };
-    loadStats();
-      });
-    });
   }
 }

@@ -6,8 +6,6 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { TaxesApi } from '../../../services/taxes';
 import { MotosApi } from '../../../services/motos';
-import { UrbanismeApi } from '../../../services/urbanisme';
-import { MarcheApi } from '../../../services/marche';
 
 type AgentCollecte = {
   id: string;
@@ -56,8 +54,6 @@ export class AgentDashboard {
   protected readonly auth = inject(AuthService);
   protected readonly taxesApi = inject(TaxesApi);
   protected readonly motosApi = inject(MotosApi);
-  protected readonly urbanismeApi = inject(UrbanismeApi);
-  protected readonly marcheApi = inject(MarcheApi);
   protected readonly showRecuModal = signal(false);
 
   protected readonly selectedRecu = signal<ReceiptData | null>(null);
@@ -72,11 +68,16 @@ export class AgentDashboard {
 
   protected readonly resumeLabel = signal("Voici le résumé de votre journée de collecte");
 
-  protected readonly tachesCounts = signal({
-    motos: 0,
-    urbanisme: 0,
-    marche: 0,
-    });
+  /** Motos en retard : la seule tâche que l'agent peut faire avancer lui-même (cotisations). */
+  protected readonly motosEnRetard = signal(0);
+
+  /** Jour affiché quand il ne s'agit pas d'aujourd'hui (dernière journée avec des recettes), sinon null. */
+  protected readonly autreJour = signal<string | null>(null);
+
+  protected readonly libelleJour = computed(() => {
+    const jour = this.autreJour();
+    return jour ? `du ${new Date(`${jour}T12:00:00`).toLocaleDateString('fr-FR')}` : 'du jour';
+  });
 
   protected readonly selectedYear = this.yearService.selectedYear;
 
@@ -84,19 +85,10 @@ export class AgentDashboard {
 
   protected readonly isCurrentYear = computed(() => this.selectedYear() === this.currentYear());
 
-  protected readonly agentName = computed(() => this.auth.userName() || 'Kouassi Jean');
+  protected readonly agentName = computed(() => this.auth.userName() || 'Agent');
 
   protected readonly agentId = computed(() => this.auth.userId());
 
-  protected readonly tachesEnCours = computed(() => [
-    { icon: 'ri-motorbike-line', label: 'Motos en retard de paiement', count: this.tachesCounts().motos, color: 'text-red-600 bg-red-50', link: '/motos' },
-    { icon: 'ri-building-line', label: 'Dossiers urbanisme en attente', count: this.tachesCounts().urbanisme, color: 'text-sky-600 bg-sky-50', link: '/urbanisme' },
-    { icon: 'ri-store-2-line', label: 'Paiements marché à encaisser', count: this.tachesCounts().marche, color: 'text-emerald-600 bg-emerald-50', link: '/marche' },
-    ]);
-
-  protected readonly objectifJour = computed(() => 80000);
-
-  protected readonly progression = computed(() => Math.min((this.totalJour() / this.objectifJour()) * 100, 100));
 
   protected handlePrintRecu(collecte: AgentCollecte) {
     this.selectedRecu.set({
@@ -111,14 +103,6 @@ export class AgentDashboard {
     this.showRecuModal.set(true);
     }
 
-  protected setSummary() {
-    return new Set(this.mesCollectes().map((c) => c.contribuable)).size.toLocaleString('fr-FR');
-  }
-
-  protected tachesEnCoursSummary() {
-    return this.tachesEnCours().reduce((s, t) => s + t.count, 0);
-  }
-
   constructor() {
     effect(() => {
       this.selectedYear(); this.agentId();
@@ -129,11 +113,9 @@ export class AgentDashboard {
     const todayKey = new Date().toISOString().slice(0, 10);
     const dayOf = (day: string) => this.taxesApi.getTransactions({ agentId: this.agentId() || undefined, year: this.selectedYear(), startDate: day, endDate: day, limit: DAY_LIST_LIMIT });
     try {
-    const [todayResult, motosStats, urbanismeStats, marcheStats] = await Promise.all([
+    const [todayResult, motosStats] = await Promise.all([
     this.agentId() ? dayOf(todayKey) : Promise.resolve(null),
     this.motosApi.getMotosStats(this.selectedYear()).catch(() => null),
-    this.urbanismeApi.getUrbanismeStats(this.selectedYear()).catch(() => null),
-    this.marcheApi.getMarcheStats(this.selectedYear()).catch(() => null),
     ]);
     let dayResult = todayResult;
     let dayKey = todayKey;
@@ -149,6 +131,7 @@ export class AgentDashboard {
     this.mesCollectes.set(dayResult.data.map(toCollecte));
     this.totalJour.set(dayResult.montantPaye);
     this.nombreJour.set(dayResult.total);
+    this.autreJour.set(dayKey === todayKey ? null : dayKey);
     if (dayKey === todayKey) {
     this.resumeLabel.set("Voici le résumé de votre journée de collecte");
     }
@@ -157,29 +140,26 @@ export class AgentDashboard {
     }
     }
     else {
+    this.autreJour.set(null);
     this.mesCollectes.set([]);
     this.totalJour.set(0);
     this.nombreJour.set(0);
     this.resumeLabel.set("Aucune collecte enregistrée pour l'année sélectionnée");
     }
-    this.tachesCounts.set({
-    motos: Number(motosStats?.enRetard || 0),
-    urbanisme: Number(urbanismeStats?.enAttente || (urbanismeStats as { data?: { enAttente?: number } })?.data?.enAttente || 0),
-    marche: Number((marcheStats as { recettesEnRetard?: unknown })?.recettesEnRetard ? 1 : 0),
-    });
+    this.motosEnRetard.set(Number(motosStats?.enRetard || 0));
     }
     catch {
     this.mesCollectes.set([]);
     this.totalJour.set(0);
     this.resumeLabel.set("Impossible de charger les collectes");
-    this.tachesCounts.set({ motos: 0, urbanisme: 0, marche: 0 });
+    this.motosEnRetard.set(0);
     }
     }
     catch {
     this.mesCollectes.set([]);
     this.totalJour.set(0);
     this.resumeLabel.set("Impossible de charger les collectes");
-    this.tachesCounts.set({ motos: 0, urbanisme: 0, marche: 0 });
+    this.motosEnRetard.set(0);
     }
     finally {
     this.loading.set(false);

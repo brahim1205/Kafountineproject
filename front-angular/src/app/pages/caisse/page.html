@@ -1,12 +1,21 @@
 <div class="space-y-6">
   <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Caisse</h1>
-      <p class="text-sm text-gray-600 mt-1">Encaissements de la journée et clôture</p>
+      @if (detail() && superviseur()) {
+        <a routerLink="/caisse" [queryParams]="{ date: date() }" class="mb-2 inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-800">
+          <i class="ri-arrow-left-line" aria-hidden="true"></i>Retour à tous les agents</a>
+      }
+      <h1 class="text-2xl font-bold text-gray-900">{{ detail() && journal() ? 'Caisse de ' + journal()!.agent : 'Caisse' }}</h1>
+      <p class="text-sm text-gray-600 mt-1">{{ detail() || !superviseur() ? 'Recettes enregistrées dans la journée et clôture' : 'Recettes enregistrées par chaque agent dans la journée' }}</p>
     </div>
-    <div>
-      <label for="date-caisse" class="block text-sm font-medium text-gray-700 mb-1">Journée</label>
-      <input id="date-caisse" type="date" [max]="maxDate" [value]="date()" (change)="date.set($any($event.target).value); agentId.set(undefined)" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+    <div class="flex flex-wrap items-end gap-3">
+      @if (superviseur() && !detail() && monId()) {
+        <a [routerLink]="['/caisse/agent', monId()]" [queryParams]="{ date: date() }" class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Ma caisse</a>
+      }
+      <div>
+        <label for="date-caisse" class="block text-sm font-medium text-gray-700 mb-1">Journée</label>
+        <input id="date-caisse" type="date" [max]="maxDate" [value]="date()" (change)="changerDate($any($event.target).value)" class="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+      </div>
     </div>
   </div>
 
@@ -23,7 +32,7 @@
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead><tr class="border-b border-gray-200 text-left text-gray-700">
-            <th class="py-2 px-3">Agent</th><th class="py-2 px-3">Encaissé</th><th class="py-2 px-3">Opérations</th><th class="py-2 px-3">Écart</th><th class="py-2 px-3">État</th><th class="py-2 px-3 text-right">Actions</th>
+            <th class="py-2 px-3">Agent</th><th class="py-2 px-3">Enregistré</th><th class="py-2 px-3">Opérations</th><th class="py-2 px-3">Écart</th><th class="py-2 px-3">État</th><th class="py-2 px-3 text-right">Actions</th>
           </tr></thead>
           <tbody>
             @for (ligne of vue.agents; track ligne.agentId) {
@@ -34,7 +43,7 @@
                 <td class="py-2 px-3" [class.text-red-600]="ligne.cloture && ligne.cloture.ecart !== 0">{{ ligne.cloture ? montant(ligne.cloture.ecart) : '-' }}</td>
                 <td class="py-2 px-3">{{ ligne.cloture ? (ligne.cloture.statut === 'VALIDEE' ? 'Validée' : 'Clôturée') : 'Ouverte' }}</td>
                 <td class="py-2 px-3 text-right whitespace-nowrap">
-                  <button type="button" (click)="agentId.set(ligne.agentId)" class="px-2 py-1 text-cyan-700 hover:underline cursor-pointer">Détail</button>
+                  <a [routerLink]="['/caisse/agent', ligne.agentId]" [queryParams]="{ date: date() }" class="px-2 py-1 text-cyan-700 hover:underline">Détail</a>
                   @if (peutEcrire() && ligne.cloture?.statut === 'CLOTUREE') {
                     <button type="button" (click)="valider(ligne.cloture!)" [disabled]="busy()" class="px-2 py-1 text-emerald-700 hover:underline cursor-pointer">Valider</button>
                     <button type="button" (click)="aRouvrir.set(ligne.cloture)" [disabled]="busy()" class="px-2 py-1 text-red-600 hover:underline cursor-pointer">Rouvrir</button>
@@ -42,7 +51,7 @@
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="6" class="py-4 px-3 text-center text-gray-500">Aucun encaissement ce jour.</td></tr>
+              <tr><td colspan="6" class="py-4 px-3 text-center text-gray-500">Aucune recette enregistrée ce jour.</td></tr>
             }
           </tbody>
         </table>
@@ -61,13 +70,13 @@
         <h2 class="text-sm font-semibold text-gray-900 mb-2">Par mode de paiement</h2>
         @for (ligne of modes(); track ligne[0]) {
           <p class="flex justify-between text-sm py-0.5"><span class="text-gray-600">{{ libelleMode(ligne[0]) }}</span><span class="font-medium">{{ montant(ligne[1]) }}</span></p>
-        } @empty { <p class="text-sm text-gray-500">Aucun encaissement.</p> }
+        } @empty { <p class="text-sm text-gray-500">Aucune recette.</p> }
       </div>
       <div class="bg-white rounded-xl border border-gray-200 p-5">
         <h2 class="text-sm font-semibold text-gray-900 mb-2">Par service</h2>
         @for (ligne of sources(); track ligne[0]) {
           <p class="flex justify-between text-sm py-0.5"><span class="text-gray-600">{{ ligne[0] }}</span><span class="font-medium">{{ montant(ligne[1]) }}</span></p>
-        } @empty { <p class="text-sm text-gray-500">Aucun encaissement.</p> }
+        } @empty { <p class="text-sm text-gray-500">Aucune recette.</p> }
       </div>
     </section>
 
@@ -98,7 +107,7 @@
     }
 
     <section class="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 class="font-semibold text-gray-900 mb-3">Détail des encaissements</h2>
+      <h2 class="font-semibold text-gray-900 mb-3">Détail des recettes</h2>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead><tr class="border-b border-gray-200 text-left text-gray-700">
@@ -110,7 +119,7 @@
                 <td class="py-2 px-3">{{ heure(ligne.date) }}</td><td class="py-2 px-3">{{ ligne.source }}</td><td class="py-2 px-3 text-gray-900">{{ ligne.numero }}</td><td class="py-2 px-3">{{ ligne.libelle }}</td><td class="py-2 px-3">{{ libelleMode(ligne.mode) }}</td><td class="py-2 px-3 text-right font-medium">{{ montant(ligne.montant) }}</td>
               </tr>
             } @empty {
-              <tr><td colspan="6" class="py-4 px-3 text-center text-gray-500">Aucun encaissement ce jour.</td></tr>
+              <tr><td colspan="6" class="py-4 px-3 text-center text-gray-500">Aucune recette enregistrée ce jour.</td></tr>
             }
           </tbody>
         </table>

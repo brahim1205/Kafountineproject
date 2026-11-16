@@ -32,7 +32,7 @@ public class ContribuablesController {
   }
 
   @GetMapping("/check-telephone")
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR", "QUAI_PECHE"})
   public ResponseEntity<Map<String, Object>> checkTelephone(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());
     String telephone = query.str("telephone").trimmed(1, 20, "Téléphone requis").required();
@@ -40,8 +40,9 @@ public class ContribuablesController {
     return Api.ok(service.checkTelephone(telephone));
   }
 
+  // Le quai de pêche cherche le payeur d'une taxe de passage ou d'un droit du quai.
   @GetMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "SERVICE_FINANCES", "ETAT_CIVIL", "REGISSEUR", "QUAI_PECHE"})
   @SuppressWarnings("unchecked")
   public ResponseEntity<Map<String, Object>> list(HttpServletRequest request) {
     Input query = Input.query(request.getParameterMap());
@@ -66,8 +67,9 @@ public class ContribuablesController {
     return input.str("typeContribuable").oneOf(TYPES).optional();
   }
 
+  // … et enregistre un mareyeur ou un transporteur encore inconnu (sans pouvoir modifier ni supprimer une fiche).
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "ETAT_CIVIL", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "ETAT_CIVIL", "REGISSEUR", "QUAI_PECHE"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     Map<String, Object> data = new LinkedHashMap<>();

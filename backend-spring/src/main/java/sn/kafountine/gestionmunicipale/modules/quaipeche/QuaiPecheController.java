@@ -31,6 +31,18 @@ public class QuaiPecheController {
     this.service = service;
   }
 
+  /** Taxe de passage d'un camion frigorifique : un ticket au tarif de l'arrêté, relié à l'expédition. */
+  @PostMapping("/expeditions/{id}/paiement")
+  @Roles({"SUPER_ADMIN", "QUAI_PECHE", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> paiement(@PathVariable String id, @Body JsonNode body) {
+    String expeditionId = Common.id(id);
+    Input input = Input.body(body);
+    String contribuableId = input.str("contribuableId").noTrim().uuid("Choisissez le payeur (contribuable).").required();
+    String mode = input.str("modePaiement").oneOf(Common.MODES_PAIEMENT).optional();
+    input.check();
+    return Api.created(service.enregistrerPaiement(RequestContext.actor(), expeditionId, contribuableId, mode == null ? "ESPECE" : mode));
+  }
+
   @GetMapping("/statistiques")
   @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> stats(HttpServletRequest request) {
@@ -157,7 +169,7 @@ public class QuaiPecheController {
           .optional("chauffeur", 120).optional("telephone", 20).optional("statut", 40).year();
       case expeditions -> {
         if (create) f.uuid("camionId", true);
-        f.number("poids", input.num("poids").positive("Valeur positive requise"), create).optional("destination", 120)
+        f.number("poids", input.num("poids").min(0, "Poids positif ou nul requis (0 : camion vide)"), create).optional("destination", 120)
             .number("montant", input.num("montant").min(0, "Valeur positive ou nulle requise"), false).optional("statut", 40).optional("observations", 500);
         if (create) f.year();
       }

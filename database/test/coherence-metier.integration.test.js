@@ -179,7 +179,8 @@ describeIntegration('cohérence métier', () => {
     it('limite chaque liste aux rôles qui ont un écran', async () => {
       expect((await quaipeche.get('/transactions?limit=1')).status).toBe(403);
       expect((await quaipeche.get('/urbanisme')).status).toBe(403);
-      expect((await quaipeche.get('/contribuables')).status).toBe(403);
+      // Le quai cherche le payeur des taxes de passage et des droits du quai.
+      expect((await quaipeche.get('/contribuables')).status).toBe(200);
       expect((await quaipeche.get('/motos?limit=1')).status).toBe(200);
       expect((await quaipeche.get('/marche/places')).status).toBe(200);
       expect((await agent.get('/quai-peche/pecheurs')).status).toBe(403);

@@ -41,7 +41,6 @@ export class ExpeditionModal {
     camionId: field('camionId') as string,
     poids: Number(field('poids')),
     destination: field('destination'),
-    montant: field('montant') ? Number(field('montant')) : undefined,
     observations: field('observations'),
     });
     await this.saved.emit();

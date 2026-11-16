@@ -26,6 +26,7 @@ export const routes: Routes = [
       { path: 'motos', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'quai_peche', 'regisseur'])], loadComponent: () => import('./pages/motos/page').then((m) => m.MotosPage) },
       { path: 'formations', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/formations/page').then((m) => m.FormationsPage) },
       { path: 'penalites', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/penalites/page').then((m) => m.Penalites) },
+      { path: 'roles', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/roles/page').then((m) => m.RolesPage) },
       { path: 'utilisateurs', canActivate: [roleGuard(['admin', 'super_admin', 'regisseur'])], loadComponent: () => import('./pages/utilisateurs/page').then((m) => m.Utilisateurs) },
       { path: 'rapports', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/rapports/page').then((m) => m.Rapports) },
       { path: 'audit', canActivate: [roleGuard(['super_admin'])], loadComponent: () => import('./pages/audit/page').then((m) => m.Audit) },

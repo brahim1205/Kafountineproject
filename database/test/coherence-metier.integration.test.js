@@ -105,6 +105,16 @@ describeIntegration('cohérence métier', () => {
       expect(sum).toBeGreaterThan(0);
       expect(sum).toBeCloseTo(stats.recettesAnnee ?? stats.totalRecettes ?? sum, 2);
     });
+
+    it('compte les tickets par jour, semaine et mois, et les motos en retard comme la page Motos', async () => {
+      expect((await ticket(agent, 100, 'ESPECE')).status).toBe(201);
+      const stats = (await admin.get(`/dashboard/statistiques?year=${year}`)).body.data;
+      expect(stats.transactionsAujourdhui).toBeGreaterThanOrEqual(1);
+      expect(stats.transactionsSemaine).toBeGreaterThanOrEqual(stats.transactionsAujourdhui);
+      expect(stats.transactionsMois).toBeLessThanOrEqual(stats.totalTransactions);
+      const motos = (await admin.get(`/motos/statistiques?year=${year}`)).body.data;
+      expect(stats.stats.motos.enRetard).toBe(motos.enRetard);
+    });
   });
 
   describe('annulations', () => {
@@ -230,6 +240,22 @@ describeIntegration('cohérence métier', () => {
 
       const synthese = (await regisseur.get('/caisse/synthese')).body.data;
       expect(synthese.agents.find((a) => a.agentId === un.id).cloture.statut).toBe('VALIDEE');
+    });
+
+    it('laisse l’état civil hors de la vue du régisseur, pas de celle de l’administration', async () => {
+      const types = (await etatCivil.get('/etat-civil/types-documents')).body.data;
+      expect((await etatCivil.post('/etat-civil').send({ contribuableId, typeDocument: types[0].id, exemplaires: 1, montant: 900, statut: 'DELIVREE' })).status).toBe(201);
+      const propre = (await etatCivil.get('/caisse/journal')).body.data;
+      expect(propre.parSource['État civil']).toBeGreaterThanOrEqual(900);
+
+      const vueRegisseur = (await regisseur.get(`/caisse/journal?agentId=${propre.agentId}`)).body.data;
+      expect(vueRegisseur.lignes.some((l) => l.source === 'État civil')).toBe(false);
+      const syntheseRegisseur = (await regisseur.get('/caisse/synthese')).body.data;
+      expect(syntheseRegisseur.agents.some((a) => a.agentId === propre.agentId)).toBe(false);
+      expect((await regisseur.post('/caisse/clotures').send({ agentId: propre.agentId, montantCompte: 0, observations: 'test' })).status).toBe(403);
+
+      const syntheseAdmin = (await superadmin.get('/caisse/synthese')).body.data;
+      expect(syntheseAdmin.agents.find((a) => a.agentId === propre.agentId).montant).toBe(propre.total);
     });
   });
 

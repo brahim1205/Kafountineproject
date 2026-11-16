@@ -41,6 +41,8 @@ export interface GlobalStats {
   totalRecettes: number;
   totalFormations: number;
   transactionsAujourdhui: number;
+  transactionsSemaine?: number;
+  recettesParSource?: { source: string; montant: number; nombre: number }[];
   transactionsMois: number;
   recettesAujourdhui: number;
   recettesMois: number;

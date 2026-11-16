@@ -61,7 +61,7 @@ export class AdminDashboard {
   protected getTransactionsValue() {
     switch (this.periodeActive()) {
     case 0: return this.stats()?.transactionsAujourdhui || 0;
-    case 1: return Math.round((this.stats()?.transactionsMois || 0) / 4);
+    case 1: return this.stats()?.transactionsSemaine || 0;
     case 2: return this.stats()?.transactionsMois || 0;
     default: return 0;
     }
@@ -116,6 +116,9 @@ export class AdminDashboard {
 
   protected readonly displayAgentsTop = computed(() => this.agentsTop());
 
+  /** Total des tickets payés de l'année : base de la part de chaque agent. */
+  protected readonly totalTickets = computed(() => this.stats()?.recettesParSource?.find((s) => s.source === 'Taxes et tickets')?.montant || 0);
+
   protected readonly validations = computed(() => [
     {
     label: 'État civil',
@@ -142,7 +145,8 @@ export class AdminDashboard {
     label: 'Quai de pêche',
     count: this.stats()?.stats?.quaiPeche?.enAttente || 0,
     icon: 'ri-ship-line',
-    link: '/quai-peche/commissions',
+    // Le quai est suivi par son responsable et le régisseur : pas de page dédiée à l'administration.
+    link: null,
     color: 'bg-sky-50 text-sky-700 border-sky-200',
     },
     ]);
@@ -160,7 +164,7 @@ export class AdminDashboard {
     }))
     : [
     { message: `En attente de validation: ${this.stats()?.stats?.etatCivil?.enAttente || 0} dossiers d'état civil`, type: 'info', date: 'À l’instant', icon: 'ri-file-chart-line' },
-    { message: `${this.stats()?.stats?.motos?.enRetard || 0} motos en retard de paiement depuis plus de 30 jours`, type: 'danger', date: 'À l’instant', icon: 'ri-motorbike-line' },
+    { message: `${this.stats()?.stats?.motos?.enRetard || 0} motos en retard de paiement`, type: 'danger', date: 'À l’instant', icon: 'ri-motorbike-line' },
     ]);
 
   protected readonly raccourcis = computed(() => [

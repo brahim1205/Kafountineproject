@@ -55,7 +55,7 @@ public class CaisseController {
     Input query = Input.query(request.getParameterMap());
     String date = query.str("date").max(10).optional();
     query.check();
-    return Api.ok(service.synthese(date(date)));
+    return Api.ok(service.synthese(RequestContext.actor(), date(date)));
   }
 
   @GetMapping("/clotures")

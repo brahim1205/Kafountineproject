@@ -142,4 +142,45 @@ public class FormationsController {
     service.inscrire(RequestContext.actor(), jeune, formation);
     return Api.created(Api.map("success", true));
   }
+
+  private static String[] ids(String id, String formationId) {
+    Input params = Input.params(Map.of("id", id, "formationId", formationId));
+    String jeune = params.str("id").noTrim().uuid("Identifiant invalide").required();
+    String formation = params.str("formationId").noTrim().uuid("Identifiant invalide").required();
+    params.check();
+    return new String[] {jeune, formation};
+  }
+
+  /** Retire le jeune de la formation, sans supprimer sa fiche. */
+  @DeleteMapping("/api/v1/jeunes/{id}/formations/{formationId}")
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> desinscrire(@PathVariable String id, @PathVariable String formationId) {
+    String[] ref = ids(id, formationId);
+    service.desinscrire(RequestContext.actor(), ref[0], ref[1]);
+    return Api.ok(Api.map("success", true));
+  }
+
+  /** Pointe une séance : { "present": true | false }. */
+  @PostMapping("/api/v1/jeunes/{id}/formations/{formationId}/presences")
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> pointer(@PathVariable String id, @PathVariable String formationId, @Body JsonNode body) {
+    String[] ref = ids(id, formationId);
+    Input input = Input.body(body);
+    Boolean present = input.bool("present").required();
+    input.check();
+    return Api.ok(service.pointer(RequestContext.actor(), ref[0], ref[1], present));
+  }
+
+  @PostMapping("/api/v1/formations/{id}/cloture")
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> cloturer(@PathVariable String id) {
+    return Api.ok(service.cloturer(RequestContext.actor(), Common.id(id)));
+  }
+
+  @GetMapping("/api/v1/jeunes/{id}/formations/{formationId}/attestation")
+  @Roles({"ADMIN", "SUPER_ADMIN", "AGENT", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> attestation(@PathVariable String id, @PathVariable String formationId) {
+    String[] ref = ids(id, formationId);
+    return Api.ok(service.attestation(ref[0], ref[1]));
+  }
 }

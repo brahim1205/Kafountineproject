@@ -14,9 +14,20 @@
               &bull;
               {{ formation().responsable }}</p>
           </div>
-          <button aria-label="Fermer" (click)="closed.emit()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+          <div class="flex items-center gap-2">
+          @if (canManage() && formation().statut === 'En cours') {
+            @if (confirmCloture()) {
+              <span class="text-xs text-gray-600">Certifié si assiduité ≥ 75 %. Confirmer ?</span>
+              <button type="button" (click)="confirmCloture.set(false); cloturer.emit()" class="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-800">Clôturer</button>
+              <button type="button" (click)="confirmCloture.set(false)" class="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200">Annuler</button>
+            } @else {
+              <button type="button" (click)="confirmCloture.set(true)" class="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"><i class="ri-flag-line mr-1" aria-hidden="true"></i>Clôturer la session</button>
+            }
+          }
+                    <button aria-label="Fermer" (click)="closed.emit()" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
             <i class="ri-close-line text-xl"></i>
           </button>
+          </div>
         </div>
         <div class="px-6 pt-5 flex-shrink-0">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -74,7 +85,11 @@
                   @for (jeune of filteredJeunes(); track jeune.id) {
                     <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
                       <div class="w-11 h-11 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                        <img [src]="jeune.photo" [alt]="`${jeune.prenom} ${jeune.nom}`" class="w-full h-full object-cover object-top" />
+                        @if (jeune.photo) {
+                          <img [src]="jeune.photo" [alt]="`${jeune.prenom} ${jeune.nom}`" class="w-full h-full object-cover object-top" />
+                        } @else {
+                          <span class="flex h-full w-full items-center justify-center bg-emerald-100 text-sm font-semibold text-emerald-800" aria-hidden="true">{{ (jeune.prenom[0] || '') + (jeune.nom[0] || '') }}</span>
+                        }
                       </div>
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
@@ -91,16 +106,25 @@
                       </div>
                       <div class="text-right flex-shrink-0 mr-2">
                         <p [class]="`text-sm font-bold ${jeune.tauxAssiduite >= 90 ? 'text-green-600' : jeune.tauxAssiduite >= 75 ? 'text-amber-600' : 'text-red-600'}`">{{ jeune.tauxAssiduite }}%</p>
-                        <p class="text-xs text-gray-400">assiduité</p>
+                        <p class="text-xs text-gray-400">{{ jeune.presences }} présence(s) · {{ jeune.absences }} absence(s)</p>
                       </div>
+                      @if (canManage() && formation().statut === 'En cours') {
+                        <div class="flex flex-shrink-0 gap-1" role="group" [attr.aria-label]="'Pointer la séance de ' + jeune.prenom + ' ' + jeune.nom">
+                          <button type="button" (click)="presence.emit({ jeuneId: jeune.id, present: true })" class="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-100">Présent</button>
+                          <button type="button" (click)="presence.emit({ jeuneId: jeune.id, present: false })" class="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200">Absent</button>
+                        </div>
+                      }
+                      @if (jeune.statutFinal === 'Certifié') {
+                        <button type="button" (click)="attestation.emit(jeune.id)" class="flex-shrink-0 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"><i class="ri-award-line mr-1" aria-hidden="true"></i>Attestation</button>
+                      }
                       <div class="flex-shrink-0">
                         @if (confirmRemoveId() === jeune.id) {
                           <div class="flex items-center gap-1">
                             <button (click)="handleConfirmRemove(jeune.id)" class="px-2 py-1 bg-red-600 text-white rounded text-xs whitespace-nowrap cursor-pointer hover:bg-red-700 transition-colors">Confirmer</button>
                             <button (click)="confirmRemoveId.set(null)" class="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs whitespace-nowrap cursor-pointer hover:bg-gray-300 transition-colors">Non</button>
                           </div>
-                        } @else {
-                          <button (click)="confirmRemoveId.set(jeune.id)" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer opacity-0 group-hover:opacity-100" title="Retirer de la formation">
+                        } @else if (canManage() && formation().statut !== 'Terminée') {
+                          <button (click)="confirmRemoveId.set(jeune.id)" class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100" title="Retirer de la formation" [attr.aria-label]="'Retirer ' + jeune.prenom + ' ' + jeune.nom + ' de la formation'">
                             <i class="ri-user-unfollow-line text-lg"></i>
                           </button>
                         }

@@ -21,6 +21,17 @@ export class DetailFormation {
 
   readonly removeJeune = output<string>();
 
+  /** Agent, régisseur ou super administrateur sur l'année en cours (l'administrateur consulte). */
+  readonly canManage = input(false);
+
+  readonly presence = output<{ jeuneId: string; present: boolean }>();
+
+  readonly cloturer = output<void>();
+
+  readonly attestation = output<string>();
+
+  protected readonly confirmCloture = signal(false);
+
   protected readonly searchJeune = signal('');
 
   protected readonly confirmRemoveId = signal<string | null>(null);
@@ -67,7 +78,7 @@ export class DetailFormation {
     this.removeJeune.emit(id);
     }
     catch {
-    this.errorMsg.set("Impossible de supprimer ce participant.");
+    this.errorMsg.set("Impossible de retirer ce participant.");
     }
     finally {
     this.confirmRemoveId.set(null);

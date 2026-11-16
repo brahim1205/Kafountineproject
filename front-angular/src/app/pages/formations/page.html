@@ -102,5 +102,8 @@
     <app-inscription-jeune [formations]="formationsList()" [preselectedFormationId]="selectedFormationId()" (closed)="showInscriptionJeune.set(false); selectedFormationId.set('')" (add)="handleAddJeune($event)"></app-inscription-jeune>
   }
   @if (showDetailFormation() && selectedFormationId()) {
-    <app-detail-formation [formation]="formationsListSummary()" [jeunes]="getJeunesForFormation(selectedFormationId())" (closed)="showDetailFormation.set(false); selectedFormationId.set('')" (inscrireJeune)="showDetailFormation.set(false); showInscriptionJeune.set(true)" (removeJeune)="handleRemoveJeune($event)"></app-detail-formation>
+    <app-detail-formation [formation]="formationsListSummary()" [jeunes]="getJeunesForFormation(selectedFormationId())" (closed)="showDetailFormation.set(false); selectedFormationId.set('')" (inscrireJeune)="showDetailFormation.set(false); showInscriptionJeune.set(true)" (removeJeune)="handleRemoveJeune($event)" [canManage]="canManage()" (presence)="handlePresence($event)" (cloturer)="handleCloture()" (attestation)="handleAttestation($event)"></app-detail-formation>
+  }
+  @if (attestation(); as att) {
+    <app-attestation-formation [attestation]="att" (closed)="attestation.set(null)"></app-attestation-formation>
   }

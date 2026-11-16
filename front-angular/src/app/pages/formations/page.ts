@@ -6,7 +6,9 @@ import { NouvelleFormation } from './components/nouvelle-formation';
 import { InscriptionJeune } from './components/inscription-jeune';
 import { StatistiquesFormations } from './components/statistiques-formations';
 import { DetailFormation } from './components/detail-formation';
-import { Formation, Jeune, JeuneFormationEnrollment, FormationStats } from '../../services/formations';
+import { AttestationFormation } from './components/attestation-formation';
+import { AuthService } from '../../core/auth/auth.service';
+import { Attestation, Formation, Jeune, JeuneFormationEnrollment, FormationStats } from '../../services/formations';
 import { YearService } from '../../core/year/year.service';
 import { FormationsApi } from '../../services/formations';
 
@@ -99,12 +101,13 @@ function mapJeuneToUi(jeune: Jeune, enrollment: JeuneFormationEnrollment | null)
   selector: 'app-formations-page',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatsCard, FormationCard, JeuneCard, StatistiquesFormations, NouvelleFormation, InscriptionJeune, DetailFormation],
+  imports: [StatsCard, FormationCard, JeuneCard, StatistiquesFormations, NouvelleFormation, InscriptionJeune, DetailFormation, AttestationFormation],
   templateUrl: './page.html',
 })
 export class FormationsPage {
   protected readonly yearService = inject(YearService);
   protected readonly formationsApi = inject(FormationsApi);
+  protected readonly auth = inject(AuthService);
   protected readonly activeTab = signal<'formations' | 'jeunes' | 'statistiques'>('formations');
 
   protected readonly formationsList = signal<FormationType[]>([]);
@@ -259,12 +262,51 @@ export class FormationsPage {
     }
     }
 
+  /** Agent, régisseur ou super administrateur, sur l'année en cours : pointer, retirer, clôturer. */
+  protected readonly canManage = computed(() => this.auth.canWriteRole() && this.selectedYear() === new Date().getFullYear());
+
+  protected readonly attestation = signal<Attestation | null>(null);
+
+  protected async handlePresence(event: { jeuneId: string; present: boolean }) {
+    try {
+    this.errorMsg.set('');
+    await this.formationsApi.pointerPresence(event.jeuneId, this.selectedFormationId(), event.present);
+    await this.loadData();
+    }
+    catch (error) {
+    this.errorMsg.set(error instanceof Error ? error.message : 'Impossible de pointer la présence.');
+    }
+    }
+
+  protected async handleCloture() {
+    try {
+    this.errorMsg.set('');
+    const resultat = await this.formationsApi.cloturerFormation(this.selectedFormationId());
+    await this.loadData();
+    this.showSuccess(`Session clôturée : ${resultat.certifies} certifié(s) sur ${resultat.inscrits}.`);
+    }
+    catch (error) {
+    this.errorMsg.set(error instanceof Error ? error.message : 'Impossible de clôturer la session.');
+    }
+    }
+
+  protected async handleAttestation(jeuneId: string) {
+    try {
+    this.errorMsg.set('');
+    this.attestation.set(await this.formationsApi.getAttestation(jeuneId, this.selectedFormationId()));
+    }
+    catch (error) {
+    this.errorMsg.set(error instanceof Error ? error.message : "Impossible de produire l'attestation.");
+    }
+    }
+
+  /** Retire le jeune de la formation sans supprimer sa fiche. */
   protected async handleRemoveJeune(jeuneId: string) {
     const jeune = this.jeunesList().find(j => j.id === jeuneId);
     if (!jeune)
     return;
     try {
-    await this.formationsApi.deleteJeune(jeuneId);
+    await this.formationsApi.desinscrireJeuneFormation(jeuneId, this.selectedFormationId());
     await this.loadData();
     this.showSuccess(`${jeune.prenom} ${jeune.nom} retiré(e) de la formation.`);
     }

@@ -353,9 +353,20 @@ public class TransactionService {
   /** Un service du catalogue est facturé à son tarif officiel, quel que soit le montant envoyé par le navigateur. */
   private double montantReglementaire(String categorie, String service, int quantite, double montantSaisi) {
     for (Map<String, Object> item : catalog.listServices(categorie)) {
-      if (service.equals(item.get("nom")) || service.equals(item.get("id"))) return ((Number) item.get("tarif")).doubleValue() * quantite;
+      if (service.equals(item.get("nom")) || service.equals(item.get("id"))) {
+        return montantDuService(((Number) item.get("tarif")).doubleValue(), quantite, item.get("calcul"));
+      }
     }
     return montantSaisi;
+  }
+
+  /**
+   * Montant d'une ligne du catalogue : tarif × quantité, ou, pour un droit en pourcentage (15 % des recettes
+   * d'une manifestation à entrée payante, arrêté du 8 mai 2024), taux × recettes déclarées, arrondi au franc.
+   */
+  static double montantDuService(double tarif, int quantite, Object calcul) {
+    if ("pourcentage".equals(calcul)) return Math.round(tarif * quantite / 100.0);
+    return tarif * quantite;
   }
 
   @Transactional

@@ -107,10 +107,10 @@ export class AuthService {
       const envelope = await firstValueFrom(
         this.http.post<ApiEnvelope<unknown>>(`${API}/forgot-password`, { email }, { withCredentials: true }),
       );
-      return envelope.message || 'Si un compte existe avec cet email, un lien de reinitialisation sera envoye';
+      return envelope.message || 'Si un compte existe avec cet email, une demande a été transmise à l’administrateur.';
     } catch (error) {
       const message = error instanceof HttpErrorResponse && error.status > 0 ? error.error?.message : undefined;
-      throw new Error(message || 'Impossible de traiter la demande de reinitialisation', { cause: error });
+      throw new Error(message || 'Impossible de traiter la demande de réinitialisation.', { cause: error });
     }
   }
 

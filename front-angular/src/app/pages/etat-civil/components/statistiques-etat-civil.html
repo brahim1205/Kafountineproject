@@ -1,61 +1,94 @@
-@if (loading()) {
-  <div class="flex items-center justify-center h-64">
-    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+@if (loading() && stats().total === 0) {
+  <div class="flex h-64 items-center justify-center" role="status">
+    <div class="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" aria-hidden="true"></div>
+    <span class="sr-only">Chargement des statistiques</span>
   </div>
 } @else {
   <div class="space-y-6">
     @if (errorMsg()) {
-      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMsg() }}</div>
+      <div role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMsg() }}</div>
     }
-    @if (showSuccessMessage()) {
-      <div class="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-emerald-200 p-4 flex items-center gap-3 animate-fade-in">
-        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-          <i class="ri-check-line text-emerald-600 text-xl"></i>
-        </div>
-        <div>
-          <p class="text-sm font-medium text-gray-900">Export réussi !</p>
-          <p class="text-xs text-gray-600">Le fichier
-            {{ exportType() === 'excel' ? 'Excel' : 'PDF' }}
-            a été téléchargé</p>
-        </div>
-      </div>
-    }
-    <div class="flex justify-end gap-2">
-      <button (click)="handleExport('pdf')" class="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 cursor-pointer">
-        <i class="ri-file-pdf-line"></i>Exporter PDF</button>
-      <button (click)="handleExport('excel')" class="px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 cursor-pointer">
-        <i class="ri-file-excel-line"></i>Exporter Excel</button>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      @for (stat of statsData(); track index; let index = $index) {
-        <div class="bg-white rounded-lg border border-gray-200 p-5">
-          <div class="flex items-center justify-between mb-3">
-            <div [class]="`w-10 h-10 rounded-lg bg-${stat.color}-100 flex items-center justify-center`">
-              <i [class]="`${stat.icon} text-${stat.color}-600 text-xl`"></i>
+
+    <!-- Chiffres clés -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      @for (k of indicateurs(); track k.label) {
+        <div class="rounded-xl border border-gray-200 bg-white p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm text-gray-600">{{ k.label }}</p>
+              <p class="mt-1 text-2xl font-bold text-gray-900">{{ k.valeur }}</p>
+              <p class="mt-1 text-xs text-gray-500">{{ k.detail }}</p>
             </div>
+            <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-600">
+              <i [class]="k.icon + ' text-xl'" aria-hidden="true"></i>
+            </span>
           </div>
-          <p class="text-2xl font-bold text-gray-900 mb-1">{{ stat.value }}</p>
-          <p class="text-sm text-gray-600">{{ stat.label }}</p>
         </div>
       }
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Répartition par statut</h3>
-      <div class="grid grid-cols-3 gap-4">
-        <div class="text-center p-4 bg-amber-50 rounded-lg">
-          <p class="text-3xl font-bold text-amber-600">{{ stats().demandesEnAttente }}</p>
-          <p class="text-sm text-amber-700">En attente</p>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <!-- Répartition par statut -->
+      <section class="rounded-xl border border-gray-200 bg-white p-6" aria-labelledby="titre-statuts">
+        <h2 id="titre-statuts" class="text-base font-semibold text-gray-900">Répartition des demandes</h2>
+        <p class="mt-1 text-sm text-gray-600">{{ nombre(stats().total) }} demande(s) au total</p>
+        <div class="mt-5 flex h-3 w-full overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
+          @for (s of statuts(); track s.label) {
+            <div [class]="s.couleur" [style.width.%]="largeur(s.nombre)"></div>
+          }
         </div>
-        <div class="text-center p-4 bg-emerald-50 rounded-lg">
-          <p class="text-3xl font-bold text-emerald-600">{{ stats().demandesDelivrees }}</p>
-          <p class="text-sm text-emerald-700">Délivrées</p>
+        <ul class="mt-5 space-y-3">
+          @for (s of statuts(); track s.label) {
+            <li class="flex items-center gap-3 text-sm">
+              <span [class]="'h-2.5 w-2.5 flex-shrink-0 rounded-full ' + s.couleur" aria-hidden="true"></span>
+              <span class="flex-1 text-gray-700">{{ s.label }}</span>
+              <span class="font-semibold tabular-nums text-gray-900">{{ nombre(s.nombre) }}</span>
+              <span class="w-12 text-right tabular-nums text-gray-500">{{ pourcentage(s.nombre) }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <!-- Par type d'acte -->
+      <section class="rounded-xl border border-gray-200 bg-white lg:col-span-2" aria-labelledby="titre-types">
+        <div class="border-b border-gray-200 px-6 py-4">
+          <h2 id="titre-types" class="text-base font-semibold text-gray-900">Par type d’acte</h2>
         </div>
-        <div class="text-center p-4 bg-red-50 rounded-lg">
-          <p class="text-3xl font-bold text-red-600">{{ stats().demandesRejetees }}</p>
-          <p class="text-sm text-red-700">Rejetées</p>
-        </div>
-      </div>
+        @if (stats().parType.length === 0) {
+          <p class="px-6 py-8 text-center text-sm text-gray-500">Aucune demande sur l’exercice {{ selectedYear() }}.</p>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr class="text-left text-xs uppercase tracking-wide text-gray-600">
+                  <th class="px-6 py-3">Acte</th>
+                  <th class="px-6 py-3 text-right">Demandes</th>
+                  <th class="px-6 py-3 text-right">Délivrés</th>
+                  <th class="px-6 py-3 text-right">Recettes (FCFA)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                @for (t of stats().parType; track t.type) {
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-3 text-gray-900">{{ t.type }}</td>
+                    <td class="px-6 py-3 text-right tabular-nums text-gray-700">{{ nombre(t.demandes) }}</td>
+                    <td class="px-6 py-3 text-right tabular-nums text-gray-700">{{ nombre(t.delivrees) }}</td>
+                    <td class="px-6 py-3 text-right font-medium tabular-nums text-gray-900">{{ nombre(t.recettes) }}</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr class="border-t-2 border-gray-200 bg-gray-50 font-semibold text-gray-900">
+                  <td class="px-6 py-3">Total</td>
+                  <td class="px-6 py-3 text-right tabular-nums">{{ nombre(stats().total) }}</td>
+                  <td class="px-6 py-3 text-right tabular-nums">{{ nombre(stats().delivrees) }}</td>
+                  <td class="px-6 py-3 text-right tabular-nums">{{ nombre(stats().recettes) }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        }
+      </section>
     </div>
   </div>
 }
-

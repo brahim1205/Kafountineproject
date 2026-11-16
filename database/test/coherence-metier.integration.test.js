@@ -56,6 +56,15 @@ describeIntegration('cohérence métier', () => {
   });
 
   describe('recettes', () => {
+    it('ventile les demandes d’état civil par type d’acte, en cohérence avec les totaux', async () => {
+      const stats = (await admin.get(`/etat-civil/statistiques?year=${year}`)).body.data;
+      const somme = (cle) => stats.parType.reduce((total, ligne) => total + ligne[cle], 0);
+      expect(Array.isArray(stats.parType)).toBe(true);
+      expect(somme('demandes')).toBe(stats.totalDemandes);
+      expect(somme('delivrees')).toBe(stats.demandesDelivrees);
+      expect(somme('recettes')).toBe(stats.recettes);
+    });
+
     it('ne compte que les actes délivrés dans les recettes de l’état civil', async () => {
       const stats = async () => (await etatCivil.get(`/etat-civil/statistiques?year=${year}`)).body.data.recettes;
       const before = await stats();

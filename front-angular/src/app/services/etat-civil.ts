@@ -16,11 +16,17 @@ export type EtatCivilDemande = {
   contribuable?: Contribuable;
 };
 
+export type EtatCivilTypeStats = { type: string; demandes: number; delivrees: number; recettes: number };
+
 export type EtatCivilStats = {
   totalDemandes?: number;
   recettes?: number;
   enAttente?: number;
   validees?: number;
+  demandesEnAttente?: number;
+  demandesDelivrees?: number;
+  demandesRejetees?: number;
+  parType?: EtatCivilTypeStats[];
 };
 
 function pageQuery(params: Record<string, string | number | undefined>) {

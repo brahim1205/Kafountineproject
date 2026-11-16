@@ -1,106 +1,92 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
-import { EtatCivilStats } from '../../../services/etat-civil';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { YearService } from '../../../core/year/year.service';
-import { EtatCivilApi } from '../../../services/etat-civil';
+import { EtatCivilApi, EtatCivilStats, EtatCivilTypeStats } from '../../../services/etat-civil';
 
-interface IEtatCivilStats {
-  totalDemandes: number;
-  demandesEnAttente: number;
-  demandesDelivrees: number;
-  demandesRejetees: number;
+type Statistiques = {
+  total: number;
+  enAttente: number;
+  delivrees: number;
+  rejetees: number;
   recettes: number;
-}
+  parType: EtatCivilTypeStats[];
+};
 
+const VIDE: Statistiques = { total: 0, enAttente: 0, delivrees: 0, rejetees: 0, recettes: 0, parType: [] };
+
+/** Statistiques de l'état civil : chiffres clés, répartition des demandes par statut et par type d'acte. */
 @Component({
   selector: 'app-statistiques-etat-civil',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
   templateUrl: './statistiques-etat-civil.html',
 })
 export class StatistiquesEtatCivil {
-  protected readonly yearService = inject(YearService);
-  protected readonly etatCivilApi = inject(EtatCivilApi);
-  protected readonly selectedYear = this.yearService.selectedYear;
-
-  protected readonly showSuccessMessage = signal(false);
-
-  protected readonly exportType = signal('');
+  private readonly etatCivilApi = inject(EtatCivilApi);
+  protected readonly selectedYear = inject(YearService).selectedYear;
 
   protected readonly loading = signal(true);
-
   protected readonly errorMsg = signal('');
+  protected readonly stats = signal<Statistiques>(VIDE);
 
-  protected readonly stats = signal<IEtatCivilStats>({
-    totalDemandes: 0,
-    demandesEnAttente: 0,
-    demandesDelivrees: 0,
-    demandesRejetees: 0,
-    recettes: 0,
-    });
+  protected readonly indicateurs = computed(() => {
+    const s = this.stats();
+    return [
+      { label: 'Demandes reçues', valeur: this.nombre(s.total), detail: `Exercice ${this.selectedYear()}`, icon: 'ri-file-list-3-line' },
+      { label: 'En attente', valeur: this.nombre(s.enAttente), detail: 'À traiter par le service', icon: 'ri-time-line' },
+      { label: 'Actes délivrés', valeur: this.nombre(s.delivrees), detail: `${this.pourcentage(s.delivrees)} des demandes`, icon: 'ri-checkbox-circle-line' },
+      { label: 'Recettes', valeur: `${this.nombre(s.recettes)} FCFA`, detail: 'Actes délivrés', icon: 'ri-money-dollar-circle-line' },
+    ];
+  });
 
-  protected async loadStats() {
-    try {
-    this.loading.set(true);
-    this.errorMsg.set('');
-    const response = await this.etatCivilApi.getEtatCivilStats(this.selectedYear());
-    if (response) {
-    const typed = response as EtatCivilStats & Partial<IEtatCivilStats>;
-    this.stats.set({
-    totalDemandes: typed.totalDemandes || 0,
-    demandesEnAttente: typed.demandesEnAttente || typed.enAttente || 0,
-    demandesDelivrees: typed.demandesDelivrees || typed.validees || 0,
-    demandesRejetees: typed.demandesRejetees || 0,
-    recettes: typed.recettes || 0,
-    });
-    }
-    }
-    catch {
-    this.stats.set({
-    totalDemandes: 0,
-    demandesEnAttente: 0,
-    demandesDelivrees: 0,
-    demandesRejetees: 0,
-    recettes: 0,
-    });
-    this.errorMsg.set("Impossible de charger les statistiques de l'état civil.");
-    }
-    finally {
-    this.loading.set(false);
-    }
-    }
-
-  protected formatMontant(montant: number) {
-    return new Intl.NumberFormat('fr-FR').format(montant);
-    }
-
-  protected readonly statsData = computed(() => [
-    { label: 'Total demandes', value: this.stats().totalDemandes.toString(), icon: 'ri-file-text-line', color: 'emerald' },
-    { label: 'En attente', value: this.stats().demandesEnAttente.toString(), icon: 'ri-time-line', color: 'amber' },
-    { label: 'Délivrées', value: this.stats().demandesDelivrees.toString(), icon: 'ri-check-line', color: 'teal' },
-    { label: 'Recettes totales', value: `${this.formatMontant(this.stats().recettes)} Fcfa`, icon: 'ri-money-dollar-circle-line', color: 'cyan' }
-    ]);
-
-  protected handleExport(type: 'excel' | 'pdf') {
-    this.exportType.set(type);
-    this.showSuccessMessage.set(true);
-    const link = document.createElement('a');
-    link.href = '#';
-    link.download = `statistiques-etat-civil-${new Date().toISOString().split('T')[0]}.${type === 'excel' ? 'xlsx' : 'pdf'}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => {
-    this.showSuccessMessage.set(false);
-    }, 3000);
-    }
+  /** Statuts dans l'ordre de la barre de répartition ; la couleur ne porte jamais seule l'information. */
+  protected readonly statuts = computed(() => {
+    const s = this.stats();
+    return [
+      { label: 'Délivrées', nombre: s.delivrees, couleur: 'bg-emerald-600' },
+      { label: 'En attente', nombre: s.enAttente, couleur: 'bg-amber-400' },
+      { label: 'Rejetées', nombre: s.rejetees, couleur: 'bg-gray-400' },
+    ];
+  });
 
   constructor() {
     effect(() => {
-      this.selectedYear();
-      untracked(() => {
-    this.loadStats();
-      });
+      const year = this.selectedYear();
+      untracked(() => void this.charger(year));
     });
+  }
+
+  protected async charger(year = this.selectedYear()): Promise<void> {
+    this.loading.set(true);
+    this.errorMsg.set('');
+    try {
+      const r: EtatCivilStats = await this.etatCivilApi.getEtatCivilStats(year);
+      this.stats.set({
+        total: r.totalDemandes ?? 0,
+        enAttente: r.demandesEnAttente ?? r.enAttente ?? 0,
+        delivrees: r.demandesDelivrees ?? r.validees ?? 0,
+        rejetees: r.demandesRejetees ?? 0,
+        recettes: r.recettes ?? 0,
+        parType: r.parType ?? [],
+      });
+    } catch {
+      this.stats.set(VIDE);
+      this.errorMsg.set("Impossible de charger les statistiques de l'état civil.");
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  protected nombre(value: number): string {
+    return Math.round(value).toLocaleString('fr-FR');
+  }
+
+  protected pourcentage(part: number): string {
+    const total = this.stats().total;
+    return total > 0 ? `${Math.round((part / total) * 100)} %` : '0 %';
+  }
+
+  protected largeur(part: number): number {
+    const total = this.stats().total;
+    return total > 0 ? (part / total) * 100 : 0;
   }
 }

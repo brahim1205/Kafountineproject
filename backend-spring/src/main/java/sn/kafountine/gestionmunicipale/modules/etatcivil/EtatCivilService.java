@@ -229,14 +229,28 @@ public class EtatCivilService {
   }
 
   public Map<String, Object> stats(int year) {
-    List<Map<String, Object>> rows = db.list("SELECT \"montant\", \"statut\" FROM \"EtatCivilRequest\" WHERE \"year\" = :year", Db.params("year", year));
+    List<Map<String, Object>> rows = db.list("SELECT \"montant\", \"statut\", \"typeDocument\" FROM \"EtatCivilRequest\" WHERE \"year\" = :year", Db.params("year", year));
     long enAttente = rows.stream().filter(r -> "EN_ATTENTE".equals(r.get("statut"))).count();
     long delivrees = rows.stream().filter(r -> "DELIVREE".equals(r.get("statut")) || "VALIDE".equals(r.get("statut"))).count();
     long rejetees = rows.stream().filter(r -> "REJETEE".equals(r.get("statut")) || "REJETE".equals(r.get("statut"))).count();
     double recettes = 0;
-    for (Map<String, Object> row : rows) if (recette(Db.str(row, "statut"))) recettes += Db.num(row, "montant");
+    // Par type d'acte : demandes, actes délivrés et recettes, du plus demandé au moins demandé.
+    Map<String, Map<String, Object>> parType = new LinkedHashMap<>();
+    for (Map<String, Object> row : rows) {
+      boolean encaissee = recette(Db.str(row, "statut"));
+      if (encaissee) recettes += Db.num(row, "montant");
+      String type = DocumentLabels.label(Db.str(row, "typeDocument"));
+      Map<String, Object> ligne = parType.computeIfAbsent(type, t -> Api.map("type", t, "demandes", 0L, "delivrees", 0L, "recettes", 0d));
+      ligne.put("demandes", (long) ligne.get("demandes") + 1);
+      if (encaissee) {
+        ligne.put("delivrees", (long) ligne.get("delivrees") + 1);
+        ligne.put("recettes", (double) ligne.get("recettes") + Db.num(row, "montant"));
+      }
+    }
+    List<Map<String, Object>> types = new ArrayList<>(parType.values());
+    types.sort((x, y) -> Long.compare((long) y.get("demandes"), (long) x.get("demandes")));
     return Api.map("totalDemandes", rows.size(), "demandesEnAttente", enAttente, "demandesDelivrees", delivrees, "demandesRejetees", rejetees,
-        "enAttente", enAttente, "validees", delivrees, "recettes", recettes);
+        "enAttente", enAttente, "validees", delivrees, "recettes", recettes, "parType", types);
   }
 
   private static Map<String, Object> view(Map<String, Object> row) {

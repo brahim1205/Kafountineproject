@@ -1,5 +1,6 @@
 package sn.kafountine.gestionmunicipale.modules.caisse;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -148,6 +149,84 @@ public class CaisseService {
       agent.put("cloture", clotureVue(row));
     }
     return Api.map("date", date.toString(), "total", total, "agents", new ArrayList<>(agents.values()));
+  }
+
+  /** Modules dans l'ordre d'affichage ; les tickets d'état civil sont rangés avec l'état civil. */
+  public static final List<String> MODULES = List.of("Taxes", "Marché", "Motos", "État civil", "Urbanisme");
+
+  private static final String RECETTES_PAR_MODULE = """
+      WITH recettes AS (
+        SELECT CASE WHEN "categorie" ~* '^[eé]tat[ _-]?civil' THEN 'État civil' ELSE 'Taxes' END AS module, "montant", "createdAt" AS d, "agentId"
+          FROM "Transaction" WHERE "statut" = 'PAYE'
+        UNION ALL
+        SELECT 'Marché', "montant", COALESCE("datePaiement", "createdAt"), "agentId" FROM "MarketPayment" WHERE "statut" = 'PAYE'
+        UNION ALL
+        SELECT 'Motos', "montant", COALESCE("datePaiement", "createdAt"), "agentId" FROM "MotoPayment" WHERE "statut" = 'PAYE'
+        UNION ALL
+        SELECT 'État civil', "montant", COALESCE("encaisseLe", "createdAt"), COALESCE("encaissePar", "agentId")
+          FROM "EtatCivilRequest" WHERE "statut" IN ('DELIVREE', 'VALIDE')
+        UNION ALL
+        SELECT 'Urbanisme', "montant", COALESCE("encaisseLe", "createdAt"), COALESCE("encaissePar", "agentId")
+          FROM "UrbanismeCase" WHERE "statut" = 'VALIDE'
+      )
+      SELECT r."agentId", TRIM(COALESCE(u."prenom", '') || ' ' || COALESCE(u."nom", '')) AS "agent", u."role", r.module,
+             SUM(r."montant") AS "montant", COUNT(*)::int AS "nombre"
+      FROM recettes r INNER JOIN "User" u ON u."id" = r."agentId"
+      WHERE r.d >= CAST(:debut AS timestamp) AND r.d < CAST(:fin AS timestamp)
+      GROUP BY 1, 2, 3, 4
+      """;
+
+  public enum Periode { JOUR, SEMAINE, MOIS }
+
+  /** Bornes [début, fin[ de la période qui contient la date : le jour, la semaine du lundi au dimanche, ou le mois civil. */
+  public static LocalDate[] bornes(Periode periode, LocalDate date) {
+    return switch (periode) {
+      case JOUR -> new LocalDate[] {date, date.plusDays(1)};
+      case SEMAINE -> {
+        LocalDate lundi = date.minusDays(date.getDayOfWeek().getValue() - DayOfWeek.MONDAY.getValue());
+        yield new LocalDate[] {lundi, lundi.plusDays(7)};
+      }
+      case MOIS -> new LocalDate[] {date.withDayOfMonth(1), date.withDayOfMonth(1).plusMonths(1)};
+    };
+  }
+
+  /**
+   * Ce que chaque agent a enregistré sur la période, module par module. Le régisseur ne voit pas
+   * l'état civil, comme dans le reste de l'application.
+   */
+  public Map<String, Object> activite(Actor actor, Periode periode, LocalDate demande) {
+    LocalDate[] b = bornes(periode, demande == null ? aujourdhui() : demande);
+    boolean sansEtatCivil = "REGISSEUR".equalsIgnoreCase(actor.role());
+    List<String> modules = sansEtatCivil ? MODULES.stream().filter(m -> !m.equals("État civil")).toList() : MODULES;
+    var params = Db.params("debut", java.sql.Timestamp.from(b[0].atStartOfDay().toInstant(ZoneOffset.UTC)),
+        "fin", java.sql.Timestamp.from(b[1].atStartOfDay().toInstant(ZoneOffset.UTC)));
+    Map<String, Map<String, Object>> agents = new LinkedHashMap<>();
+    Map<String, Double> totauxParModule = new LinkedHashMap<>();
+    for (String module : modules) totauxParModule.put(module, 0d);
+    double total = 0;
+    long nombre = 0;
+    for (Map<String, Object> row : db.list(RECETTES_PAR_MODULE, params)) {
+      String module = Db.str(row, "module");
+      if (!modules.contains(module)) continue;
+      double montant = Db.num(row, "montant");
+      long n = (long) Db.num(row, "nombre");
+      Map<String, Object> agent = agents.computeIfAbsent(Db.str(row, "agentId"), id -> {
+        Map<String, Double> vide = new LinkedHashMap<>();
+        for (String m : modules) vide.put(m, 0d);
+        return Api.map("agentId", id, "agent", row.get("agent"), "role", row.get("role"), "total", 0d, "nombre", 0L, "parModule", vide);
+      });
+      @SuppressWarnings("unchecked") Map<String, Double> parModule = (Map<String, Double>) agent.get("parModule");
+      parModule.merge(module, montant, Double::sum);
+      agent.put("total", (double) agent.get("total") + montant);
+      agent.put("nombre", (long) agent.get("nombre") + n);
+      totauxParModule.merge(module, montant, Double::sum);
+      total += montant;
+      nombre += n;
+    }
+    List<Map<String, Object>> lignes = new ArrayList<>(agents.values());
+    lignes.sort((x, y) -> Double.compare((double) y.get("total"), (double) x.get("total")));
+    return Api.map("periode", periode.name().toLowerCase(Locale.ROOT), "debut", b[0].toString(), "fin", b[1].minusDays(1).toString(),
+        "modules", modules, "total", total, "nombre", nombre, "parModule", totauxParModule, "agents", lignes);
   }
 
   public List<Map<String, Object>> clotures(Actor actor, String statut, int limit) {

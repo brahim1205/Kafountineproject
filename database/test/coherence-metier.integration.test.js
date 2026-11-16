@@ -56,6 +56,15 @@ describeIntegration('cohérence métier', () => {
   });
 
   describe('recettes', () => {
+    it('ventile les demandes d’état civil par type d’acte, en cohérence avec les totaux', async () => {
+      const stats = (await admin.get(`/etat-civil/statistiques?year=${year}`)).body.data;
+      const somme = (cle) => stats.parType.reduce((total, ligne) => total + ligne[cle], 0);
+      expect(Array.isArray(stats.parType)).toBe(true);
+      expect(somme('demandes')).toBe(stats.totalDemandes);
+      expect(somme('delivrees')).toBe(stats.demandesDelivrees);
+      expect(somme('recettes')).toBe(stats.recettes);
+    });
+
     it('ne compte que les actes délivrés dans les recettes de l’état civil', async () => {
       const stats = async () => (await etatCivil.get(`/etat-civil/statistiques?year=${year}`)).body.data.recettes;
       const before = await stats();
@@ -167,6 +176,29 @@ describeIntegration('cohérence métier', () => {
   });
 
   describe('droits de lecture', () => {
+    it('montre l’activité de chaque agent par module, sans l’état civil pour le régisseur', async () => {
+      const jour = new Date().toISOString().slice(0, 10);
+      expect((await agent.get(`/caisse/activite?periode=jour&date=${jour}`)).status).toBe(403);
+      expect((await admin.get(`/caisse/activite?periode=annee&date=${jour}`)).status).toBe(400);
+
+      const duJour = (await admin.get(`/caisse/activite?periode=jour&date=${jour}`)).body.data;
+      const synthese = (await admin.get(`/caisse/synthese?date=${jour}`)).body.data;
+      expect(duJour.modules).toEqual(['Taxes', 'Marché', 'Motos', 'État civil', 'Urbanisme']);
+      expect(duJour.total).toBe(synthese.total);
+      duJour.agents.forEach((ligne) => {
+        expect(Object.values(ligne.parModule).reduce((a, b) => a + b, 0)).toBe(ligne.total);
+      });
+
+      const mois = (await admin.get(`/caisse/activite?periode=mois&date=${jour}`)).body.data;
+      expect(mois.debut.endsWith('-01')).toBe(true);
+      expect(mois.total).toBeGreaterThanOrEqual(duJour.total);
+
+      const semaine = (await regisseur.get(`/caisse/activite?periode=semaine&date=${jour}`)).body.data;
+      expect(new Date(`${semaine.debut}T12:00:00Z`).getUTCDay()).toBe(1);
+      expect(semaine.modules).not.toContain('État civil');
+      semaine.agents.forEach((ligne) => expect(ligne.parModule['État civil']).toBeUndefined());
+    });
+
     it('limite chaque liste aux rôles qui ont un écran', async () => {
       expect((await quaipeche.get('/transactions?limit=1')).status).toBe(403);
       expect((await quaipeche.get('/urbanisme')).status).toBe(403);

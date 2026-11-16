@@ -38,6 +38,7 @@ export const routes: Routes = [
       { path: 'parametres', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/parametres/page').then((m) => m.Parametres) },
       { path: 'caisse', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/caisse/page').then((m) => m.Caisse) },
       { path: 'caisse/agent/:agentId', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/caisse/page').then((m) => m.Caisse) },
+      { path: 'activite-agents', canActivate: [roleGuard(['admin', 'super_admin', 'regisseur'])], loadComponent: () => import('./pages/activite-agents/page').then((m) => m.ActiviteAgentsPage) },
       { path: 'impayes', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'quai_peche', 'regisseur'])], loadComponent: () => import('./pages/impayes/page').then((m) => m.Impayes) },
       { path: 'contribuables', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/contribuables/page').then((m) => m.Contribuables) },
       { path: 'profil', loadComponent: () => import('./pages/profil/page').then((m) => m.ProfilPage) },

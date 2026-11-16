@@ -52,12 +52,16 @@ export const roleLabels: Record<UiRole, string> = {
   regisseur: 'Régisseur'
 };
 
-export const SECTIONS_REGISSEUR: Record<string, string> = {
-  '/utilisateurs': 'Équipes',
-  '/quai-peche/commissions': 'Quai de pêche',
-  '/recettes': 'Recettes et taxes',
-  '/urbanisme': 'Services',
-};
+/**
+ * Ordre du menu du régisseur, sans titres de rubrique : d'abord le suivi de l'argent,
+ * puis les services, le quai de pêche, et enfin les contribuables et les équipes.
+ */
+export const ORDRE_REGISSEUR = [
+  '/dashboard', '/recettes', '/caisse', '/impayes', '/taxes', '/penalites',
+  '/marche', '/motos', '/urbanisme',
+  '/quai-peche/commissions', '/quai-peche/pecheurs', '/quai-peche/embarcations', '/quai-peche/camions',
+  '/contribuables', '/utilisateurs',
+];
 
 export const playNotificationSound = () => {
   try {

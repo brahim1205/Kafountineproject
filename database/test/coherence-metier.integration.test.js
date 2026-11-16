@@ -193,6 +193,29 @@ describeIntegration('cohérence métier', () => {
     });
   });
 
+  describe('changements de titulaire d’une moto', () => {
+    it('garde l’historique des propriétaires et conducteurs, avec le motif', async () => {
+      const ancien = await nouveauContribuable();
+      const moto = await nouvelleMoto(ancien);
+      const nouveau = await nouveauContribuable();
+      const conducteur = await nouveauContribuable();
+      const base = `/motos/${moto.id}/changements`;
+      expect((await regisseur.post(base).send({ type: 'proprietaire', personneId: nouveau })).status).toBe(400);
+      expect((await agent.post(base).send({ type: 'proprietaire', personneId: nouveau, motif: 'Vente' })).status).toBe(403);
+      expect((await regisseur.post(base).send({ type: 'proprietaire', personneId: nouveau, motif: 'Vente de la moto' })).status).toBe(200);
+      expect((await regisseur.post(base).send({ type: 'conducteur', personneId: conducteur, motif: 'Nouveau conducteur' })).status).toBe(200);
+
+      const historique = (await agent.get(`/motos/${moto.id}/historique`)).body.data;
+      expect(historique).toHaveLength(2);
+      expect(historique.map((c) => c.role).sort()).toEqual(['CONDUCTEUR', 'PROPRIETAIRE']);
+      const vente = historique.find((c) => c.role === 'PROPRIETAIRE');
+      expect(vente).toMatchObject({ motif: 'Vente de la moto' });
+      expect(vente.ancien).toContain('Coherence');
+      expect(vente.nouveau).toContain('Coherence');
+      expect(vente.par).toBeTruthy();
+    });
+  });
+
   describe('caisse', () => {
     it('sépare les modes, exige d’expliquer un écart et verrouille la journée', async () => {
       const caissier = await nouveauCompte('Caissier');

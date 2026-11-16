@@ -6,8 +6,9 @@
         <p class="text-sm text-gray-600 mt-1">Enregistrement et suivi des paiements</p>
       </div>
       @if (canCreate()) {
-        <button (click)="modal.set({ type: 'nouveau' })" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap">
-          <i class="ri-add-line text-lg"></i>Nouveau ticket</button>
+        <!-- Un seul formulaire de ticket : celui des taxes, qui applique la grille de l'arrêté. -->
+        <a routerLink="/taxes/nouvelle-transaction" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap">
+          <i class="ri-add-line text-lg"></i>Nouveau ticket</a>
       }
     </div>
     <app-recettes-stats [total]="totals().total" [count]="totals().count"></app-recettes-stats>
@@ -42,9 +43,6 @@
       </ng-container>
     </app-recettes-table>
   </div>
-  @if (activeModal?.type === 'nouveau') {
-    <app-nouveau-ticket-modal (closed)="modal.set(null)" (saved)="reload()" (print)="modal.set({ type: 'recu', receipt: $event })"></app-nouveau-ticket-modal>
-  }
   @if (activeModal?.type === 'modifier') {
     <app-modifier-ticket-modal [row]="activeModal.row" (closed)="modal.set(null)" (saved)="afterSave()"></app-modifier-ticket-modal>
   }

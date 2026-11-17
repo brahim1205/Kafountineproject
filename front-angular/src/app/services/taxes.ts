@@ -140,7 +140,7 @@ export class TaxesApi {
   quantite: number;
   montant: number;
   modePaiement: string;
-  reference: string;
+  reference?: string;
 }): Promise<TransactionItem> {
   return this.api.request<TransactionItem>('/transactions', {
     method: 'POST',

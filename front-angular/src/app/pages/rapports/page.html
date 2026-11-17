@@ -119,7 +119,7 @@
                     </div>
                   }
                   <div>
-                    <span class="text-gray-500">Evolution:</span>&ngsp;<span class="font-medium text-green-600">+{{ stats.evolution || 0 }}%</span>
+                    <span class="font-medium text-gray-700">{{ stats.indicateur }}</span>
                   </div>
                 </div>
               </div>
@@ -127,6 +127,7 @@
           </div>
         </div>
       </div>
+      @if (FEATURES.formations) {
       <div class="bg-white rounded-xl border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Formations Professionnelles</h3>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -152,6 +153,7 @@
           </div>
         </div>
       </div>
+      }
       <app-reports-top-contribuables-table [topContribuables]="topContribuables()" [total]="total()"></app-reports-top-contribuables-table>
       <app-reports-journal-table [journal]="detailedJournal()"></app-reports-journal-table>
       <div class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white">

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
 import { ReportsOverview, JournalEntry } from '../../services/reports';
 import { downloadCsv } from '../../utils/csv';
 import { ReportsOverviewCards } from './reports-overview-cards';
@@ -8,6 +8,7 @@ import { RapportPDF } from '../../components/feature/rapport-pdf';
 import { YearService } from '../../core/year/year.service';
 import { ToastService } from '../../shared/ui/toast/toast.service';
 import { ReportsApi } from '../../services/reports';
+import { FEATURES } from '../../layout/menu';
 
 type PrimitiveStat = number | string | string[] | undefined;
 
@@ -38,7 +39,7 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
       ? Math.round(((overview?.txStats?.annee?.transactions || 0) / (overview?.totalContribuables || 1)) * 100)
       : 0;
 
-  return [
+  const modules: ModuleStat[] = [
     {
       name: 'Taxes',
       amount: taxes,
@@ -47,7 +48,7 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
       stats: {
         transactions: overview?.txStats?.annee?.transactions || 0,
         moyenne: taxes > 0 ? Math.round(taxes / (overview?.txStats?.annee?.transactions || 1)) : 0,
-        evolution: tauxRecouvrement,
+        indicateur: `Taux de recouvrement : ${Math.min(100, tauxRecouvrement)} %`,
       },
     },
     {
@@ -58,7 +59,7 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
       stats: {
         places: overview?.marcheStats?.placesTotales || 0,
         occupancy: overview?.marcheStats?.tauxOccupation || 0,
-        evolution: overview?.marcheStats?.tauxOccupation || 0,
+        indicateur: `Taux d'occupation : ${overview?.marcheStats?.tauxOccupation || 0} %`,
       },
     },
     {
@@ -69,7 +70,7 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
       stats: {
         totalMotos: overview?.motosStats?.total || 0,
         tauxPaiement: overview?.motosStats?.tauxPaiement || 0,
-        evolution: overview?.motosStats?.tauxPaiement || 0,
+        indicateur: `Taux de paiement : ${overview?.motosStats?.tauxPaiement || 0} %`,
       },
     },
     {
@@ -80,7 +81,7 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
       stats: {
         actesDelivres: overview?.etatCivilStats?.demandesDelivrees || 0,
         principalesDemandes: ['Naissance', 'Mariage', 'Deces', 'Certificat'],
-        evolution: overview?.etatCivilStats?.demandesEnAttente || 0,
+        indicateur: `Demandes en attente : ${overview?.etatCivilStats?.demandesEnAttente || 0}`,
       },
     },
     {
@@ -91,7 +92,7 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
       stats: {
         permisDelivres: overview?.urbanismeStats?.dossiersValides || 0,
         dossiers: overview?.urbanismeStats?.totalDossiers || 0,
-        evolution: overview?.urbanismeStats?.dossiersValides || 0,
+        indicateur: `Dossiers validés : ${overview?.urbanismeStats?.dossiersValides || 0}`,
       },
     },
     {
@@ -104,10 +105,11 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
         certifications: overview?.formationsStats?.totalCertifies || 0,
         formationsActives: overview?.formationsStats?.totalFormations || 0,
         budget: formations,
-        evolution: overview?.formationsStats?.totalCertifies || 0,
+        indicateur: `Certifications : ${overview?.formationsStats?.totalCertifies || 0}`,
       },
     },
   ];
+  return FEATURES.formations ? modules : modules.filter((m) => m.name !== 'Formations');
 }
 
 @Component({
@@ -116,13 +118,12 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReportsOverviewCards, ReportsTopContribuablesTable, ReportsJournalTable, RapportPDF],
   templateUrl: './page.html',
-  styleUrl: './page.css',
-  encapsulation: ViewEncapsulation.None,
 })
 export class Rapports {
   protected readonly Number = Number;
   protected readonly Math = Math;
   protected readonly Array = Array;
+  protected readonly FEATURES = FEATURES;
   protected readonly yearService = inject(YearService);
   protected readonly toast = inject(ToastService);
   protected readonly reportsApi = inject(ReportsApi);
@@ -168,11 +169,13 @@ export class Rapports {
     pointsPositifs.push(`- Taux de paiement motos excellent : ${tauxMotos}%`);
     else
     defisIdentifies.push(`- Faible taux de recouvrement des motos (${tauxMotos}%)`);
+    if (FEATURES.formations) {
     const certifies = this.overview()!.formationsStats?.totalCertifies || 0;
     if (certifies > 0)
     pointsPositifs.push(`- ${certifies} jeunes ont été certifiés cette année`);
     else
     defisIdentifies.push(`- Aucune certification validée pour l'instant`);
+    }
     const occupationMarche = this.overview()!.marcheStats?.tauxOccupation || 0;
     if (occupationMarche >= 80)
     pointsPositifs.push(`- Forte occupation du marché central : ${occupationMarche}%`);
@@ -198,8 +201,8 @@ export class Rapports {
 
   protected exportCsv() {
     const rows = [
-    ['Module', 'Montant (FCFA)', 'Evolution (%)'],
-    ...this.moduleStats().map((module) => [module.name, String(module.amount), String(Number(module.stats.evolution || 0))]),
+    ['Module', 'Montant (FCFA)', 'Indicateur'],
+    ...this.moduleStats().map((module) => [module.name, String(module.amount), String(module.stats.indicateur || '')]),
     ['TOTAL', String(this.total()), ''],
     ];
     downloadCsv(`rapport-annuel-${this.selectedYear()}.csv`, rows);

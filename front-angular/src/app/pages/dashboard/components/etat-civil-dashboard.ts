@@ -3,6 +3,7 @@ import { EtatCivilStats } from '../../../services/etat-civil';
 import { HistoriqueDemandes } from '../../etat-civil/components/historique-demandes';
 import { YearService } from '../../../core/year/year.service';
 import { EtatCivilApi } from '../../../services/etat-civil';
+import { RouterLink } from '@angular/router';
 
 const ACTIONS = [
   { label: 'Nouvelle demande', icon: 'ri-file-add-line', to: '/etat-civil/nouvelle', color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
@@ -14,7 +15,7 @@ const ACTIONS = [
   selector: 'app-etat-civil-dashboard',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [HistoriqueDemandes],
+  imports: [HistoriqueDemandes, RouterLink],
   templateUrl: './etat-civil-dashboard.html',
 })
 export class EtatCivilDashboard {

@@ -94,6 +94,13 @@ export class CaisseApi {
     return this.api.request<Cloture>('/caisse/clotures', { method: 'POST', body: JSON.stringify(payload) });
   }
 
+  /** Clôtures, les plus récentes d'abord ; « CLOTUREE » = en attente de validation. */
+  clotures(statut?: Cloture['statut'], limit = 20): Promise<Cloture[]> {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (statut) query.set('statut', statut);
+    return this.api.request<Cloture[]>(`/caisse/clotures?${query}`);
+  }
+
   valider(id: string): Promise<Cloture> {
     return this.api.request<Cloture>(`/caisse/clotures/${id}/valider`, { method: 'POST', body: '{}' });
   }

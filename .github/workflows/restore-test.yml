@@ -1,0 +1,143 @@
+name: Restore Test
+
+# Prouve chaque semaine que la dernière sauvegarde nocturne est récente, déchiffrable et restaurable.
+# La restauration se fait dans une base PostgreSQL jetable du runner : la production n'est jamais touchée.
+# Dépôt public, journaux publics : on n'affiche que des OK/KO, jamais de contenu ni de volumes métier.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/restore-test.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: restore-test
+  cancel-in-progress: false
+
+jobs:
+  restore-test:
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 30
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: restore-test
+      PGDATABASE: restore_test
+      MAX_AGE_HOURS: '36'
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: restore-test
+          POSTGRES_DB: restore_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trouver la dernière sauvegarde nocturne
+        id: backup
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo, workflow_id: 'backup.yml', status: 'success', per_page: 20,
+            });
+            for (const run of data.workflow_runs) {
+              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, { ...context.repo, run_id: run.id });
+              const artifact = artifacts.find((a) => a.name === 'database-backup' && !a.expired);
+              if (!artifact) continue;
+              const ageHours = (Date.now() - new Date(artifact.created_at).getTime()) / 3_600_000;
+              core.setOutput('run_id', run.id);
+              core.setOutput('age_hours', ageHours.toFixed(1));
+              core.info(`Sauvegarde du ${artifact.created_at} (il y a ${ageHours.toFixed(1)} h)`);
+              return;
+            }
+            core.setFailed('Aucune sauvegarde nocturne disponible');
+
+      - name: Vérifier que la sauvegarde est récente
+        env:
+          AGE_HOURS: ${{ steps.backup.outputs.age_hours }}
+        run: |
+          set -euo pipefail
+          if awk -v a="$AGE_HOURS" -v m="$MAX_AGE_HOURS" 'BEGIN { exit !(a > m) }'; then
+            echo "::error::La dernière sauvegarde date de ${AGE_HOURS} h (maximum ${MAX_AGE_HOURS} h) : la sauvegarde nocturne ne tourne plus."
+            exit 1
+          fi
+          echo "Sauvegarde récente : ${AGE_HOURS} h"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: database-backup
+          run-id: ${{ steps.backup.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: restore
+
+      - name: Déchiffrer
+        env:
+          AGE_IDENTITY: ${{ secrets.BACKUP_AGE_IDENTITY }}
+        run: |
+          set -euo pipefail
+          mapfile -t encrypted < <(find restore -type f -name '*.dump.age')
+          if [[ ${#encrypted[@]} -ne 1 ]]; then
+            echo "::error::Attendu : une sauvegarde chiffrée (.dump.age). Trouvé : ${#encrypted[@]}."
+            exit 1
+          fi
+          if [[ -z "$AGE_IDENTITY" ]]; then
+            echo "::error::Secret BACKUP_AGE_IDENTITY absent : impossible de prouver que la sauvegarde se déchiffre."
+            exit 1
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age postgresql-client-16 || sudo apt-get install -y -qq age postgresql-client
+          umask 077
+          printf '%s\n' "$AGE_IDENTITY" > "$RUNNER_TEMP/age.key"
+          age -d -i "$RUNNER_TEMP/age.key" -o restore/base.dump "${encrypted[0]}"
+          rm -f "$RUNNER_TEMP/age.key" "${encrypted[0]}"
+          test -s restore/base.dump
+          echo "Déchiffrement OK"
+
+      - name: Restaurer dans une base jetable
+        run: |
+          set -euo pipefail
+          start=$(date +%s)
+          pg_restore --no-owner --no-privileges --exit-on-error --single-transaction -d "$PGDATABASE" restore/base.dump
+          echo "Restauration OK en $(( $(date +%s) - start )) s"
+
+      - name: Contrôler la base restaurée
+        run: |
+          set -euo pipefail
+          fail=0
+          q() { psql -XAtq -v ON_ERROR_STOP=1 -c "$1"; }
+          # Tables indispensables : présentes et non vides.
+          for table in User MunicipalTariffCategory MunicipalTariffItem NumeroCounter; do
+            if [[ "$(q "SELECT count(*) > 0 FROM \"$table\"")" == t ]]; then echo "OK  $table"; else echo "::error::$table vide ou absente"; fail=1; fi
+          done
+          # Tables métier : présentes (elles peuvent être vides en début d'exploitation).
+          for table in Contribuable Transaction MotoRegistration MotoPayment MarketPlace MarketPayment EtatCivilRequest \
+                       UrbanismeCase CashClosure AuditLog Fisherman ShippingExpedition; do
+            if q "SELECT 1 FROM \"$table\" LIMIT 1" >/dev/null; then echo "OK  $table"; else echo "::error::$table absente"; fail=1; fi
+          done
+          # Aucune migration à moitié appliquée dans la sauvegarde.
+          if [[ "$(q "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL")" == 0 ]]; then
+            echo "OK  migrations terminées"
+          else
+            echo "::error::Migration inachevée dans la sauvegarde"; fail=1
+          fi
+          # Écart avec le code : simple avertissement (une migration fusionnée peut attendre son déploiement).
+          latest_repo=$(find database/prisma/migrations -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | tail -1)
+          latest_db=$(q "SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name DESC LIMIT 1")
+          if [[ "$latest_db" == "$latest_repo" ]]; then echo "OK  schéma à jour ($latest_db)"; else echo "::warning::Schéma sauvegardé : $latest_db, code : $latest_repo (déploiement en attente ?)"; fi
+          exit "$fail"
+
+      - name: Effacer la copie restaurée
+        if: always()
+        run: rm -rf restore

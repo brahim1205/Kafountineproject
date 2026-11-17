@@ -17,11 +17,11 @@
             <i class="ri-printer-line"></i>IMPRIMER LE RAPPORT</button>
         </div>
       </div>
-      <div id="rapport-content" class="p-12 bg-white relative min-h-screen">
+      <div id="rapport-content" class="p-8 bg-white relative">
         <div class="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none rotate-[-35deg] overflow-hidden">
           <p class="text-[10rem] font-black text-gray-900">COMMUNE DE KAFOUNTINE</p>
         </div>
-        <div class="relative text-center border-b-4 border-double border-emerald-600/20 pb-8 mb-12">
+        <div class="relative text-center border-b-4 border-double border-emerald-600/20 pb-6 mb-8">
           <div class="flex justify-between items-start mb-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
             <div class="text-left leading-relaxed">
               <p>République du Sénégal</p>
@@ -46,13 +46,13 @@
             </div>
           </div>
         </div>
-        <div class="text-center mb-16">
+        <div class="text-center mb-10">
           <h2 class="text-2xl font-black text-gray-900 uppercase tracking-widest border-y-2 border-gray-100 py-4 inline-block px-12">Rapport Annuel de Gestion -
             {{ year() }}</h2>
           <p class="mt-4 text-gray-500 font-bold italic">Rapport consolidé des activités financières et administratives</p>
         </div>
-        <div class="mb-16">
-          <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-8 flex items-center gap-3">
+        <div class="mb-10">
+          <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-3">
             <span class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
               <i class="ri-dashboard-3-line"></i>
             </span>SYNTHESE GENERALE</h3>
@@ -88,15 +88,15 @@
             </div>
           </div>
         </div>
-        <div class="mb-16">
-          <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-8 flex items-center gap-3">
+        <div class="mb-10">
+          <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-3">
             <span class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
               <i class="ri-pie-chart-line"></i>
             </span>REPARTITION PAR MODULE</h3>
-          <div class="grid grid-cols-1 gap-4">
+          <div class="grid grid-cols-2 gap-3">
             @for (m of moduleStats(); track m.name) {
               @let pct = total() > 0 ? Math.round((m.amount / total()) * 100) : 0;
-              <div class="flex items-center gap-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div class="flex items-center gap-4 p-3 bg-gray-50 rounded-2xl avoid-break border border-gray-100">
                 <div [class]="`w-12 h-12 rounded-xl ${m.couleur} flex items-center justify-center text-white shadow-md`">
                   <i [class]="`${m.icon} text-xl`"></i>
                 </div>
@@ -109,17 +109,17 @@
                     <div [class]="`h-full ${m.couleur}`" [style.width]="`${pct}%`"></div>
                   </div>
                 </div>
-                <div class="text-right min-w-[150px]">
+                <div class="text-right min-w-[120px]">
                   <p class="text-sm font-black text-gray-900">{{ m.amount.toLocaleString() }}
                     FCFA</p>
-                  <p class="text-[10px] font-bold text-green-600">+{{ m.stats.evolution || 0 }}% de croissance</p>
+                  <p class="text-[10px] font-bold text-gray-500">{{ m.stats.indicateur }}</p>
                 </div>
               </div>
             }
           </div>
         </div>
-        <div class="mb-16 avoid-break">
-          <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-8 flex items-center gap-3">
+        <div class="mb-10 avoid-break">
+          <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-3">
             <span class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center text-red-600">
               <i class="ri-arrow-left-down-line"></i>
             </span>ANALYSE DES DEPENSES</h3>
@@ -149,16 +149,15 @@
             </div>
           </div>
         </div>
-        <div class="page-break"></div>
-        <div class="mt-12 page-break-before">
-          <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-8 flex items-center gap-3">
+                <div class="page-break-before">
+          <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-3">
             <span class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
               <i class="ri-history-line"></i>
             </span>Journal Chronologique des Opérations</h3>
           @for (row of formatDate(); track $index) {
             @let monthKey = row[0];
             @let items = row[1];
-            <div class="mb-12 avoid-break">
+            <div class="mb-6">
               <div class="bg-gray-100 px-6 py-2 rounded-xl mb-4">
                 <h4 class="text-sm font-black text-gray-700 uppercase tracking-widest">Période :
                   {{ monthKey }}</h4>
@@ -167,23 +166,23 @@
                 <table class="w-full text-left border-collapse">
                   <thead class="bg-gray-800 text-white text-[9px] font-black uppercase tracking-widest">
                     <tr>
-                      <th class="px-6 py-3">Date</th>
-                      <th class="px-6 py-3">Opération</th>
-                      <th class="px-6 py-3">Acteur / Contribuable</th>
-                      <th class="px-6 py-3 text-right">Montant</th>
-                      <th class="px-6 py-3">Description</th>
+                      <th class="px-3 py-2">Date</th>
+                      <th class="px-3 py-2">Opération</th>
+                      <th class="px-3 py-2">Acteur / Contribuable</th>
+                      <th class="px-3 py-2 text-right">Montant</th>
+                      <th class="px-3 py-2">Description</th>
                     </tr>
                   </thead>
                   <tbody class="text-[11px] font-bold divide-y divide-gray-100">
                     @for (item of items; track idx; let idx = $index) {
                       <tr [class]="idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'">
-                        <td class="px-6 py-3 text-gray-500 whitespace-nowrap">{{ item.formattedDate }}</td>
-                        <td class="px-6 py-3">
+                        <td class="px-3 py-1.5 text-gray-500 whitespace-nowrap">{{ item.formattedDate }}</td>
+                        <td class="px-3 py-1.5">
                           <span [class]="`px-2 py-0.5 rounded text-[8px] uppercase font-black ${item.type?.includes('Recette') ? 'bg-green-100 text-green-700' : item.type?.includes('Depense') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`">{{ item.type }}</span>
                         </td>
-                        <td class="px-6 py-3 text-gray-900">{{ item.person || item.acteur }}</td>
-                        <td [class]="`px-6 py-3 text-right font-black ${String(item.amount).startsWith('-') || item.amount < 0 ? 'text-red-600' : item.amount > 0 ? 'text-green-600' : 'text-gray-900'}`">{{ item.amount > 0 ? '+' : '' }}{{ Number(item.amount).toLocaleString() }}</td>
-                        <td class="px-6 py-3 text-gray-500 truncate max-w-[200px]">{{ item.description }}</td>
+                        <td class="px-3 py-1.5 text-gray-900">{{ item.person || item.acteur }}</td>
+                        <td [class]="`px-3 py-1.5 text-right font-black ${String(item.amount).startsWith('-') || item.amount < 0 ? 'text-red-600' : item.amount > 0 ? 'text-green-600' : 'text-gray-900'}`">{{ item.amount > 0 ? '+' : '' }}{{ Number(item.amount).toLocaleString() }}</td>
+                        <td class="px-3 py-1.5 text-gray-500 truncate max-w-[200px]">{{ item.description }}</td>
                       </tr>
                     }
                   </tbody>
@@ -193,8 +192,8 @@
           }
         </div>
         @if (topContribuables() && topContribuables().length > 0) {
-          <div class="mt-16 avoid-break">
-            <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-8 flex items-center gap-3">
+          <div class="mt-10 avoid-break">
+            <h3 class="text-lg font-black text-gray-900 uppercase tracking-widest mb-5 flex items-center gap-3">
               <span class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
                 <i class="ri-medal-line"></i>
               </span>TOP CONTRIBUABLES</h3>
@@ -210,7 +209,7 @@
             </div>
           </div>
         }
-        <div class="mt-24 pt-12 border-t border-gray-100 flex flex-col items-center avoid-break">
+        <div class="mt-12 pt-6 border-t border-gray-100 flex flex-col items-center avoid-break">
           <p class="text-[10px] text-gray-400 font-black uppercase tracking-[0.5em] mb-4 text-center">Authenticité Garantie - Commune de Kafountine</p>
           <div class="flex gap-8 text-[9px] text-gray-400 font-bold uppercase tracking-widest border-t border-gray-50 pt-4 w-full justify-center">
             <p>Mairie de Kafountine</p>

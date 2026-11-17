@@ -213,7 +213,6 @@ export function buildReceiptPayload(recuData: RecuData) {
   };
 }
 
-/** Contenu du QR code : le résumé du reçu, lisible par n'importe quel lecteur (aucune page de vérification en ligne n'existe). */
 /** Adresse de vérification publique d'un reçu : le QR code y mène, sans connexion. */
 export function receiptVerificationUrl(numero: string, origin = globalThis.location?.origin ?? ''): string {
   return `${origin}/verification?recu=${encodeURIComponent(numero)}`;

@@ -7,7 +7,7 @@ interface ModuleStat {
   icon: string;
   couleur: string;
   stats: {
-    evolution?: number;
+    indicateur?: number | string | string[];
   };
 }
 

@@ -122,7 +122,6 @@ export class NouvelleTransaction {
     telephone: this.formData().telephone,
     adresse: this.formData().adresse,
     });
-    const reference = `TX-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
     const created = await this.taxesApi.createTransaction({
     contribuableId: contribuable.id,
     categorie: this.formData().categorie,
@@ -131,11 +130,10 @@ export class NouvelleTransaction {
     quantite: this.formData().quantite,
     montant: this.montantTotal(),
     modePaiement: this.modePaiement(),
-    reference,
     });
     const now = new Date();
     const newTransaction = {
-    numero: created?.numero || reference,
+    numero: created.numero,
     date: now.toISOString(),
     heure: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
     contribuable: this.formData().contribuable,
@@ -152,7 +150,6 @@ export class NouvelleTransaction {
     tarifUnitaire: this.serviceSelectionne()?.tarif || 0,
     modePaiement: this.modePaiement(),
     statut: 'PAYE',
-    reference,
     };
     this.transactionData.set(newTransaction);
     this.transactionValidee.set(true);

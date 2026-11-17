@@ -91,8 +91,9 @@ gh secret set BACKUP_AGE_IDENTITY --env production < kafountine-sauvegardes.key 
 ```
 
 Conserver `kafountine-sauvegardes.key` hors ligne (clé USB au coffre de la mairie, gestionnaire de
-mots de passe). Sans elle, les sauvegardes chiffrées sont illisibles. Tant que `BACKUP_AGE_RECIPIENT`
-n'est pas défini, la sauvegarde part en clair et le workflow affiche un avertissement.
+mots de passe). Sans elle, les sauvegardes chiffrées sont illisibles. Le dépôt étant public, tout
+compte GitHub connecté peut télécharger les artefacts : si `BACKUP_AGE_RECIPIENT` manque, le workflow
+échoue et ne publie rien (la sauvegarde reste sur le serveur, `backups/`, 14 jours).
 
 Restauration manuelle d'un artefact : `age -d -i kafountine-sauvegardes.key -o base.dump base.dump.age`,
 puis la procédure de restauration ci-dessus. Le workflow « Disaster Recovery » déchiffre lui-même

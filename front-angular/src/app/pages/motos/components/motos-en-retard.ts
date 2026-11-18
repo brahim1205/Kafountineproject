@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, ou
 import { MotosApi, MotoStats } from '../../../services/motos';
 import { Pagination } from '../../../shared/ui/pagination/pagination';
 import { fetchAllPages, serverList } from '../../../shared/utils/server-list';
-import { downloadCsv, today } from '../../../utils/csv';
+import { dateDuJour, exporterLignes, FormatExport } from '../../../utils/export';
+import { ExportMenu } from '../../../shared/ui/export-menu/export-menu';
 import { formatDate, MotoConfig, toUiMoto, UiMoto } from '../types';
 import { MotoPhoto } from './moto-photo';
 
-function exportCsv(motos: UiMoto[]) {
-  downloadCsv(`motos-retard-${today()}.csv`, [
+function exporterRetards(format: FormatExport, motos: UiMoto[]) {
+  exporterLignes(format, 'Motos en retard de paiement', `motos-retard-${dateDuJour()}`, [
     ['Matricule', 'Marque', 'Modèle', 'Propriétaire', 'Téléphone', 'Mois dus', 'Jours de retard', 'Montant dû (FCFA)', 'Dernier paiement'],
     ...motos.map((m) => [
       m.matricule,
@@ -31,7 +32,7 @@ function exportCsv(motos: UiMoto[]) {
   selector: 'app-motos-en-retard',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MotoPhoto, Pagination],
+  imports: [MotoPhoto, Pagination, ExportMenu],
   templateUrl: './motos-en-retard.html',
 })
 export class MotosEnRetard {
@@ -79,11 +80,11 @@ export class MotosEnRetard {
     return (moto.moisDus ?? 0) > 3 ? 'bg-red-50 text-red-800 ring-red-200' : 'bg-amber-50 text-amber-800 ring-amber-200';
   }
 
-  protected async exporterTout(): Promise<void> {
+  protected async exporterTout(format: FormatExport): Promise<void> {
     this.exporting.set(true);
     try {
       const motos = await fetchAllPages((page, limit) => this.motosApi.pageMotos({ year: this.year(), page, limit, etat: 'retard' }));
-      exportCsv(motos.map(toUiMoto));
+      exporterRetards(format, motos.map(toUiMoto));
     } finally {
       this.exporting.set(false);
     }

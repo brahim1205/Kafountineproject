@@ -33,7 +33,7 @@ model User {
 
 model Contribuable {
   id               String   @id @default(uuid())
-  nin              String   @unique
+  nin              String?  @unique
   nom              String
   prenom           String
   dateNaiss        DateTime

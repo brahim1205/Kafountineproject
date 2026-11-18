@@ -44,7 +44,7 @@
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ demande.typeDocument }}</td>
                 <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ demande.demandeur }}</td>
-                <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ demande.cni }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ demande.cni || '-' }}</td>
                 <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ demande.telephone }}</td>
                 <td class="px-4 py-3 text-sm font-medium text-emerald-600 whitespace-nowrap">{{ demande.montant.toLocaleString() }}
                   FCFA</td>
@@ -101,7 +101,7 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Contribuable</label>
-                <app-contribuable-select name="contribuableId" [initial]="selectedEditDemande()!.contribuableId ? { id: selectedEditDemande()!.contribuableId, label: `${selectedEditDemande()!.demandeur} (${selectedEditDemande()!.cni})` } : undefined" inputClassName="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></app-contribuable-select>
+                <app-contribuable-select name="contribuableId" [initial]="selectedEditDemande()!.contribuableId ? { id: selectedEditDemande()!.contribuableId, label: selectedEditDemande()!.cni ? `${selectedEditDemande()!.demandeur} (${selectedEditDemande()!.cni})` : selectedEditDemande()!.demandeur } : undefined" inputClassName="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"></app-contribuable-select>
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -166,7 +166,7 @@
               </div>
               <div>
                 <p class="text-xs text-gray-500 mb-1">Numéro CNI</p>
-                <p class="text-sm font-medium text-gray-900">{{ selectedDemande()!.cni }}</p>
+                <p class="text-sm font-medium text-gray-900">{{ selectedDemande()!.cni || 'Non renseignée' }}</p>
               </div>
               <div>
                 <p class="text-xs text-gray-500 mb-1">Téléphone</p>

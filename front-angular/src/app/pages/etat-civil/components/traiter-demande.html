@@ -23,9 +23,9 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Numéro CNI
-            <span class="text-red-500">*</span>
+            <span class="font-normal text-gray-500">(facultatif)</span>
           </label>
-          <input aria-label="Numéro CNI" type="text" name="cni" data-required="true" placeholder="Ex: 1234567890123" [maxLength]="13" [value]="formData().cni" (input)="onCniChange($event)" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+          <input aria-label="Numéro CNI" type="text" name="cni" placeholder="Si le demandeur en a une" [maxLength]="13" [value]="formData().cni" (input)="onCniChange($event)" class="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Téléphone

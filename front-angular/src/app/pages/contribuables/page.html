@@ -12,7 +12,7 @@
       <button type="button" (click)="selectionId.set(null)" class="text-sm text-cyan-700 hover:underline cursor-pointer"><i class="ri-arrow-left-line mr-1"></i>Retour à la liste</button>
       <div class="bg-white rounded-xl border border-gray-200 p-5">
         <h2 class="text-lg font-semibold text-gray-900">{{ s.contribuable.prenom }}&ngsp;{{ s.contribuable.nom }}</h2>
-        <p class="text-sm text-gray-600 mt-1">NIN {{ s.contribuable.nin }} · {{ s.contribuable.telephone || 'Téléphone non renseigné' }} · {{ s.contribuable.adresse || 'Adresse non renseignée' }}</p>
+        <p class="text-sm text-gray-600 mt-1">NIN {{ s.contribuable.nin || 'non renseigné' }} · {{ s.contribuable.telephone || 'Téléphone non renseigné' }} · {{ s.contribuable.adresse || 'Adresse non renseignée' }}</p>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="bg-white rounded-xl border border-gray-200 p-5">
@@ -52,7 +52,7 @@
           <thead><tr class="border-b border-gray-200 text-left text-gray-700"><th class="py-2 px-3">Nom</th><th class="py-2 px-3">NIN</th><th class="py-2 px-3">Téléphone</th><th class="py-2 px-3 text-right">Situation</th></tr></thead>
           <tbody>
             @for (c of list.items(); track c.id) {
-              <tr class="border-b border-gray-100"><td class="py-2 px-3 text-gray-900">{{ c.prenom }}&ngsp;{{ c.nom }}</td><td class="py-2 px-3">{{ c.nin }}</td><td class="py-2 px-3">{{ c.telephone }}</td><td class="py-2 px-3 text-right"><button type="button" (click)="selectionId.set(c.id)" class="text-cyan-700 hover:underline cursor-pointer">Voir</button></td></tr>
+              <tr class="border-b border-gray-100"><td class="py-2 px-3 text-gray-900">{{ c.prenom }}&ngsp;{{ c.nom }}</td><td class="py-2 px-3">{{ c.nin || '-' }}</td><td class="py-2 px-3">{{ c.telephone }}</td><td class="py-2 px-3 text-right"><button type="button" (click)="selectionId.set(c.id)" class="text-cyan-700 hover:underline cursor-pointer">Voir</button></td></tr>
             } @empty {
               <tr><td colspan="4" class="py-4 px-3 text-center text-gray-500">Aucun contribuable.</td></tr>
             }

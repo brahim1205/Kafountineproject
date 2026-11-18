@@ -52,8 +52,7 @@
             <button (click)="modal.set({ type: activeTab() === 'camions' ? 'camion' : 'expedition' })" class="px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap">
               <i class="ri-add-line"></i>{{ activeTab() === 'camions' ? 'Nouveau camion' : 'Nouvelle expédition' }}</button>
           }
-          <button (click)="exporter()" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2">
-            <i class="ri-download-line"></i>Exporter</button>
+          <app-export-menu (exporter)="exporter($event)"></app-export-menu>
         </div>
       </div>
     </div>

@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, u
 import { MarcheDetails, MarcheStats, PlaceMarche } from '../../../services/marche';
 import { YearService } from '../../../core/year/year.service';
 import { MarcheApi } from '../../../services/marche';
+import { Cellule, dateDuJour, exporter, FormatExport } from '../../../utils/export';
+import { ExportMenu } from '../../../shared/ui/export-menu/export-menu';
 
 type ExtendedMarcheStats = MarcheStats & {
   nouveauxCommercants?: number;
@@ -34,7 +36,7 @@ const EMPTY_STATS: ExtendedMarcheStats = {
   selector: 'app-statistiques-marche',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [ExportMenu],
   templateUrl: './statistiques-marche.html',
 })
 export class StatistiquesMarche {
@@ -121,15 +123,21 @@ export class StatistiquesMarche {
     return mois;
     });
 
-  protected handleExport(type: 'excel' | 'pdf') {
+  protected handleExport(type: FormatExport) {
+    const s = this.stats();
+    const lignes: Cellule[][] = [
+    ['Synthèse', 'Recettes du mois (FCFA)', s.recettesMois ?? 0],
+    ['Synthèse', 'Places occupées', `${s.placesOccupees ?? 0} / ${s.placesTotales ?? 0}`],
+    ['Synthèse', "Taux d'occupation (%)", s.tauxOccupation ?? 0],
+    ['Synthèse', 'Nouveaux commerçants', s.nouveauxCommercants ?? 0],
+    ['Synthèse', 'Recettes en retard (FCFA)', s.recettesEnRetard ?? 0],
+    ...this.placesParType().map((t): Cellule[] => ['Places par type', `${t.type} (${t.nombre} places, ${t.pourcentage} %)`, t.montant]),
+    ...this.evolutionMensuelle().map((m): Cellule[] => ['Évolution mensuelle', `${m.mois} (${m.placesOccuppees} places)`, m.recettes]),
+    ...this.topCommercants().map((c): Cellule[] => ['Meilleurs commerçants', `${c.nom} · ${c.place} (${c.paiements} paiements)`, c.montant]),
+    ];
+    exporter(type, { titre: `Statistiques du marché ${this.selectedYear()}`, fichier: `statistiques-marche-${dateDuJour()}`, colonnes: ['Rubrique', 'Libellé', 'Valeur'], lignes });
     this.exportType.set(type);
     this.showSuccessMessage.set(true);
-    const link = document.createElement('a');
-    link.href = '#';
-    link.download = `statistiques-marche-${new Date().toISOString().split('T')[0]}.${type === 'excel' ? 'xlsx' : 'pdf'}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
     setTimeout(() => {
     this.showSuccessMessage.set(false);
     }, 3000);

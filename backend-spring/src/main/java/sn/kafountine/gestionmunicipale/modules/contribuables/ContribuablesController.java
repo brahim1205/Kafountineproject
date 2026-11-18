@@ -73,7 +73,8 @@ public class ContribuablesController {
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     Map<String, Object> data = new LinkedHashMap<>();
-    data.put("nin", input.str("nin").trimmed(1, 30, "NIN requis").required());
+    // Facultatif : tout le monde n'a pas de CNI (un enfant qui retire un extrait, par exemple).
+    data.put("nin", input.str("nin").max(30).optional());
     data.put("nom", input.str("nom").trimmed(1, 100, "Nom requis").required());
     data.put("prenom", input.str("prenom").trimmed(1, 100, "Prénom requis").required());
     data.put("dateNaiss", input.str("dateNaiss").trimmed(1, 50, "Date de naissance requise").required());

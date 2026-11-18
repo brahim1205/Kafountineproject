@@ -7,7 +7,7 @@ const SEARCH_INPUT_NAME = 'contribuableRecherche';
 const MIN_QUERY_LENGTH = 2;
 
 export const contribuableLabel = (c: Pick<Contribuable, 'prenom' | 'nom' | 'nin'>) =>
-  `${`${c.prenom || ''} ${c.nom || ''}`.trim()} (${c.nin})`;
+  `${`${c.prenom || ''} ${c.nom || ''}`.trim()}${c.nin ? ` (${c.nin})` : ''}`;
 
 export function requireSelectedContribuable(form: HTMLFormElement, name: string): string | null {
   const id = String(new FormData(form).get(name) || '');

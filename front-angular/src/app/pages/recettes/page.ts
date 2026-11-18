@@ -3,7 +3,8 @@ import { RouterLink } from '@angular/router';
 import { Pagination } from '../../shared/ui/pagination/pagination';
 import { RecuPDF } from '../../components/feature/recu-pdf';
 import { TransactionStats, UsedCategory } from '../../services/taxes';
-import { downloadCsv, today } from '../../utils/csv';
+import { dateDuJour, exporter, exporterLignes, FormatExport, tableauDepuisCsv } from '../../utils/export';
+import { ExportMenu } from '../../shared/ui/export-menu/export-menu';
 import { getErrorMessage } from '../../utils/form-validation';
 import { ModifierTicketModal } from './components/modifier-ticket-modal';
 import { RecettesStats } from './components/recettes-stats';
@@ -26,7 +27,7 @@ type ModalState =
   selector: 'app-recettes',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RecettesStats, RecettesTable, Pagination, ModifierTicketModal, TicketDetailModal, RecuPDF],
+  imports: [RouterLink, RecettesStats, RecettesTable, Pagination, ModifierTicketModal, TicketDetailModal, RecuPDF, ExportMenu],
   templateUrl: './page.html',
 })
 export class Recettes {
@@ -98,9 +99,9 @@ export class Recettes {
     });
   }
 
-  protected async handleExport() {
+  protected async handleExport(format: FormatExport) {
     if (!this.canSeeYearStats()) {
-    downloadCsv(`recettes_${today()}.csv`, [
+    exporterLignes(format, 'Recettes', `recettes_${dateDuJour()}`, [
     ['N° Ticket', 'Type', 'Contribuable', 'Agent', 'Montant', 'Date', 'Heure'],
     ...this.rows().map((row) => [row.ticketNumber, row.type, row.contributor, row.agent, row.amount, row.date, row.time]),
     ]);
@@ -108,7 +109,8 @@ export class Recettes {
     }
     try {
     this.exporting.set(true);
-    await this.taxesApi.downloadTransactionsCsv({ year: this.selectedYear(), categorie: this.categorie() || undefined, search: this.search() || undefined });
+    const csv = await this.taxesApi.transactionsCsv({ year: this.selectedYear(), categorie: this.categorie() || undefined, search: this.search() || undefined });
+    exporter(format, tableauDepuisCsv(csv, `Recettes ${this.selectedYear()}`, `recettes_${this.selectedYear()}_${dateDuJour()}`, this.categorie() ? `Catégorie : ${this.categorie()}` : 'Toutes catégories'));
     }
     catch (error) {
     this.toast.show(getErrorMessage(error, "Impossible d'exporter les tickets."), 'error');

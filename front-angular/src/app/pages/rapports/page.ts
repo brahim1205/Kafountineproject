@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
 import { ReportsOverview, JournalEntry } from '../../services/reports';
-import { downloadCsv } from '../../utils/csv';
+import { exporterLignes, FormatExport } from '../../utils/export';
+import { ExportMenu } from '../../shared/ui/export-menu/export-menu';
 import { ReportsOverviewCards } from './reports-overview-cards';
 import { ReportsTopContribuablesTable } from './reports-top-contribuables-table';
 import { ReportsJournalTable } from './reports-journal-table';
@@ -116,7 +117,7 @@ function buildModuleStats(overview: ReportsOverview | null): ModuleStat[] {
   selector: 'app-rapports',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReportsOverviewCards, ReportsTopContribuablesTable, ReportsJournalTable, RapportPDF],
+  imports: [ReportsOverviewCards, ReportsTopContribuablesTable, ReportsJournalTable, RapportPDF, ExportMenu],
   templateUrl: './page.html',
 })
 export class Rapports {
@@ -199,14 +200,14 @@ export class Rapports {
     return { pointsPositifs, defisIdentifies, recommandations };
     });
 
-  protected exportCsv() {
+  protected exporterSynthese(format: FormatExport) {
     const rows = [
     ['Module', 'Montant (FCFA)', 'Indicateur'],
-    ...this.moduleStats().map((module) => [module.name, String(module.amount), String(module.stats.indicateur || '')]),
-    ['TOTAL', String(this.total()), ''],
+    ...this.moduleStats().map((module) => [module.name, module.amount, String(module.stats.indicateur || '')]),
+    ['TOTAL', this.total(), ''],
     ];
-    downloadCsv(`rapport-annuel-${this.selectedYear()}.csv`, rows);
-    this.toast.show('Rapport exporte en CSV', 'success');
+    exporterLignes(format, `Rapport annuel ${this.selectedYear()}`, `rapport-annuel-${this.selectedYear()}`, rows, 'Recettes par module');
+    this.toast.show(format === 'pdf' ? 'Synthèse exportée en PDF' : 'Synthèse exportée en Excel', 'success');
     }
 
   protected readonly journalData = computed(() => this.detailedJournal());

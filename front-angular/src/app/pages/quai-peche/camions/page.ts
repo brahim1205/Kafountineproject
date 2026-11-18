@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
 import { CamionFrigorifique, Expedition } from '../../../services/quai-peche';
-import { downloadCsv, today } from '../../../utils/csv';
+import { dateDuJour, exporterLignes, FormatExport } from '../../../utils/export';
+import { ExportMenu } from '../../../shared/ui/export-menu/export-menu';
 import { Pagination } from '../../../shared/ui/pagination/pagination';
 import { fetchAllPages } from '../../../shared/utils/server-list';
 import { CamionsTable } from './components/camions-table';
@@ -30,7 +31,7 @@ type ModalState =
   selector: 'app-camions-page',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CamionsTable, ExpeditionsTable, Pagination, CamionModal, ExpeditionModal, DetailModal, PaiementExpeditionModal, RecuPDF],
+  imports: [CamionsTable, ExpeditionsTable, Pagination, CamionModal, ExpeditionModal, DetailModal, PaiementExpeditionModal, RecuPDF, ExportMenu],
   templateUrl: './page.html',
 })
 export class CamionsPage {
@@ -132,18 +133,18 @@ export class CamionsPage {
     }
     }
 
-  protected async exporter() {
+  protected async exporter(format: FormatExport) {
     const query = { year: this.selectedYear(), search: this.list().appliedSearch(), statut: this.list().statutValue() };
     if (this.activeTab() === 'camions') {
     const rows = await fetchAllPages((page, limit) => this.quaiPecheApi.pageCamions({ ...query, page, limit }));
-    downloadCsv(`camions_${today()}.csv`, [
+    exporterLignes(format, 'Camions frigorifiques', `camions_${dateDuJour()}`, [
     ['Immatriculation', 'Marque', 'Modèle', 'Capacité (kg)', 'Chauffeur', 'Téléphone', 'Statut'],
     ...rows.map((c) => [c.immatriculation, c.marque, c.modele, c.capacite, c.chauffeur, c.telephone, STATUTS_CAMION[c.statut]?.label || c.statut]),
     ]);
     }
     else {
     const rows = await fetchAllPages((page, limit) => this.quaiPecheApi.pageExpeditions({ ...query, page, limit }));
-    downloadCsv(`expeditions_${today()}.csv`, [
+    exporterLignes(format, 'Expéditions des camions frigorifiques', `expeditions_${dateDuJour()}`, [
     ['Numéro', 'Camion', 'Poids (kg)', 'Destination', 'Ticket taxe de passage', 'Taxe (FCFA)', 'Date', 'Statut'],
     ...rows.map((e) => [
     e.numero,

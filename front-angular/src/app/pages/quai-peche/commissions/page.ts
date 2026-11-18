@@ -5,7 +5,8 @@ import { CommissionFormModal } from './components/commission-form-modal';
 import { CommissionDetailModal } from './components/commission-detail-modal';
 import { Commission, Pecheur } from '../../../services/quai-peche';
 import { validateFormElement } from '../../../utils/form-validation';
-import { downloadCsv, today } from '../../../utils/csv';
+import { dateDuJour, exporterLignes, FormatExport } from '../../../utils/export';
+import { ExportMenu } from '../../../shared/ui/export-menu/export-menu';
 import { YearService } from '../../../core/year/year.service';
 import { serverList } from '../../../shared/utils/server-list';
 import { QuaiPecheApi } from '../../../services/quai-peche';
@@ -14,7 +15,7 @@ import { QuaiPecheApi } from '../../../services/quai-peche';
   selector: 'app-commissions-page',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Pagination, CommissionFormModal, CommissionDetailModal],
+  imports: [Pagination, CommissionFormModal, CommissionDetailModal, ExportMenu],
   templateUrl: './page.html',
 })
 export class CommissionsPage {
@@ -93,7 +94,7 @@ export class CommissionsPage {
     }
     }
 
-  protected async handleExport() {
+  protected async handleExport(format: FormatExport) {
     const rows = await fetchAllPages((page, limit) => this.quaiPecheApi.pageCommissions({ year: this.selectedYear(), page, limit, search: this.list.appliedSearch(), statut: this.list.statutValue() }));
     const data = [
     ['Numéro', 'Pêcheur', 'Poids (kg)', 'Type', 'Température', 'Date', 'Statut'],
@@ -107,7 +108,7 @@ export class CommissionsPage {
     c.statut
     ])
     ];
-    downloadCsv(`commissions_${today()}.csv`, data);
+    exporterLignes(format, 'Commissions frigorifiques', `commissions_${dateDuJour()}`, data, `Exercice ${this.selectedYear()}`);
     }
 
   protected formatToLocaleDateString(item: { date: string | number | Date }) {

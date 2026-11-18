@@ -5,7 +5,8 @@ import { PecheurFormModal } from './components/pecheur-form-modal';
 import { PecheurDetailModal } from './components/pecheur-detail-modal';
 import { Pecheur } from '../../../services/quai-peche';
 import { validateFormElement } from '../../../utils/form-validation';
-import { downloadCsv, today } from '../../../utils/csv';
+import { dateDuJour, exporterLignes, FormatExport } from '../../../utils/export';
+import { ExportMenu } from '../../../shared/ui/export-menu/export-menu';
 import { YearService } from '../../../core/year/year.service';
 import { serverList } from '../../../shared/utils/server-list';
 import { QuaiPecheApi } from '../../../services/quai-peche';
@@ -14,7 +15,7 @@ import { QuaiPecheApi } from '../../../services/quai-peche';
   selector: 'app-pecheurs-page',
   host: { class: 'contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Pagination, PecheurFormModal, PecheurDetailModal],
+  imports: [Pagination, PecheurFormModal, PecheurDetailModal, ExportMenu],
   templateUrl: './page.html',
 })
 export class PecheursPage {
@@ -117,7 +118,7 @@ export class PecheursPage {
     }
     }
 
-  protected async handleExport() {
+  protected async handleExport(format: FormatExport) {
     const rows = await fetchAllPages((page, limit) => this.quaiPecheApi.pagePecheurs({ year: this.selectedYear(), page, limit, search: this.list.appliedSearch(), statut: this.list.statutValue() }));
     const data = [
     ['Nom', 'Prénom', 'Téléphone', 'NIN', 'Adresse', 'Statut'],
@@ -125,6 +126,6 @@ export class PecheursPage {
     p.nom, p.prenom, p.telephone || '-', p.nin || '-', p.adresse || '-', p.statut
     ])
     ];
-    downloadCsv(`pecheurs_${today()}.csv`, data);
+    exporterLignes(format, 'Pêcheurs du quai', `pecheurs_${dateDuJour()}`, data, `Exercice ${this.selectedYear()}`);
     }
 }

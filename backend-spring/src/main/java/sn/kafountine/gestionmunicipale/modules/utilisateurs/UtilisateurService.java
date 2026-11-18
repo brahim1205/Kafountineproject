@@ -43,6 +43,12 @@ public class UtilisateurService {
     }
   }
 
+  /** Le régisseur consulte les comptes et attribue les rôles ; le reste du compte appartient au super administrateur. */
+  private static boolean touchesAutreQueLeRole(UserInput input) {
+    return input.email() != null || input.nom() != null || input.prenom() != null || input.telephoneProvided()
+        || input.password() != null || input.isActive() != null;
+  }
+
   static String normalizeAssignableRole(String input, String actorRole) {
     String role = (input == null || input.isBlank() ? "AGENT" : input).trim().toUpperCase(Locale.ROOT);
     if (!ASSIGNABLE_ROLES.contains(role)) throw AppException.validation("Rôle utilisateur invalide.");
@@ -109,6 +115,9 @@ public class UtilisateurService {
     Map<String, Object> existing = findById(userId);
     if (existing == null) throw AppException.notFound("Utilisateur introuvable.");
     assertPeutGerer(actor, existing);
+    if ("REGISSEUR".equals(actor.role()) && touchesAutreQueLeRole(input)) {
+      throw AppException.forbidden("Le régisseur peut seulement attribuer un rôle.");
+    }
     String nextEmail = input.email() != null && !input.email().isEmpty() ? input.email().trim().toLowerCase(Locale.ROOT) : Db.str(existing, "email");
     if (!nextEmail.equals(Db.str(existing, "email"))) {
       Map<String, Object> duplicate = findByEmail(nextEmail);

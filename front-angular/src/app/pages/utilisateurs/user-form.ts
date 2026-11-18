@@ -38,4 +38,7 @@ export class UserForm {
   readonly defaultValues = input<{ name?: string; email?: string; role?: string; phone?: string; status?: string } | undefined>(undefined);
 
   readonly requirePassword = input<boolean>(false);
+
+  /** Régisseur : identité en lecture seule, seul le rôle se modifie. */
+  readonly roleOnly = input<boolean>(false);
 }

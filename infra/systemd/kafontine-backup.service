@@ -6,6 +6,6 @@ After=docker.service
 [Service]
 Type=oneshot
 UMask=0077
-Environment=BACKUP_RETENTION_DAYS=14
+# Durées de conservation : voir l'en-tête de scripts/backup-production.sh.
 ExecStart=/bin/bash /opt/kafontine/scripts/backup-production.sh /opt/kafontine
 TimeoutStartSec=1800

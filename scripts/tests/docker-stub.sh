@@ -11,5 +11,9 @@ case " $* " in
     cat >/dev/null
     [[ "${STUB_FAIL:-}" != archive ]]
     ;;
+  *' tar -C /app/uploads '*)
+    [[ "${STUB_FAIL:-}" != uploads ]]
+    dir=$(mktemp -d); printf 'photo\n' > "$dir/upload-1.jpg"; tar -C "$dir" -czf - . ; rm -rf "$dir"
+    ;;
   *'/ready'*) [[ "${STUB_FAIL:-}" != readiness ]] ;;
 esac

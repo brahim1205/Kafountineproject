@@ -97,7 +97,9 @@ public class MediasController {
   }
 
   /** express.static(fallthrough: false) : toute erreur (absent, méthode, chemin refusé) finit en 500 dans errorHandler. */
+  /** Photos des motos et pièces : réservées aux comptes connectés (le cookie de session suit les balises img). */
   @RequestMapping("/uploads/**")
+  @Authenticated
   public ResponseEntity<Resource> serve(HttpServletRequest request) throws IOException {
     if (!request.getMethod().equals("GET") && !request.getMethod().equals("HEAD")) throw internal();
     String relative = java.net.URLDecoder.decode(request.getRequestURI().substring("/uploads/".length()).replace("+", "%2B"), StandardCharsets.UTF_8);

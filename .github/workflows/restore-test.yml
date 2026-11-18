@@ -101,9 +101,15 @@ jobs:
           umask 077
           printf '%s\n' "$AGE_IDENTITY" > "$RUNNER_TEMP/age.key"
           age -d -i "$RUNNER_TEMP/age.key" -o restore/base.dump "${encrypted[0]}"
-          rm -f "$RUNNER_TEMP/age.key" "${encrypted[0]}"
+          rm -f "${encrypted[0]}"
           test -s restore/base.dump
           echo "Déchiffrement OK"
+          mapfile -t uploads < <(find restore -type f -name '*.uploads.tar.gz.age')
+          if [[ ${#uploads[@]} -eq 1 ]]; then
+            age -d -i "$RUNNER_TEMP/age.key" -o restore/uploads.tar.gz "${uploads[0]}"
+            rm -f "${uploads[0]}"
+          fi
+          rm -f "$RUNNER_TEMP/age.key"
 
       - name: Restaurer dans une base jetable
         run: |
@@ -111,6 +117,16 @@ jobs:
           start=$(date +%s)
           pg_restore --no-owner --no-privileges --exit-on-error --single-transaction -d "$PGDATABASE" restore/base.dump
           echo "Restauration OK en $(( $(date +%s) - start )) s"
+
+      - name: Contrôler l'archive des fichiers déposés
+        run: |
+          set -euo pipefail
+          if [[ ! -e restore/uploads.tar.gz ]]; then
+            echo "::warning::Pas d'archive des fichiers déposés dans cette sauvegarde (antérieure à leur prise en charge ?)"
+            exit 0
+          fi
+          tar -tzf restore/uploads.tar.gz >/dev/null
+          echo "Archive des fichiers déposés lisible"
 
       - name: Contrôler la base restaurée
         run: |

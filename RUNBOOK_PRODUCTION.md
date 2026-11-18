@@ -76,6 +76,27 @@ Le script refuse de s'appliquer si `/root/.ssh/authorized_keys` est vide (risque
 et vérifie la configuration (`sshd -t`, `sshd -T`) avant de recharger SSH. Retour arrière :
 `rm /etc/ssh/sshd_config.d/00-kafountine-hardening.conf && systemctl reload ssh`.
 
+## Sauvegardes : rythme et conservation
+
+Deux sauvegardes vérifiées par jour, indépendantes l'une de l'autre :
+
+- **02:00 UTC, minuteur du serveur** (`infra/systemd/kafontine-backup.timer`), sans GitHub ;
+- **sauvegarde GitHub** (`backup.yml`), qui en garde en plus une copie chiffrée hors du serveur.
+
+`scripts/backup-production.sh` (réinstallé sur le serveur à chaque déploiement) sauvegarde la base
+**et** les fichiers déposés (photos, volume `backend_uploads`), relit les deux, puis range :
+
+| Dossier `backups/` | Contenu | Conservation |
+|---|---|---|
+| `kafontine_*` | chaque sauvegarde | 30 jours |
+| `pre_*` | avant déploiement, retour arrière, restauration | 60 jours |
+| `mensuel/AAAA-MM.*` | première sauvegarde du mois | 2 ans |
+| `annuel/AAAA.*` | première sauvegarde de l'année (état de clôture de l'année précédente) | **jamais effacée** |
+
+Les archives mensuelles et annuelles sont des liens physiques : aucune place disque en plus.
+Chaque lundi, `restore-test.yml` restaure la dernière sauvegarde dans une base jetable et alerte
+par e-mail en cas d'échec ou si la sauvegarde a plus de 36 h.
+
 ## Sauvegardes chiffrées
 
 Chaque nuit (02:00), `.github/workflows/backup.yml` sauvegarde la base, vérifie la sauvegarde, la

@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     tags: ['v*']
-    paths: ['database/**', 'backend-spring/**', 'front-angular/**', '.github/workflows/deploy.yml', 'scripts/deploy-images.sh']
+    paths: ['database/**', 'backend-spring/**', 'front-angular/**', '.github/workflows/deploy.yml', 'scripts/deploy-images.sh', 'scripts/backup-production.sh']
   workflow_dispatch:
     inputs:
       deploy:
@@ -119,6 +119,15 @@ jobs:
           printf '%s' "$REGISTRY_TOKEN" | ssh kafontine-production "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin"
           ssh kafontine-production "bash -s -- '$APP_DIR' 'pre_deploy_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}.dump'" < scripts/backup-production.sh
           ssh kafontine-production "bash -s -- '$APP_DIR' '$IMAGE_PREFIX-backend:$GITHUB_SHA' '$IMAGE_PREFIX-frontend:$GITHUB_SHA' deploy '$IMAGE_PREFIX-migrator:$GITHUB_SHA'" < scripts/deploy-images.sh
+      # Le minuteur systemd du serveur (infra/systemd) lance $APP_DIR/scripts/backup-production.sh chaque nuit :
+      # on y installe la version du dépôt. Non bloquant : un échec de droits n'empêche pas la mise en ligne.
+      - name: Install nightly backup script on the server
+        run: |
+          if ssh kafontine-production "install -d -m 700 '$APP_DIR/scripts' && cat > '$APP_DIR/scripts/.backup-production.sh.new' && chmod 700 '$APP_DIR/scripts/.backup-production.sh.new' && mv '$APP_DIR/scripts/.backup-production.sh.new' '$APP_DIR/scripts/backup-production.sh'" < scripts/backup-production.sh; then
+            echo "Script de sauvegarde nocturne à jour"
+          else
+            echo "::warning::Script de sauvegarde nocturne non mis à jour sur le serveur (droits ?) : voir GITHUB_ACTIONS_OPERATIONS.md."
+          fi
       - name: Verify public readiness
         run: curl -fsS --max-time 60 "$HEALTH_URL"
       - name: Remove temporary SSH key

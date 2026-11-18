@@ -36,8 +36,9 @@ public class UtilisateursController {
     return Api.ok(service.list(search == null ? "" : search, RequestContext.actor().role()));
   }
 
+  /** Seul le super administrateur crée des comptes. */
   @PostMapping
-  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
+  @Roles({"SUPER_ADMIN"})
   public ResponseEntity<Map<String, Object>> create(@Body JsonNode body) {
     Input input = Input.body(body);
     String email = input.str("email").trimmed(5, 254, "Email invalide").email("Email invalide").lower().required();
@@ -69,7 +70,7 @@ public class UtilisateursController {
   }
 
   @DeleteMapping("/{id}")
-  @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
+  @Roles({"ADMIN", "SUPER_ADMIN"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
     return Api.message(service.delete(RequestContext.actor(), Common.id(id)));
   }

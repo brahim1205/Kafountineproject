@@ -69,6 +69,11 @@ export class Utilisateurs {
 
   protected readonly selectedUser = signal<UiUser | null>(null);
 
+  /** Seul le super administrateur crée des comptes ; le régisseur consulte et attribue les rôles. */
+  protected readonly isSuperAdmin = () => storedRole() === 'super_admin';
+
+  protected readonly isRegisseur = () => storedRole() === 'regisseur';
+
   protected async loadData() {
     try {
     const data = await this.usersApi.listUsers();
@@ -136,6 +141,18 @@ export class Utilisateurs {
     const parts = fullName.split(/\s+/).filter(Boolean);
     const prenom = parts.shift() || 'Sans';
     const nom = parts.join(' ') || 'Nom';
+    if (this.isRegisseur()) {
+    try {
+    await this.usersApi.updateUser(this.selectedUser()!.id, { role: String(fd.get('role') || 'AGENT') });
+    this.showEditModal.set(false);
+    this.selectedUser.set(null);
+    await this.loadData();
+    }
+    catch (error) {
+    this.toast.show(getErrorMessage(error, "L'attribution du rôle a échoué."), 'error');
+    }
+    return;
+    }
     try {
     await this.usersApi.updateUser(this.selectedUser()!.id, {
     email: String(fd.get('email') || '').trim(),

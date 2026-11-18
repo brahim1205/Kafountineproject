@@ -600,10 +600,23 @@ describeIntegration('services municipaux (intégration)', () => {
       const users = (await regisseur.get('/users')).body.data;
       expect([...new Set(users.map((user) => user.role))].sort()).toEqual(['AGENT', 'QUAI_PECHE', 'SERVICE_FINANCES']);
       const compte = (role) => ({ email: `${role.toLowerCase()}-${suffix}@kafountine.gouv.sn`, nom: 'A', prenom: 'B', role, password: 'MotDePasseSolide123!' });
-      expect((await regisseur.post('/users', compte('ADMIN'))).status).toBe(400);
-      expect((await regisseur.post('/users', compte('AGENT'))).status).toBe(201);
+      // Seul le super administrateur crée des comptes.
+      expect((await regisseur.post('/users', compte('ADMIN'))).status).toBe(403);
+      expect((await regisseur.post('/users', compte('AGENT'))).status).toBe(403);
+      const administrateur = await login('admin@kafountine.gouv.sn');
+      expect((await administrateur.post('/users', compte('AGENT'))).status).toBe(403);
+      const superAdmin = admin;
+      const cree = await superAdmin.post('/users', compte('AGENT'));
+      expect(cree.status).toBe(201);
+      // Le régisseur attribue un rôle de terrain, mais ne touche ni au reste du compte ni à sa suppression.
+      expect((await regisseur.put(`/users/${cree.body.data.id}`, { role: 'QUAI_PECHE' })).status).toBe(200);
+      expect((await regisseur.put(`/users/${cree.body.data.id}`, { role: 'ADMIN' })).status).toBe(400);
+      expect((await regisseur.put(`/users/${cree.body.data.id}`, { password: 'MotDePasseSolide123!' })).status).toBe(403);
+      expect((await regisseur.put(`/users/${cree.body.data.id}`, { isActive: false })).status).toBe(403);
+      expect((await regisseur.delete(`/users/${cree.body.data.id}`)).status).toBe(403);
       const chef = await prisma.user.findUnique({ where: { email: 'superadmin@kafountine.gouv.sn' } });
-      expect((await regisseur.put(`/users/${chef.id}`, { password: 'MotDePasseSolide123!' })).status).toBe(403);
+      expect((await regisseur.put(`/users/${chef.id}`, { role: 'AGENT' })).status).toBe(403);
+      expect((await superAdmin.delete(`/users/${cree.body.data.id}`)).status).toBe(200);
       expect((await regisseur.get(`/budget/lignes?year=${year}`)).status).toBe(403);
       expect((await regisseur.get('/audit')).status).toBe(403);
     });

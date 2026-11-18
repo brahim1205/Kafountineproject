@@ -4,7 +4,7 @@
         <h1 class="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h1>
         <p class="text-sm text-gray-600 mt-1">Administration des comptes et des rôles</p>
       </div>
-      @if (isCurrentYear() && auth.canWriteRole()) {
+      @if (isCurrentYear() && isSuperAdmin()) {
         <button (click)="showAddModal.set(true)" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2 whitespace-nowrap">
           <i class="ri-user-add-line text-lg"></i>Nouvel utilisateur</button>
       }
@@ -59,9 +59,11 @@
                     <button aria-label="Modifier" (click)="selectedUser.set(user); showEditModal.set(true)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer">
                       <i class="ri-edit-line text-lg"></i>
                     </button>
-                    <button aria-label="Supprimer" (click)="selectedUser.set(user); showDeleteModal.set(true)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
-                      <i class="ri-delete-bin-line text-lg"></i>
-                    </button>
+                    @if (!isRegisseur()) {
+                      <button aria-label="Supprimer" (click)="selectedUser.set(user); showDeleteModal.set(true)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
+                        <i class="ri-delete-bin-line text-lg"></i>
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>
@@ -77,8 +79,8 @@
     </app-modal>
   }
   @if (showEditModal() && selectedUser()) {
-    <app-modal title="Modifier utilisateur" (closed)="showEditModal.set(false); selectedUser.set(null)">
-      <app-user-form (submitted)="handleEdit($event)" (cancelled)="showEditModal.set(false); selectedUser.set(null)" [defaultValues]="{ name: selectedUser()!.name, email: selectedUser()!.email, role: selectedUser()!.role, phone: selectedUser()!.phone, status: selectedUser()!.status, }"></app-user-form>
+    <app-modal [title]="isRegisseur() ? 'Attribuer un rôle' : 'Modifier utilisateur'" (closed)="showEditModal.set(false); selectedUser.set(null)">
+      <app-user-form [roleOnly]="isRegisseur()" (submitted)="handleEdit($event)" (cancelled)="showEditModal.set(false); selectedUser.set(null)" [defaultValues]="{ name: selectedUser()!.name, email: selectedUser()!.email, role: selectedUser()!.role, phone: selectedUser()!.phone, status: selectedUser()!.status, }"></app-user-form>
     </app-modal>
   }
   @if (showDeleteModal() && selectedUser()) {

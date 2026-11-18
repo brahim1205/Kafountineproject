@@ -13,6 +13,16 @@ touch "$tmp/app/.env.prod" "$tmp/app/docker-compose.prod.yml"
 
 bash "$repo/scripts/backup-production.sh" "$tmp/app" kafontine_ok.dump
 test -s "$tmp/app/backups/kafontine_ok.dump"
+tar -tzf "$tmp/app/backups/kafontine_ok.uploads.tar.gz" | grep -q upload-1.jpg
+test -e "$tmp/app/backups/mensuel/$(date -u +%Y-%m).dump"
+test -e "$tmp/app/backups/annuel/$(date -u +%Y).uploads.tar.gz"
+# Backend arrêté : la base est quand même sauvegardée, sans archive de photos.
+STUB_FAIL=uploads bash "$repo/scripts/backup-production.sh" "$tmp/app" kafontine_sans_photos.dump
+test -s "$tmp/app/backups/kafontine_sans_photos.dump"
+test ! -e "$tmp/app/backups/kafontine_sans_photos.uploads.tar.gz"
+# Une sauvegarde avant déploiement ne remplace pas les archives longue durée.
+bash "$repo/scripts/backup-production.sh" "$tmp/app" pre_deploy_1.dump
+test "$(find "$tmp/app/backups/mensuel" -name '*.dump' | wc -l)" -eq 1
 for failure in dump archive; do
   if STUB_FAIL=$failure bash "$repo/scripts/backup-production.sh" "$tmp/app" "kafontine_$failure.dump"; then
     echo "Expected backup failure: $failure" >&2
@@ -22,6 +32,7 @@ for failure in dump archive; do
 done
 if bash "$repo/scripts/backup-production.sh" "$tmp/app" ../escape.dump; then exit 1; fi
 test -z "$(find "$tmp/app/backups" -name '.*.dump.*' -print)"
+test -z "$(find "$tmp/app/backups" -name '.*.uploads.tar.gz.*' -print)"
 
 for service in front frontend; do
   : > "$STUB_LOG"

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
 import { MotoPayment, MotoStats } from '../../services/motos';
 import { RecuPDF } from '../../components/feature/recu-pdf';
+import { getErrorMessage } from '../../utils/form-validation';
 import { MotosStats } from './components/motos-stats';
 import { MotoList } from './components/moto-list';
 import { MotoPaymentsTable } from './components/moto-payments-table';
@@ -15,7 +16,7 @@ import { MotosApi } from '../../services/motos';
 
 type Tab = 'liste' | 'paiements' | 'retards';
 
-type Modal = { type: 'enregistrement' } | { type: 'paiement' | 'changement'; moto: UiMoto } | null;
+type Modal = { type: 'enregistrement' } | { type: 'paiement' | 'changement' | 'suppression'; moto: UiMoto } | null;
 
 const EMPTY_STATS: MotoStats = { totalMotos: 0, paiementsMois: 0, enRetard: 0, recettesMois: 0 };
 
@@ -42,6 +43,11 @@ export class MotosPage {
 
   /** L’adhésion d’une moto et ses changements relèvent du régisseur : l’agent enregistre seulement cotisations et retards. */
   protected readonly canAdhesion = computed(() => this.canManage() && this.auth.role() !== 'agent');
+
+  /** Retirer une moto relève du régisseur (et du super administrateur). */
+  protected readonly canDelete = computed(() => this.canManage() && (this.auth.role() === 'regisseur' || this.auth.role() === 'super_admin'));
+
+  protected readonly deleting = signal(false);
 
   protected readonly activeTab = signal<Tab>(this.userRole() === 'admin' ? 'paiements' : 'liste');
 
@@ -100,6 +106,24 @@ export class MotosPage {
     this.modal.set(null);
     await this.loadData();
     this.showSuccess('Moto enregistrée, droit d’adhésion encaissé !', adhesion ? () => this.imprimerRecu(toUiMotoPayment(adhesion)) : undefined);
+    }
+
+  protected async confirmerSuppression(moto: UiMoto) {
+    if (this.deleting()) return;
+    this.deleting.set(true);
+    try {
+    const message = await this.motosApi.deleteMoto(moto.id);
+    this.modal.set(null);
+    await this.loadData();
+    this.showSuccess(message);
+    }
+    catch (error) {
+    this.error.set(getErrorMessage(error, 'La suppression de la moto a échoué.'));
+    this.modal.set(null);
+    }
+    finally {
+    this.deleting.set(false);
+    }
     }
 
   protected imprimerRecu(paiement: UiMotoPayment) {

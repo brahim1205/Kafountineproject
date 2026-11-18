@@ -208,7 +208,13 @@ export class MotosApi {
   });
 }
 
-  async annulerMotoPayment(id: string, motif: string): Promise<unknown> {
+  /** Supprime une moto ; si elle a des paiements, le serveur la retire seulement et garde ses reçus. */
+  async deleteMoto(id: string): Promise<string> {
+  const result = await this.api.request<{ message: string; retiree: boolean }>(`/motos/${id}`, { method: 'DELETE' });
+  return result.message;
+  }
+
+    async annulerMotoPayment(id: string, motif: string): Promise<unknown> {
   return this.api.request(`/motos/paiements/${id}/annuler`, { method: 'POST', body: JSON.stringify({ motif }) });
 }
 

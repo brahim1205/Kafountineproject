@@ -9,8 +9,7 @@
           {{ selectedYear() }}</p>
       </div>
       <div class="flex gap-2">
-        <button (click)="handleExport()" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-          <i class="ri-download-line"></i>Exporter le journal</button>
+        <app-export-menu label="Exporter le journal" [primary]="true" (exporter)="handleExport($event)"></app-export-menu>
       </div>
     </div>
     @if (showSuccessMessage()) {

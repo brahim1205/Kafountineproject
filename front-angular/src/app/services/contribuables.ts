@@ -14,7 +14,7 @@ function clampContribuablesLimit(limit?: number): number | undefined {
 
 export type Contribuable = {
   id: string;
-  nin: string;
+  nin: string | null;
   nom: string;
   prenom: string;
   telephone: string;
@@ -119,7 +119,7 @@ export class ContribuablesApi {
 }
 
   async createContribuable(payload: {
-  nin: string;
+  nin?: string;
   nom: string;
   prenom: string;
   telephone: string;
@@ -169,12 +169,13 @@ export class ContribuablesApi {
   telephone: string;
   adresse?: string;
 }): Promise<Contribuable> {
-  if (!input.cni || !input.fullName || !input.telephone) {
-    throw new Error('Le CNI, le nom complet et le téléphone sont requis');
+  if (!input.fullName || !input.telephone) {
+    throw new Error('Le nom complet et le téléphone sont requis');
   }
-  
-  // First try to find by CNI - this takes priority
-  const existing = await this.findContribuableByNin(input.cni);
+  const cni = input.cni.trim();
+
+  // La CNI est facultative ; quand elle est saisie, elle identifie le contribuable en priorité.
+  const existing = cni ? await this.findContribuableByNin(cni) : null;
   if (existing) {
     // If found by CNI, check if the phone number is different
     // Update the phone if needed
@@ -221,7 +222,7 @@ export class ContribuablesApi {
   
   try {
     return await this.createContribuable({
-      nin: input.cni,
+      nin: cni || undefined,
       nom,
       prenom,
       telephone: input.telephone,

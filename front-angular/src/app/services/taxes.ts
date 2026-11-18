@@ -123,8 +123,9 @@ export class TaxesApi {
   return this.api.request<UsedCategory[]>(`/transactions/categories-utilisees?year=${year}`);
 }
 
-  async downloadTransactionsCsv(params: TransactionQuery & { year: number }) {
-  await this.api.download(`/transactions/export${transactionQuery(params)}`, `tickets_${params.year}.csv`);
+  /** Tickets de l'exercice au format CSV, tels que le serveur les exporte. */
+  async transactionsCsv(params: TransactionQuery & { year: number }): Promise<string> {
+  return this.api.text(`/transactions/export${transactionQuery(params)}`);
 }
 
   async getTransactionStats(year?: number): Promise<TransactionStats> {

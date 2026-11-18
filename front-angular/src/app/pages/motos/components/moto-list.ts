@@ -27,6 +27,11 @@ export class MotoList {
 
   readonly changement = output<UiMoto>();
 
+  /** Régisseur et super administrateur : retrait d'une moto. */
+  readonly canDelete = input<boolean>(false);
+
+  readonly supprimer = output<UiMoto>();
+
   protected readonly list = serverList(async ({ page, limit, search, statut }) => {
     const { data, meta } = await this.motosApi.pageMotos({
     year: this.year(),

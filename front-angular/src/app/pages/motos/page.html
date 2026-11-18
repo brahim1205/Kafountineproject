@@ -36,7 +36,7 @@
       </div>
       <div class="p-6">
         @if (activeTab() === 'liste') {
-          <app-moto-list [year]="selectedYear()" [reloadKey]="reloadKey()" [canManage]="canManage()" [canAdhesion]="canAdhesion()" (paiement)="modal.set({ type: 'paiement', moto: $event })" (changement)="modal.set({ type: 'changement', moto: $event })"></app-moto-list>
+          <app-moto-list [year]="selectedYear()" [reloadKey]="reloadKey()" [canManage]="canManage()" [canAdhesion]="canAdhesion()" [canDelete]="canDelete()" (paiement)="modal.set({ type: 'paiement', moto: $event })" (changement)="modal.set({ type: 'changement', moto: $event })" (supprimer)="modal.set({ type: 'suppression', moto: $event })"></app-moto-list>
         }
         @if (activeTab() === 'paiements') {
           <app-moto-payments-table [year]="selectedYear()" [reloadKey]="reloadKey()" [canManage]="canManage()" (imprimerRecu)="imprimerRecu($event)"></app-moto-payments-table>
@@ -54,6 +54,18 @@
     }
     @if (canAdhesion() && activeModal?.type === 'changement') {
       <app-changement-moto-modal [moto]="activeModal.moto" (closed)="modal.set(null)" (saved)="afterSave('Changement enregistré avec succès !')()"></app-changement-moto-modal>
+    }
+    @if (canDelete() && activeModal?.type === 'suppression') {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="suppression-moto-titre">
+        <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+          <h2 id="suppression-moto-titre" class="text-lg font-semibold text-gray-900">Supprimer la moto {{ activeModal.moto.matricule }} ?</h2>
+          <p class="mt-2 text-sm text-gray-600">Si des paiements sont déjà enregistrés pour cette moto, elle est retirée de la liste mais ses reçus restent dans les recettes.</p>
+          <div class="mt-6 flex justify-end gap-3">
+            <button type="button" (click)="modal.set(null)" class="px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">Annuler</button>
+            <button type="button" [disabled]="deleting()" (click)="confirmerSuppression(activeModal.moto)" class="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-60">{{ deleting() ? 'Suppression…' : 'Supprimer' }}</button>
+          </div>
+        </div>
+      </div>
     }
     @if (receipt()) {
       <app-recu-pdf [transaction]="receipt()!" (closed)="receipt.set(null)"></app-recu-pdf>

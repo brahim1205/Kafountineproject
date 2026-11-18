@@ -73,9 +73,9 @@ public class ContribuableService {
 
   @Transactional
   public Map<String, Object> create(Map<String, Object> input) {
-    String nin = (String) input.get("nin");
+    String nin = input.get("nin") == null || input.get("nin").toString().isBlank() ? null : input.get("nin").toString().strip();
     String telephone = (String) input.get("telephone");
-    if (findByNin(nin) != null) {
+    if (nin != null && findByNin(nin) != null) {
       throw AppException.conflict("Ce numéro de carte d'identité (NIN) est déjà utilisé par un autre contribuable");
     }
     if (findByTelephone(telephone) != null) {
@@ -127,6 +127,8 @@ public class ContribuableService {
     for (String key : UPDATABLE) {
       if (input.containsKey(key) && input.get(key) != null) changes.put(key, input.get(key));
     }
+    // Un NIN effacé devient NULL : plusieurs fiches sans CNI ne se heurtent pas à l'unicité.
+    if ("".equals(changes.get("nin"))) changes.put("nin", null);
     Object dateNaiss = input.get("dateNaiss");
     if (dateNaiss != null && !dateNaiss.toString().isEmpty()) changes.put("dateNaiss", date(dateNaiss.toString()));
     MapSqlParameterSource params = new MapSqlParameterSource("id", id).addValue("updatedAt", java.sql.Timestamp.from(Instant.now()));
@@ -168,7 +170,7 @@ public class ContribuableService {
           + ". Désactivez plutôt sa fiche pour conserver l'historique.");
     }
     db.update("DELETE FROM \"Contribuable\" WHERE \"id\" = :id", Db.params("id", id));
-    String name = ("Suppression de la fiche " + nz(existing.get("prenom")) + " " + nz(existing.get("nom")) + " (" + existing.get("nin") + ")").replaceAll("\\s+", " ");
+    String name = ("Suppression de la fiche " + nz(existing.get("prenom")) + " " + nz(existing.get("nom")) + (existing.get("nin") == null ? "" : " (" + existing.get("nin") + ")")).replaceAll("\\s+", " ");
     auditTrail.record(actor, "Suppression contribuable", "Contribuables", name, "warning");
   }
 

@@ -53,6 +53,14 @@ export class ApiService {
   }
 
   /** Télécharge un fichier produit par l'API (export CSV…). */
+  /** Contenu texte d'un export du serveur (CSV), converti ensuite en PDF ou en Excel. */
+  async text(path: string): Promise<string> {
+    const blob = await firstValueFrom(
+      this.http.get(`${API_BASE_URL}${path}`, { responseType: 'blob' }).pipe(catchError((error) => throwError(() => toApiError(error)))),
+    );
+    return blob.text();
+  }
+
   async download(path: string, filename: string): Promise<void> {
     const blob = await firstValueFrom(
       this.http.get(`${API_BASE_URL}${path}`, { responseType: 'blob' }).pipe(catchError((error) => throwError(() => toApiError(error)))),

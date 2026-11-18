@@ -67,7 +67,7 @@ export class HistoriqueDemandes {
     ...d,
     contribuableId: d.contribuable?.id || '',
     demandeur: d.contribuable ? `${d.contribuable.prenom || ''} ${d.contribuable.nom || ''}`.trim() : '-',
-    cni: d.contribuable?.nin || '-',
+    cni: d.contribuable?.nin || '',
     telephone: d.contribuable?.telephone || '-',
     date: d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '',
     heure: d.date ? new Date(d.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',

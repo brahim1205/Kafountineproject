@@ -20,11 +20,8 @@
         </div>
       </div>
     }
-    <div class="flex justify-end gap-2">
-      <button (click)="handleExport('pdf')" class="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 cursor-pointer">
-        <i class="ri-file-pdf-line"></i>Exporter PDF</button>
-      <button (click)="handleExport('excel')" class="px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 cursor-pointer">
-        <i class="ri-file-excel-line"></i>Exporter Excel</button>
+    <div class="flex justify-end">
+      <app-export-menu [primary]="true" (exporter)="handleExport($event)"></app-export-menu>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       @for (stat of statsData(); track index; let index = $index) {

@@ -24,9 +24,7 @@
       <input type="search" [value]="list.search()" (input)="list.search.set($any($event.target).value)" aria-label="Rechercher une moto en retard"
         placeholder="Matricule, propriétaire, marque…" class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20" />
     </div>
-    <button type="button" (click)="exporterTout()" [disabled]="exporting() || list.meta().total === 0"
-      class="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-      <i [class]="exporting() ? 'ri-loader-4-line animate-spin' : 'ri-download-line'" aria-hidden="true"></i>Télécharger la liste</button>
+    <app-export-menu label="Télécharger la liste" [busy]="exporting()" [disabled]="list.meta().total === 0" (exporter)="exporterTout($event)"></app-export-menu>
   </div>
 
   <!-- Liste -->

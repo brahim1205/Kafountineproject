@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
 import { YearService } from '../../../core/year/year.service';
 import { UrbanismeApi } from '../../../services/urbanisme';
+import { dateDuJour, exporter, FormatExport } from '../../../utils/export';
+import { ExportMenu } from '../../../shared/ui/export-menu/export-menu';
 
 interface UrbanismeStats {
   totalDossiers: number;
@@ -14,7 +16,7 @@ interface UrbanismeStats {
   selector: 'app-statistiques-urbanisme',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [ExportMenu],
   templateUrl: './statistiques-urbanisme.html',
 })
 export class StatistiquesUrbanisme {
@@ -84,15 +86,23 @@ export class StatistiquesUrbanisme {
     { label: 'Recettes totales', value: `${this.formatMontant(this.stats().recettes)} Fcfa`, icon: 'ri-money-dollar-circle-line', color: 'cyan' }
     ]);
 
-  protected handleExport(type: 'excel' | 'pdf') {
+  protected handleExport(type: FormatExport) {
+    const s = this.stats();
+    exporter(type, {
+    titre: `Statistiques de l'urbanisme ${this.selectedYear()}`,
+    fichier: `statistiques-urbanisme-${dateDuJour()}`,
+    colonnes: ['Indicateur', 'Valeur'],
+    lignes: [
+    ['Total des dossiers', s.totalDossiers],
+    ['Dossiers en attente', s.dossiersEnAttente],
+    ['Dossiers validés', s.dossiersValides],
+    ['Dossiers rejetés', s.dossiersRejetes],
+    ['Taux de validation (%)', this.tauxValidation()],
+    ['Recettes totales (FCFA)', s.recettes],
+    ],
+    });
     this.exportType.set(type);
     this.showSuccessMessage.set(true);
-    const link = document.createElement('a');
-    link.href = '#';
-    link.download = `statistiques-urbanisme-${new Date().toISOString().split('T')[0]}.${type === 'excel' ? 'xlsx' : 'pdf'}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
     setTimeout(() => {
     this.showSuccessMessage.set(false);
     }, 3000);

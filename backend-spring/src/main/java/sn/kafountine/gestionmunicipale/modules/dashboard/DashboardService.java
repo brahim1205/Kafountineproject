@@ -130,7 +130,7 @@ public class DashboardService {
 
   private Map<String, Object> motosStats(int year) {
     // Même règle que la page des motos : échéance dépassée ou retard signalé.
-    List<Map<String, Object>> motos = db.list("SELECT \"enRetard\", \"prochainPaiement\" FROM \"MotoRegistration\" WHERE \"year\" = :year", Db.params("year", year));
+    List<Map<String, Object>> motos = db.list("SELECT \"enRetard\", \"prochainPaiement\" FROM \"MotoRegistration\" m WHERE \"year\" = :year AND " + MotoService.VISIBLE, Db.params("year", year));
     Instant now = Instant.now();
     long enRetard = motos.stream().filter(row -> MotoService.estEnRetard(row, now)).count();
     return Api.map("totalMotos", motos.size(), "enRetard", enRetard);

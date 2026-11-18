@@ -61,8 +61,7 @@
               <i class="ri-add-line"></i>Nouveau</button>
           }
           @if (isCurrentYear()) {
-            <button (click)="handleExport()" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2">
-              <i class="ri-download-line"></i>Exporter</button>
+            <app-export-menu (exporter)="handleExport($event)"></app-export-menu>
           }
         </div>
       </div>

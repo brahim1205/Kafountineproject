@@ -36,8 +36,7 @@
           </select>
         </div>
         <div class="flex items-end">
-          <button (click)="handleExport()" [disabled]="exporting() || total() === 0" class="w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer disabled:opacity-50">
-            <i [class]="exporting() ? 'ri-loader-4-line animate-spin' : 'ri-download-line'"></i>{{ exporting() ? 'Export en cours...' : canSeeYearStats() ? 'Exporter la sélection' : 'Exporter la page' }}</button>
+          <app-export-menu class="w-full" [label]="canSeeYearStats() ? 'Exporter la sélection' : 'Exporter la page'" [busy]="exporting()" [disabled]="total() === 0" (exporter)="handleExport($event)"></app-export-menu>
         </div>
       </div>
     </div>

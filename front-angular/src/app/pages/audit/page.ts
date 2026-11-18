@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
+import { exporter, FormatExport, tableauDepuisCsv } from '../../utils/export';
+import { ExportMenu } from '../../shared/ui/export-menu/export-menu';
 import { YearService } from '../../core/year/year.service';
 import { AuditApi } from '../../services/audit';
 
@@ -22,7 +24,7 @@ const PAGE_SIZE = 25;
   selector: 'app-audit',
   host: { class: 'block' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [],
+  imports: [ExportMenu],
   templateUrl: './page.html',
 })
 export class Audit {
@@ -58,17 +60,10 @@ export class Audit {
 
   protected readonly filteredLogs = computed(() => this.auditLogs());
 
-  protected async handleExport() {
+  protected async handleExport(format: FormatExport) {
     try {
     const blob = await this.auditApi.exportAuditLogs(this.selectedYear());
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `journal-audit-${this.selectedYear()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    a.remove();
+    exporter(format, tableauDepuisCsv(await blob.text(), `Journal d'audit ${this.selectedYear()}`, `journal-audit-${this.selectedYear()}`));
     this.showSuccessMessage.set(true);
     setTimeout(() => this.showSuccessMessage.set(false), 3000);
     }

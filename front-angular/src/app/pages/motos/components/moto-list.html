@@ -66,6 +66,11 @@
                       <i class="ri-exchange-line"></i>
                     </button>
                   }
+                  @if (canDelete()) {
+                    <button (click)="supprimer.emit(moto)" title="Supprimer la moto" aria-label="Supprimer la moto" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors whitespace-nowrap cursor-pointer">
+                      <i class="ri-delete-bin-line"></i>
+                    </button>
+                  }
                 </div>
               }
             </div>

@@ -33,7 +33,7 @@
               <div>
                 <p class="text-gray-600">{{ label }}</p>
                 <p class="font-medium text-gray-900">{{ personne.nom }}</p>
-                <p class="text-gray-500 text-xs">{{ personne.cni }}</p>
+                @if (personne.cni) {<p class="text-gray-500 text-xs">{{ personne.cni }}</p>}
               </div>
             }
           </div>

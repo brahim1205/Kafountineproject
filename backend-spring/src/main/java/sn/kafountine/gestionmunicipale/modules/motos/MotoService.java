@@ -120,7 +120,7 @@ public class MotoService {
 
   public List<Map<String, Object>> list(int year, String search, Integer limit) {
     List<Map<String, Object>> filtered = new ArrayList<>();
-    for (Map<String, Object> row : db.list(SELECT_MOTO + " WHERE m.\"year\" = :year ORDER BY m.\"createdAt\" DESC", Db.params("year", year))) {
+    for (Map<String, Object> row : db.list(SELECT_MOTO + " WHERE m.\"year\" = :year AND " + VISIBLE + " ORDER BY m.\"createdAt\" DESC", Db.params("year", year))) {
       if (search.isEmpty()) {
         filtered.add(row);
         continue;
@@ -135,12 +135,17 @@ public class MotoService {
     return result;
   }
 
+  /** Statut d'une moto retirée qui a déjà des paiements : elle disparaît des listes, ses reçus restent. */
+  public static final String SUPPRIMEE = "SUPPRIMEE";
+  /** Filtre SQL (alias m) qui écarte les motos retirées. */
+  public static final String VISIBLE = "m.\"statut\" <> '" + SUPPRIMEE + "'";
+
   private static final String RETARD = "(m.\"enRetard\" OR m.\"prochainPaiement\" < CURRENT_TIMESTAMP)";
 
   /** Liste paginée : recherche et retards sont évalués en base, sur toute l'année. */
   public Map<String, Object> page(int year, String search, String etat, Common.Paging paging) {
     MapSqlParameterSource params = Db.params("year", year, "limit", paging.limit(), "offset", paging.offset());
-    StringBuilder where = new StringBuilder(" WHERE m.\"year\" = :year");
+    StringBuilder where = new StringBuilder(" WHERE m.\"year\" = :year AND " + VISIBLE);
     if (!search.isEmpty()) {
       where.append(" AND (m.\"matricule\" ILIKE :like OR m.\"marque\" ILIKE :like OR m.\"modele\" ILIKE :like OR m.\"permis\" ILIKE :like")
           .append(" OR p.\"nom\" ILIKE :like OR p.\"prenom\" ILIKE :like OR d.\"nom\" ILIKE :like OR d.\"prenom\" ILIKE :like)");
@@ -303,7 +308,7 @@ public class MotoService {
   }
 
   public Map<String, Object> stats(int year) {
-    List<Map<String, Object>> motos = db.list("SELECT \"enRetard\", \"statut\", \"prochainPaiement\" FROM \"MotoRegistration\" WHERE \"year\" = :year", Db.params("year", year));
+    List<Map<String, Object>> motos = db.list("SELECT \"enRetard\", \"statut\", \"prochainPaiement\" FROM \"MotoRegistration\" m WHERE \"year\" = :year AND " + VISIBLE, Db.params("year", year));
     List<Map<String, Object>> paiements = db.list("SELECT \"montant\", \"datePaiement\" FROM \"MotoPayment\" WHERE \"year\" = :year AND \"statut\" = 'PAYE'", Db.params("year", year));
     long total = motos.size();
     Instant now = Instant.now();
@@ -416,7 +421,7 @@ public class MotoService {
     // Deux encaissements simultanés sur la même moto s'exécutent l'un après l'autre.
     db.one("SELECT \"id\" FROM \"MotoRegistration\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", motoId));
     Map<String, Object> moto = findById(motoId);
-    if (moto == null) throw AppException.notFound("Moto introuvable.");
+    if (moto == null || SUPPRIMEE.equals(moto.get("statut"))) throw AppException.notFound("Moto introuvable.");
     String type = truthy(input.type()) ? input.type() : "COTISATION";
     boolean cotisation = type.equals("COTISATION");
     Instant paiementDate = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
@@ -527,5 +532,26 @@ public class MotoService {
     moto.put("statut", row.get("motoStatut"));
     view.put("moto", motoView(moto));
     return view;
+  }
+
+  /**
+   * Retire une moto. Sans paiement, la fiche est supprimée ; avec des paiements, elle est seulement retirée
+   * (statut SUPPRIMEE) : les reçus déjà enregistrés et leur historique ne sont jamais effacés.
+   */
+  @Transactional
+  public Map<String, Object> delete(Actor actor, String motoId) {
+    Map<String, Object> moto = db.one("SELECT * FROM \"MotoRegistration\" WHERE \"id\" = :id FOR UPDATE", Db.params("id", motoId));
+    if (moto == null || SUPPRIMEE.equals(moto.get("statut"))) throw AppException.notFound("Moto introuvable.");
+    long paiements = db.count("SELECT COUNT(*) FROM \"MotoPayment\" WHERE \"motoId\" = :id", Db.params("id", motoId));
+    String matricule = Db.str(moto, "matricule");
+    if (paiements > 0) {
+      db.update("UPDATE \"MotoRegistration\" SET \"statut\" = :statut, \"enRetard\" = false, \"updatedAt\" = CURRENT_TIMESTAMP WHERE \"id\" = :id",
+          Db.params("statut", SUPPRIMEE, "id", motoId));
+      auditTrail.record(actor, "Retrait moto", "Motos", "Moto " + matricule + " retirée (" + paiements + " paiement(s) conservé(s))");
+      return Api.map("message", "Moto retirée de la liste. Ses paiements déjà enregistrés sont conservés.", "retiree", true);
+    }
+    db.update("DELETE FROM \"MotoRegistration\" WHERE \"id\" = :id", Db.params("id", motoId));
+    auditTrail.record(actor, "Suppression moto", "Motos", "Moto " + matricule + " supprimée");
+    return Api.map("message", "Moto supprimée.", "retiree", false);
   }
 }

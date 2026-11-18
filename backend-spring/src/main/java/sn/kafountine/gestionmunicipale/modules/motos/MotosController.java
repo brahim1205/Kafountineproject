@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -92,7 +93,14 @@ public class MotosController {
     return Api.ok(service.update(RequestContext.actor(), motoId, moto(Input.body(body), false)));
   }
 
-  @PostMapping("/{id}/changement-conducteur")
+  /** Le régisseur retire une moto enregistrée par erreur ou qui ne circule plus. */
+  @DeleteMapping("/{id}")
+  @Roles({"SUPER_ADMIN", "REGISSEUR"})
+  public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
+    return Api.ok(service.delete(RequestContext.actor(), Common.id(id)));
+  }
+
+    @PostMapping("/{id}/changement-conducteur")
   @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> changeDriver(@PathVariable String id, @Body JsonNode body) {
     String motoId = Common.id(id);

@@ -22,7 +22,7 @@ export const allMenuItems: MenuItem[] = [
   { path: '/quai-peche/pecheurs', icon: 'ri-user-line', label: 'Pêcheurs', roles: ['quai_peche', 'regisseur'] },
   { path: '/quai-peche/embarcations', icon: 'ri-ship-2-line', label: 'Embarcations', roles: ['quai_peche', 'regisseur'] },
   { path: '/quai-peche/camions', icon: 'ri-truck-line', label: 'Camions Frigorifiques', roles: ['quai_peche', 'regisseur'] },
-  { path: '/quai-peche/droits', icon: 'ri-coins-line', label: 'Droits du quai', roles: ['quai_peche'] },
+  { path: '/quai-peche/droits', icon: 'ri-coins-line', label: 'Droits du quai', roles: ['quai_peche', 'regisseur'] },
   { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos Jakarta', roles: ['quai_peche'] },
   { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['quai_peche'] },
   { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'regisseur'] },
@@ -62,7 +62,7 @@ export const roleLabels: Record<UiRole, string> = {
 export const ORDRE_REGISSEUR = [
   '/dashboard', '/recettes', '/caisse', '/impayes', '/taxes', '/penalites',
   '/marche', '/motos', '/urbanisme',
-  '/quai-peche/commissions', '/quai-peche/pecheurs', '/quai-peche/embarcations', '/quai-peche/camions',
+  '/quai-peche/droits', '/quai-peche/commissions', '/quai-peche/pecheurs', '/quai-peche/embarcations', '/quai-peche/camions',
   '/contribuables', '/utilisateurs',
 ];
 

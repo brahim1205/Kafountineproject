@@ -27,7 +27,7 @@ export const routes: Routes = [
       { path: 'motos', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'quai_peche', 'regisseur'])], loadComponent: () => import('./pages/motos/page').then((m) => m.MotosPage) },
       // Module masqué tant que FEATURES.formations est désactivé : l'adresse directe renvoie au tableau de bord.
       ...(FEATURES.formations ? [{ path: 'formations', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/formations/page').then((m) => m.FormationsPage) }] : [{ path: 'formations', redirectTo: 'dashboard' }]),
-      { path: 'penalites', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/penalites/page').then((m) => m.Penalites) },
+      { path: 'penalites', canActivate: [roleGuard(['super_admin', 'agent', 'regisseur'])], loadComponent: () => import('./pages/penalites/page').then((m) => m.Penalites) },
       { path: 'roles', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/roles/page').then((m) => m.RolesPage) },
       { path: 'utilisateurs', canActivate: [roleGuard(['admin', 'super_admin', 'regisseur'])], loadComponent: () => import('./pages/utilisateurs/page').then((m) => m.Utilisateurs) },
       { path: 'rapports', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/rapports/page').then((m) => m.Rapports) },
@@ -46,7 +46,7 @@ export const routes: Routes = [
       { path: 'caisse/agent/:agentId', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur', 'quai_peche'])], loadComponent: () => import('./pages/caisse/page').then((m) => m.Caisse) },
       { path: 'activite-agents', canActivate: [roleGuard(['admin', 'super_admin', 'regisseur'])], loadComponent: () => import('./pages/activite-agents/page').then((m) => m.ActiviteAgentsPage) },
       { path: 'impayes', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'quai_peche', 'regisseur'])], loadComponent: () => import('./pages/impayes/page').then((m) => m.Impayes) },
-      { path: 'contribuables', canActivate: [roleGuard(['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/contribuables/page').then((m) => m.Contribuables) },
+      { path: 'contribuables', canActivate: [roleGuard(['super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'])], loadComponent: () => import('./pages/contribuables/page').then((m) => m.Contribuables) },
       { path: 'profil', loadComponent: () => import('./pages/profil/page').then((m) => m.ProfilPage) },
     ],
   },

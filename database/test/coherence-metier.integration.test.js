@@ -109,6 +109,13 @@ describeIntegration('cohérence métier', () => {
       const valide = await admin.put(`/urbanisme/${attente.body.data.id}`).send({ statut: 'VALIDE' });
       expect(valide.status).toBe(200);
       expect(await stats()).toBe(before + 9000);
+      // Les répartitions par type et par mois retombent exactement sur les recettes enregistrées.
+      const detail = (await admin.get(`/urbanisme/statistiques?year=${year}`)).body.data;
+      expect(detail.parMois).toHaveLength(12);
+      const somme = (lignes) => lignes.reduce((total, ligne) => total + ligne.recettes, 0);
+      expect(somme(detail.parMois)).toBeCloseTo(detail.recettes, 2);
+      expect(somme(detail.parType)).toBeCloseTo(detail.recettes, 2);
+      expect(detail.montantEnAttente).toBeGreaterThanOrEqual(0);
       expect((await admin.delete(`/urbanisme/${attente.body.data.id}`)).status).toBe(409);
     });
 

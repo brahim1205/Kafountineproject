@@ -98,7 +98,7 @@ export class EnregistrementMotoModal {
     marque: field('marque'),
     modele: field('modele'),
     annee: Number(field('annee')),
-    couleur: field('couleur'),
+    couleur: field('couleur') || undefined,
     proprietaireId: proprietaire.id,
     conducteurId,
     permis: permis || undefined,

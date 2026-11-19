@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,7 @@ import sn.kafountine.gestionmunicipale.shared.web.Body;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import sn.kafountine.gestionmunicipale.modules.quaipeche.QuaiPecheService.Collection;
+import sn.kafountine.gestionmunicipale.shared.errors.AppException;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.security.Roles;
 import sn.kafountine.gestionmunicipale.shared.validation.Common;
@@ -29,6 +31,16 @@ public class QuaiPecheController {
 
   public QuaiPecheController(QuaiPecheService service) {
     this.service = service;
+  }
+
+  /** Le régisseur ne voit du quai que ce qui touche aux recettes : camions et expéditions (taxe de passage). */
+  private static final Set<String> COLLECTIONS_REGISSEUR = Set.of("camions", "expeditions");
+
+  private static Collection collection(String name) {
+    if ("REGISSEUR".equalsIgnoreCase(RequestContext.user().role()) && !COLLECTIONS_REGISSEUR.contains(name)) {
+      throw AppException.forbidden("Permissions insuffisantes pour cette action");
+    }
+    return Collection.valueOf(name);
   }
 
   /** Taxe de passage d'un camion frigorifique : un ticket au tarif de l'arrêté, relié à l'expédition. */
@@ -61,8 +73,8 @@ public class QuaiPecheController {
     query.check();
     int resolved = Common.yearOrCurrent(year == null || year == 0 ? null : year);
     Common.Paging paging = Common.paging(page, limit);
-    if (paging == null) return Api.ok(service.list(Collection.valueOf(collection), resolved));
-    Map<String, Object> result = service.page(Collection.valueOf(collection), resolved, search == null ? "" : search.strip(), statut, paging);
+    if (paging == null) return Api.ok(service.list(collection(collection), resolved));
+    Map<String, Object> result = service.page(collection(collection), resolved, search == null ? "" : search.strip(), statut, paging);
     @SuppressWarnings("unchecked") Map<String, Object> meta = (Map<String, Object>) result.get("meta");
     return Api.okWithMeta(result.get("data"), meta);
   }
@@ -70,20 +82,20 @@ public class QuaiPecheController {
   @GetMapping("/" + COLLECTIONS + "/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "SERVICE_FINANCES", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> get(@PathVariable String collection, @PathVariable String id) {
-    return Api.ok(service.get(Collection.valueOf(collection), Common.id(id)));
+    return Api.ok(service.get(collection(collection), Common.id(id)));
   }
 
   @PostMapping("/" + COLLECTIONS)
   @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> create(@PathVariable String collection, @Body JsonNode body) {
-    Collection c = Collection.valueOf(collection);
+    Collection c = collection(collection);
     return Api.created(service.create(RequestContext.actor(), c, fields(c, Input.body(body), true)));
   }
 
   @PutMapping("/" + COLLECTIONS + "/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN", "QUAI_PECHE", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> update(@PathVariable String collection, @PathVariable String id, @Body JsonNode body) {
-    Collection c = Collection.valueOf(collection);
+    Collection c = collection(collection);
     String resourceId = Common.id(id);
     return Api.ok(service.update(RequestContext.actor(), c, resourceId, fields(c, Input.body(body), false)));
   }
@@ -91,7 +103,7 @@ public class QuaiPecheController {
   @DeleteMapping("/" + COLLECTIONS + "/{id}")
   @Roles({"ADMIN", "SUPER_ADMIN", "REGISSEUR"})
   public ResponseEntity<Map<String, Object>> delete(@PathVariable String collection, @PathVariable String id) {
-    service.delete(RequestContext.actor(), Collection.valueOf(collection), Common.id(id));
+    service.delete(RequestContext.actor(), collection(collection), Common.id(id));
     return Api.message("Suppression effectuée");
   }
 

@@ -3,12 +3,14 @@ package sn.kafountine.gestionmunicipale.modules.urbanisme;
 import java.time.Year;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import sn.kafountine.gestionmunicipale.shared.validation.Common;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import sn.kafountine.gestionmunicipale.modules.caisse.CaisseService;
 import org.springframework.stereotype.Service;
@@ -210,18 +212,48 @@ public class UrbanismeService {
   }
 
   public Map<String, Object> stats(int year) {
-    List<Map<String, Object>> rows = db.list("SELECT \"montant\", \"statut\" FROM \"UrbanismeCase\" WHERE \"year\" = :year", Db.params("year", year));
+    List<Map<String, Object>> rows = db.list("SELECT \"type\", \"montant\", \"statut\", \"createdAt\", \"encaisseLe\" FROM \"UrbanismeCase\" WHERE \"year\" = :year",
+        Db.params("year", year));
     long enAttente = rows.stream().filter(r -> "EN_ATTENTE".equals(r.get("statut"))).count();
     long valide = rows.stream().filter(r -> "VALIDE".equals(r.get("statut"))).count();
     long rejete = rows.stream().filter(r -> "REJETE".equals(r.get("statut"))).count();
     double total = 0;
     double recettes = 0;
+    double montantEnAttente = 0;
+    // Par type de demande et par mois (dépôts, et recettes des dossiers validés au mois de leur validation).
+    Map<String, double[]> parType = new TreeMap<>();
+    double[][] parMois = new double[12][3];
     for (Map<String, Object> row : rows) {
-      total += Db.num(row, "montant");
-      if (recette(Db.str(row, "statut"))) recettes += Db.num(row, "montant");
+      double montant = Db.num(row, "montant");
+      String statut = Db.str(row, "statut");
+      total += montant;
+      if (recette(statut)) recettes += montant;
+      if ("EN_ATTENTE".equals(statut)) montantEnAttente += montant;
+      double[] t = parType.computeIfAbsent(String.valueOf(row.get("type")), k -> new double[4]);
+      t[0]++;
+      if ("VALIDE".equals(statut)) { t[1]++; t[3] += montant; }
+      if ("REJETE".equals(statut)) t[2]++;
+      Instant depot = Db.date(row, "createdAt");
+      if (depot != null) parMois[depot.atZone(ZoneOffset.UTC).getMonthValue() - 1][0]++;
+      Instant encaisse = Db.date(row, "encaisseLe");
+      if (recette(statut)) {
+        Instant quand = encaisse != null ? encaisse : depot;
+        if (quand != null) {
+          int mois = quand.atZone(ZoneOffset.UTC).getMonthValue() - 1;
+          parMois[mois][1]++;
+          parMois[mois][2] += montant;
+        }
+      }
+    }
+    List<Map<String, Object>> types = new ArrayList<>();
+    parType.forEach((type, t) -> types.add(Api.map("type", type, "total", (long) t[0], "valides", (long) t[1], "rejetes", (long) t[2], "recettes", t[3])));
+    List<Map<String, Object>> mois = new ArrayList<>();
+    for (int m = 0; m < 12; m++) {
+      mois.add(Api.map("mois", String.format("%d-%02d", year, m + 1), "deposes", (long) parMois[m][0], "valides", (long) parMois[m][1], "recettes", parMois[m][2]));
     }
     return Api.map("total", rows.size(), "enAttente", enAttente, "valide", valide, "rejete", rejete, "montantTotal", total,
-        "totalDossiers", rows.size(), "dossiersEnAttente", enAttente, "dossiersValides", valide, "dossiersRejetes", rejete, "recettes", recettes);
+        "totalDossiers", rows.size(), "dossiersEnAttente", enAttente, "dossiersValides", valide, "dossiersRejetes", rejete, "recettes", recettes,
+        "montantEnAttente", montantEnAttente, "parType", types, "parMois", mois);
   }
 
   private static void putIfPresent(Map<String, Object> target, String key, Object value) {

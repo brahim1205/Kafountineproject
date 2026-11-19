@@ -1,9 +1,13 @@
-import { ChangeDetectionStrategy, Component, inject, signal, effect, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, effect, untracked } from '@angular/core';
+import { getErrorMessage } from '../../../utils/form-validation';
 import { Pagination } from '../../../shared/ui/pagination/pagination';
 import { DossierUrbanisme } from '../../../services/urbanisme';
 import { YearService } from '../../../core/year/year.service';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
-import { UrbanismeApi } from '../../../services/urbanisme';
+import { UrbanismeApi, UrbanismeStats } from '../../../services/urbanisme';
+import { AuthService } from '../../../core/auth/auth.service';
+import { TaxesApi, TaxService } from '../../../services/taxes';
+import { NATURES, typeLabel } from './dossiers/dossiers';
 
 type PendingDossier = {
   id: string;
@@ -12,11 +16,14 @@ type PendingDossier = {
   type: string;
   localisation: string;
   surface: string;
+  nature: string;
+  agent: string;
   montant: number;
   description: string;
   demandeurNom: string;
   demandeurTelephone: string;
   demandeurAdresse: string;
+  demandeurNin: string;
   createdAt: string;
   action?: 'valider' | 'rejeter';
 };
@@ -37,6 +44,15 @@ export class ValidationDossiers {
   protected readonly toast = inject(ToastService);
   protected readonly urbanismeApi = inject(UrbanismeApi);
   protected readonly selectedYear = this.yearService.selectedYear;
+  private readonly auth = inject(AuthService);
+  private readonly taxesApi = inject(TaxesApi);
+
+  /** Mr le Maire consulte ; la validation (qui enregistre la recette) revient au régisseur et au super administrateur. */
+  protected readonly peutValider = computed(() => this.auth.canWrite() && this.selectedYear() === new Date().getFullYear());
+
+  protected readonly stats = signal<UrbanismeStats | null>(null);
+
+  private readonly types = signal<TaxService[]>([]);
 
   protected readonly showDetailModal = signal(false);
 
@@ -57,7 +73,11 @@ export class ValidationDossiers {
   protected async fetchDossiers() {
     try {
     this.loading.set(true);
-    const result = await this.urbanismeApi.getDossiersUrbanisme({ page: this.page(), limit: PAGE_SIZE, statut: 'EN_ATTENTE', year: this.selectedYear() });
+    const [result, stats] = await Promise.all([
+    this.urbanismeApi.getDossiersUrbanisme({ page: this.page(), limit: PAGE_SIZE, statut: 'EN_ATTENTE', year: this.selectedYear() }),
+    this.urbanismeApi.getUrbanismeStats(this.selectedYear()),
+    ]);
+    this.stats.set(stats);
     this.total.set(result.meta.total);
     const pendingDossiers = (result.data || [])
     .filter((d: DossierUrbanisme) => d.statut === 'EN_ATTENTE')
@@ -65,14 +85,17 @@ export class ValidationDossiers {
     id: d.id,
     numero: d.numero,
     date: d.createdAt ? new Date(d.createdAt).toLocaleDateString('fr-FR') : '-',
-    type: this.formatType(d.type),
+    type: typeLabel(d, this.types()),
     localisation: d.localisation || '-',
-    surface: d.surface ? `${d.surface} m²` : '-',
+    surface: d.surface ? `${d.surface.toLocaleString('fr-FR')} m²` : '-',
+    nature: d.nature ? NATURES[d.nature] || d.nature : '-',
+    agent: d.agent || '-',
     montant: d.montant || 0,
     description: d.description || '-',
-    demandeurNom: '-',
-    demandeurTelephone: '-',
-    demandeurAdresse: '-',
+    demandeurNom: d.contribuable ? `${d.contribuable.prenom || ''} ${d.contribuable.nom || ''}`.trim() || '-' : '-',
+    demandeurTelephone: d.contribuable?.telephone || '-',
+    demandeurAdresse: d.contribuable?.adresse || '-',
+    demandeurNin: d.contribuable?.nin || 'Non renseignée',
     createdAt: d.createdAt,
     }));
     this.dossiersEnAttente.set(pendingDossiers);
@@ -86,22 +109,13 @@ export class ValidationDossiers {
     }
     }
 
-  protected formatType(type: string) {
-    const types: Record<string, string> = {
-    'permis-construire': 'Permis de construire',
-    'autorisation-travaux': 'Autorisation de travaux',
-    'certificat-conformite': 'Certificat de conformite',
-    'titre-foncier': 'Titre foncier',
-    };
-    return types[type] || type;
-    }
-
   protected handleConsulter(dossier: PendingDossier) {
     this.selectedDossier.set(dossier);
     this.showDetailModal.set(true);
     }
 
   protected handleValidation(dossier: PendingDossier, action: 'valider' | 'rejeter') {
+    if (!this.peutValider()) return;
     this.selectedDossier.set({ ...dossier, action });
     this.showDetailModal.set(false);
     this.showValidationModal.set(true);
@@ -121,8 +135,8 @@ export class ValidationDossiers {
     this.showValidationModal.set(false);
     this.selectedDossier.set(null);
     }
-    catch {
-    this.toast.show('Erreur lors de la mise à jour du dossier', 'error');
+    catch (error) {
+    this.toast.show(getErrorMessage(error, 'Erreur lors de la mise à jour du dossier'), 'error');
     }
     finally {
     this.submitting.set(false);
@@ -130,8 +144,10 @@ export class ValidationDossiers {
     }
 
   constructor() {
+    // Libellés des types depuis le catalogue des tarifs (le dossier stocke l'identifiant du tarif).
+    this.taxesApi.getTaxServices('urbanisme-habitat').then((types) => this.types.set(types)).catch(() => this.types.set([]));
     effect(() => {
-      this.selectedYear(); this.page();
+      this.selectedYear(); this.page(); this.types();
       untracked(() => {
     this.fetchDossiers();
       });

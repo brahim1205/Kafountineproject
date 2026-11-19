@@ -12,7 +12,7 @@
         <form (submit)="submitted.emit($event)" (input)="clearFieldValidationError($event)" novalidate class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Service demandeur</label>
-            <select aria-label="Service demandeur" data-required="true" [value]="depense().service" (change)="onServiceChange($event)" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm">
+            <select name="serviceDemandeur" aria-label="Service demandeur" data-required="true" [value]="depense().service" (change)="onServiceChange($event)" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm">
               <option value="">Sélectionner un service</option>
               <option value="Urbanisme">Urbanisme</option>
               <option value="Motos">Motos</option>
@@ -22,11 +22,11 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Description de la dépense</label>
-            <textarea aria-label="Description de la dépense" data-required="true" [rows]="3" [value]="depense().description" (input)="onDescriptionChange($event)" placeholder="Décrire la dépense..." class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm resize-none"></textarea>
+            <textarea name="descriptionDeLaDepense" aria-label="Description de la dépense" data-required="true" [rows]="3" [value]="depense().description" (input)="onDescriptionChange($event)" placeholder="Décrire la dépense..." class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm resize-none"></textarea>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Montant (FCFA)</label>
-            <input aria-label="Montant (FCFA)" type="number" data-required="true" min="0" [value]="depense().montant || ''" (input)="onMontantChange($event)" placeholder="Ex: 150000" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm" />
+            <input name="montant" aria-label="Montant (FCFA)" type="number" data-required="true" min="0" [value]="depense().montant || ''" (input)="onMontantChange($event)" placeholder="Ex: 150000" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm" />
           </div>
           <div class="flex justify-end gap-3 pt-4">
             <button type="button" (click)="closed.emit()" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Annuler</button>

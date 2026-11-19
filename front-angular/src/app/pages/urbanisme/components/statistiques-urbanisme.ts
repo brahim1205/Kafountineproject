@@ -1,16 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject, signal, computed, effect, untracked } from '@angular/core';
 import { YearService } from '../../../core/year/year.service';
-import { UrbanismeApi } from '../../../services/urbanisme';
-import { dateDuJour, exporter, FormatExport } from '../../../utils/export';
+import { UrbanismeApi, UrbanismeStats } from '../../../services/urbanisme';
+import { TaxesApi, TaxService } from '../../../services/taxes';
+import { Cellule, dateDuJour, exporter, FormatExport } from '../../../utils/export';
 import { ExportMenu } from '../../../shared/ui/export-menu/export-menu';
+import { libelleType } from './dossiers/dossiers';
 
-interface UrbanismeStats {
-  totalDossiers: number;
-  dossiersEnAttente: number;
-  dossiersValides: number;
-  dossiersRejetes: number;
-  recettes: number;
-}
+const VIDE: UrbanismeStats = { total: 0, enAttente: 0, valide: 0, rejete: 0, montantTotal: 0, recettes: 0, montantEnAttente: 0, parType: [], parMois: [] };
+
+const MOIS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
 
 @Component({
   selector: 'app-statistiques-urbanisme',
@@ -23,6 +21,7 @@ export class StatistiquesUrbanisme {
   protected readonly Math = Math;
   protected readonly yearService = inject(YearService);
   protected readonly urbanismeApi = inject(UrbanismeApi);
+  private readonly taxesApi = inject(TaxesApi);
   protected readonly selectedYear = this.yearService.selectedYear;
 
   protected readonly showSuccessMessage = signal(false);
@@ -33,86 +32,81 @@ export class StatistiquesUrbanisme {
 
   protected readonly errorMsg = signal('');
 
-  protected readonly stats = signal<UrbanismeStats>({
-    totalDossiers: 0,
-    dossiersEnAttente: 0,
-    dossiersValides: 0,
-    dossiersRejetes: 0,
-    recettes: 0,
-    });
+  protected readonly stats = signal<UrbanismeStats>(VIDE);
+
+  private readonly types = signal<TaxService[]>([]);
 
   protected async loadStats() {
     try {
-    this.loading.set(true);
-    this.errorMsg.set('');
-    const response = await this.urbanismeApi.getUrbanismeStats(this.selectedYear());
-    if (response) {
-    this.stats.set({
-    totalDossiers: response.total ?? response.totalDossiers ?? 0,
-    dossiersEnAttente: response.enAttente ?? response.dossiersEnAttente ?? 0,
-    dossiersValides: response.valide ?? response.dossiersValides ?? 0,
-    dossiersRejetes: response.rejete ?? response.dossiersRejetes ?? 0,
-    recettes: response.montantTotal ?? response.recettes ?? 0,
-    });
+      this.loading.set(true);
+      this.errorMsg.set('');
+      this.stats.set((await this.urbanismeApi.getUrbanismeStats(this.selectedYear())) || VIDE);
+    } catch {
+      this.stats.set(VIDE);
+      this.errorMsg.set("Impossible de charger les statistiques d'urbanisme.");
+    } finally {
+      this.loading.set(false);
     }
-    }
-    catch {
-    this.stats.set({
-    totalDossiers: 0,
-    dossiersEnAttente: 0,
-    dossiersValides: 0,
-    dossiersRejetes: 0,
-    recettes: 0,
-    });
-    this.errorMsg.set("Impossible de charger les statistiques d'urbanisme.");
-    }
-    finally {
-    this.loading.set(false);
-    }
-    }
+  }
 
   protected formatMontant(montant: number) {
     return new Intl.NumberFormat('fr-FR').format(montant);
-    }
+  }
 
-  protected readonly tauxValidation = computed(() => this.stats().totalDossiers > 0
-    ? Math.round((this.stats().dossiersValides / this.stats().totalDossiers) * 100)
-    : 0);
+  /** Dossiers déjà tranchés (validés ou rejetés). */
+  protected readonly traites = computed(() => this.stats().valide + this.stats().rejete);
 
-  protected readonly statsData = computed(() => [
-    { label: 'Total dossiers', value: this.stats().totalDossiers.toString(), icon: 'ri-folder-line', color: 'teal' },
-    { label: 'En attente', value: this.stats().dossiersEnAttente.toString(), icon: 'ri-time-line', color: 'amber' },
-    { label: 'Validés', value: this.stats().dossiersValides.toString(), icon: 'ri-checkbox-circle-line', color: 'emerald' },
-    { label: 'Recettes totales', value: `${this.formatMontant(this.stats().recettes)} Fcfa`, icon: 'ri-money-dollar-circle-line', color: 'cyan' }
-    ]);
+  /** Part des dossiers tranchés qui ont été validés. */
+  protected readonly tauxValidation = computed(() => (this.traites() > 0 ? Math.round((this.stats().valide / this.traites()) * 100) : 0));
+
+  /** Les recettes sont celles des dossiers validés : les dossiers en attente ou rejetés n'en font pas partie. */
+  protected readonly cartes = computed(() => [
+    { label: 'Dossiers déposés', value: this.stats().total.toString(), detail: `${this.stats().enAttente} en attente`, icon: 'ri-folder-line', fond: 'bg-teal-100', texte: 'text-teal-600' },
+    { label: 'Dossiers validés', value: this.stats().valide.toString(), detail: `${this.stats().rejete} rejetés`, icon: 'ri-checkbox-circle-line', fond: 'bg-emerald-100', texte: 'text-emerald-600' },
+    { label: 'Recettes enregistrées', value: `${this.formatMontant(this.stats().recettes ?? 0)} FCFA`, detail: 'dossiers validés', icon: 'ri-money-dollar-circle-line', fond: 'bg-cyan-100', texte: 'text-cyan-600' },
+    { label: 'Montant en attente', value: `${this.formatMontant(this.stats().montantEnAttente ?? 0)} FCFA`, detail: 'si les dossiers sont validés', icon: 'ri-time-line', fond: 'bg-amber-100', texte: 'text-amber-600' },
+  ]);
+
+  protected readonly parType = computed(() => (this.stats().parType ?? [])
+    .map((t) => ({ ...t, libelle: libelleType(t.type, this.types()) }))
+    .sort((a, b) => b.total - a.total));
+
+  protected readonly parMois = computed(() => {
+    const mois = this.stats().parMois ?? [];
+    const max = Math.max(1, ...mois.map((m) => m.recettes));
+    return mois.map((m, i) => ({ ...m, libelle: MOIS[i] ?? m.mois, hauteur: Math.round((m.recettes / max) * 100) }));
+  });
 
   protected handleExport(type: FormatExport) {
     const s = this.stats();
+    const lignes: Cellule[][] = [
+      ['Synthèse', 'Dossiers déposés', s.total],
+      ['Synthèse', 'Dossiers en attente', s.enAttente],
+      ['Synthèse', 'Dossiers validés', s.valide],
+      ['Synthèse', 'Dossiers rejetés', s.rejete],
+      ['Synthèse', 'Taux de validation des dossiers traités (%)', this.tauxValidation()],
+      ['Synthèse', 'Recettes enregistrées (FCFA)', s.recettes ?? 0],
+      ['Synthèse', 'Montant en attente (FCFA)', s.montantEnAttente ?? 0],
+      ...this.parType().map((t): Cellule[] => ['Par type', `${t.libelle} : ${t.total} déposés, ${t.valides} validés, ${t.rejetes} rejetés (FCFA)`, t.recettes]),
+      ...this.parMois().map((m): Cellule[] => ['Par mois', `${m.libelle} ${this.selectedYear()} : ${m.deposes} déposés, ${m.valides} validés (FCFA)`, m.recettes]),
+    ];
     exporter(type, {
-    titre: `Statistiques de l'urbanisme ${this.selectedYear()}`,
-    fichier: `statistiques-urbanisme-${dateDuJour()}`,
-    colonnes: ['Indicateur', 'Valeur'],
-    lignes: [
-    ['Total des dossiers', s.totalDossiers],
-    ['Dossiers en attente', s.dossiersEnAttente],
-    ['Dossiers validés', s.dossiersValides],
-    ['Dossiers rejetés', s.dossiersRejetes],
-    ['Taux de validation (%)', this.tauxValidation()],
-    ['Recettes totales (FCFA)', s.recettes],
-    ],
+      titre: `Statistiques de l'urbanisme ${this.selectedYear()}`,
+      fichier: `statistiques-urbanisme-${dateDuJour()}`,
+      colonnes: ['Rubrique', 'Indicateur', 'Valeur'],
+      lignes,
     });
     this.exportType.set(type);
     this.showSuccessMessage.set(true);
-    setTimeout(() => {
-    this.showSuccessMessage.set(false);
-    }, 3000);
-    }
+    setTimeout(() => this.showSuccessMessage.set(false), 3000);
+  }
 
   constructor() {
+    this.taxesApi.getTaxServices('urbanisme-habitat').then((types) => this.types.set(types)).catch(() => this.types.set([]));
     effect(() => {
       this.selectedYear();
       untracked(() => {
-    this.loadStats();
+        this.loadStats();
       });
     });
   }

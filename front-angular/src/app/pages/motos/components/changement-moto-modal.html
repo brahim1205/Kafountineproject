@@ -15,7 +15,7 @@
           <div class="grid grid-cols-2 gap-3">
             @for (type of TYPES_CHANGEMENT; track type.value) {
               <label class="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-emerald-500 transition-colors">
-                <input type="radio" name="typeChangement" [value]="type.value" [checked]="type.value === 'proprietaire'" class="cursor-pointer" />
+                <input type="radio" name="typeChangement" [value]="type.value" [checked]="type.value === typeChangement()" (change)="typeChangement.set(type.value)" class="cursor-pointer" />
                 <div>
                   <p class="font-medium text-gray-900">{{ type.titre }}</p>
                   <p class="text-xs text-gray-500">{{ type.description }}</p>
@@ -64,9 +64,11 @@
           <h3 class="font-semibold text-gray-900 mb-3">Nouvelles informations</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <app-field label="Nom complet" name="nouveauNom" [required]="true" placeholder="Nouveau nom"></app-field>
-            <app-field label="N° CNI" name="nouveauCNI" [required]="true" placeholder="1234567890123"></app-field>
+            <app-field [label]="typeChangement() === 'proprietaire' ? 'N° CNI' : 'N° CNI (facultatif)'" name="nouveauCNI" [required]="typeChangement() === 'proprietaire'" placeholder="1234567890123"></app-field>
             <app-field label="Téléphone" name="nouveauTelephone" type="tel" [required]="true" placeholder="77 123 45 67"></app-field>
-            <app-field label="N° Permis" name="nouveauPermis" placeholder="A-2024-12345"></app-field>
+            @if (typeChangement() === 'conducteur') {
+              <app-field label="N° Permis" name="nouveauPermis" [required]="true" placeholder="A-2024-12345"></app-field>
+            }
             <app-field label="Adresse" name="nouvelleAdresse" placeholder="Quartier, Kafountine" class="md:col-span-2"></app-field>
           </div>
         </div>

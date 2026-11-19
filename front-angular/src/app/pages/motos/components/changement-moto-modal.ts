@@ -30,6 +30,9 @@ export class ChangementMotoModal implements OnInit {
 
   readonly saved = output<void>();
 
+  /** Propriétaire : la CNI est exigée (titulaire de la moto). Conducteur : c'est le permis qui compte. */
+  protected readonly typeChangement = signal<string>('proprietaire');
+
   protected readonly error = signal('');
 
   protected readonly isSubmitting = signal(false);

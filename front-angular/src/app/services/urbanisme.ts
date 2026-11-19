@@ -42,6 +42,10 @@ export interface UrbanismeStats {
   dossiersValides?: number;
   dossiersRejetes?: number;
   recettes?: number;
+  /** Montant des dossiers encore en attente (recette possible si validés). */
+  montantEnAttente?: number;
+  parType?: Array<{ type: string; total: number; valides: number; rejetes: number; recettes: number }>;
+  parMois?: Array<{ mois: string; deposes: number; valides: number; recettes: number }>;
 }
 
 @Injectable({ providedIn: 'root' })

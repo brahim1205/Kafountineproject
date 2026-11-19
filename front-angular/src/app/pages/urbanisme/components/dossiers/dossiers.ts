@@ -43,10 +43,21 @@ const TYPES_API: Record<string, string> = {
   'autorisation-travaux': 'Autorisation de travaux',
   'certificat-conformite': 'Certificat de conformité',
   'titre-foncier': 'Titre foncier',
+  'permis-demolir': 'Permis de démolir',
+  'permis-démolir': 'Permis de démolir',
+  'autorisation-construire': 'Autorisation de construire',
 };
 
-export const typeLabel = (dossier: DossierUrbanisme, types: TaxService[]) =>
-  types.find((type) => type.id === dossier.type)?.nom || TYPES_API[dossier.type] || dossier.type || '-';
+/** Libellé d'un type de dossier (identifiant du tarif au catalogue). */
+export const libelleType = (code: string, types: TaxService[]) =>
+  types.find((type) => type.id === code)?.nom || TYPES_API[code] || lisible(code);
+
+/** Code hors catalogue (ex. « permis-démolir ») rendu lisible : « Permis démolir ». */
+function lisible(code: string): string {
+  const texte = (code || '').replace(/[-_]+/g, ' ').trim();
+  return texte ? texte.charAt(0).toUpperCase() + texte.slice(1) : '-';
+}
+export const typeLabel = (dossier: DossierUrbanisme, types: TaxService[]) => libelleType(dossier.type, types);
 export const formatSurface = (surface?: number) => (surface ? `${surface.toLocaleString('fr-FR')} m²` : '-');
 export const formatDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR');
 

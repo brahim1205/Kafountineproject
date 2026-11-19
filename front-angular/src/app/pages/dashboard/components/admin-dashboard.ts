@@ -83,13 +83,6 @@ export class AdminDashboard {
     color: 'bg-emerald-50 text-emerald-600'
     },
     {
-    title: 'Contribuables',
-    value: this.stats()?.totalContribuables?.toString() || '0',
-    unit: 'inscrits',
-    icon: 'ri-team-line',
-    color: 'bg-cyan-50 text-cyan-600'
-    },
-    {
     title: 'Taux recouvrement',
     value: this.stats()?.tauxRecouvrement?.toFixed(1) || '0',
     unit: '%',

@@ -18,9 +18,9 @@ export const allMenuItems: MenuItem[] = [
   { path: '/etat-civil/historique', icon: 'ri-history-line', label: 'Historique', roles: ['etat_civil'] },
   { path: '/taxes/etat-civil', icon: 'ri-file-list-3-line', label: 'Anciens tickets', roles: ['etat_civil'] },
   { path: '/etat-civil/statistiques', icon: 'ri-bar-chart-box-line', label: 'Statistiques', roles: ['etat_civil'] },
-  { path: '/quai-peche/commissions', icon: 'ri-snowy-line', label: 'Commissions Frigorifiques', roles: ['quai_peche', 'regisseur'] },
-  { path: '/quai-peche/pecheurs', icon: 'ri-user-line', label: 'Pêcheurs', roles: ['quai_peche', 'regisseur'] },
-  { path: '/quai-peche/embarcations', icon: 'ri-ship-2-line', label: 'Embarcations', roles: ['quai_peche', 'regisseur'] },
+  { path: '/quai-peche/commissions', icon: 'ri-snowy-line', label: 'Commissions Frigorifiques', roles: ['quai_peche'] },
+  { path: '/quai-peche/pecheurs', icon: 'ri-user-line', label: 'Pêcheurs', roles: ['quai_peche'] },
+  { path: '/quai-peche/embarcations', icon: 'ri-ship-2-line', label: 'Embarcations', roles: ['quai_peche'] },
   { path: '/quai-peche/camions', icon: 'ri-truck-line', label: 'Camions Frigorifiques', roles: ['quai_peche', 'regisseur'] },
   { path: '/quai-peche/droits', icon: 'ri-coins-line', label: 'Droits du quai', roles: ['quai_peche', 'regisseur'] },
   { path: '/motos', icon: 'ri-motorbike-line', label: 'Motos Jakarta', roles: ['quai_peche'] },
@@ -62,7 +62,7 @@ export const roleLabels: Record<UiRole, string> = {
 export const ORDRE_REGISSEUR = [
   '/dashboard', '/recettes', '/caisse', '/impayes', '/taxes', '/penalites',
   '/marche', '/motos', '/urbanisme',
-  '/quai-peche/droits', '/quai-peche/commissions', '/quai-peche/pecheurs', '/quai-peche/embarcations', '/quai-peche/camions',
+  '/quai-peche/droits', '/quai-peche/camions',
   '/contribuables', '/utilisateurs',
 ];
 

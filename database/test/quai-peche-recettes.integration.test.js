@@ -46,6 +46,16 @@ describeIntegration('quai de pêche : recettes tracées', () => {
     expect((await regisseur.delete(`/quai-peche/expeditions/${exp.id}`)).status).toBe(409);
   });
 
+  it('ne montre au régisseur que les camions et expéditions du quai', async () => {
+    for (const collection of ['pecheurs', 'embarcations', 'commissions']) {
+      expect((await regisseur.get(`/quai-peche/${collection}?year=${year}`)).status).toBe(403);
+      expect((await regisseur.post(`/quai-peche/${collection}`).send({})).status).toBe(403);
+    }
+    expect((await regisseur.get(`/quai-peche/camions?year=${year}`)).status).toBe(200);
+    expect((await regisseur.get(`/quai-peche/expeditions?year=${year}`)).status).toBe(200);
+    expect((await quai.get(`/quai-peche/pecheurs?year=${year}`)).status).toBe(200);
+  });
+
   it('applique le tarif « vide » quand le camion repart sans chargement', async () => {
     const exp = await expedition((await camion(15000)).id, 0);
     const paye = await quai.post(`/quai-peche/expeditions/${exp.id}/paiement`).send({ contribuableId });

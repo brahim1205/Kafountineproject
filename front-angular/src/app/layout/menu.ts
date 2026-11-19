@@ -28,7 +28,7 @@ export const allMenuItems: MenuItem[] = [
   { path: '/recettes', icon: 'ri-money-dollar-circle-line', label: 'Recettes', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'regisseur'] },
   { path: '/taxes', icon: 'ri-file-list-3-line', label: 'Taxes', roles: ['agent', 'regisseur'] },
   ...(FEATURES.formations ? [{ path: '/formations', icon: 'ri-graduation-cap-line', label: 'Formations', roles: ['admin', 'super_admin', 'agent', 'regisseur'] }] : []),
-  { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
+  { path: '/penalites', icon: 'ri-alert-line', label: 'Pénalités', roles: ['super_admin', 'agent', 'regisseur'] },
   { path: '/etat-civil', icon: 'ri-file-text-line', label: 'État Civil', roles: ['admin'] },
   { path: '/urbanisme', icon: 'ri-building-line', label: 'Urbanisme', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
   { path: '/marche', icon: 'ri-store-2-line', label: 'Marché', roles: ['admin', 'super_admin', 'agent', 'regisseur'] },
@@ -41,7 +41,7 @@ export const allMenuItems: MenuItem[] = [
   { path: '/caisse', icon: 'ri-safe-2-line', label: 'Caisse', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur', 'quai_peche'] },
   { path: '/activite-agents', icon: 'ri-bar-chart-grouped-line', label: 'Activité des agents', roles: ['admin', 'super_admin', 'regisseur'] },
   { path: '/impayes', icon: 'ri-error-warning-line', label: 'Impayés', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'quai_peche', 'regisseur'] },
-  { path: '/contribuables', icon: 'ri-group-line', label: 'Contribuables', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'] },
+  { path: '/contribuables', icon: 'ri-group-line', label: 'Contribuables', roles: ['super_admin', 'agent', 'service_finances', 'etat_civil', 'regisseur'] },
   { path: '/audit', icon: 'ri-file-list-3-line', label: 'Journal Audit', roles: ['super_admin'] },
 ];
 

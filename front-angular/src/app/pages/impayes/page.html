@@ -28,7 +28,7 @@
             @for (ligne of lignes(); track ligne.type + ligne.id) {
               <tr class="border-b border-gray-100">
                 <td class="py-2 px-3">
-                  @if (ligne.contribuableId) {
+                  @if (ligne.contribuableId && voitContribuables()) {
                     <a [routerLink]="['/contribuables']" [queryParams]="{ id: ligne.contribuableId }" class="text-cyan-700 hover:underline">{{ ligne.contribuable }}</a>
                   } @else { {{ ligne.contribuable }} }
                 </td>

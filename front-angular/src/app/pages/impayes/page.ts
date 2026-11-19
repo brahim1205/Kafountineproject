@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { RouterLink } from '@angular/router';
 import { Impayes as ImpayesData, RecouvrementApi } from '../../services/recouvrement';
 import { getErrorMessage } from '../../utils/form-validation';
@@ -12,6 +13,9 @@ import { getErrorMessage } from '../../utils/form-validation';
 })
 export class Impayes {
   private readonly api = inject(RecouvrementApi);
+  private readonly auth = inject(AuthService);
+  /** La fiche contribuable n'est pas ouverte à l'administration (consultation des recettes seulement). */
+  protected readonly voitContribuables = computed(() => this.auth.role() !== 'admin');
 
   protected readonly data = signal<ImpayesData | null>(null);
   protected readonly erreur = signal('');

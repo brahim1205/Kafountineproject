@@ -14,8 +14,8 @@ import { getErrorMessage } from '../../utils/form-validation';
 export class Impayes {
   private readonly api = inject(RecouvrementApi);
   private readonly auth = inject(AuthService);
-  /** La fiche contribuable n'est pas ouverte à l'administration (consultation des recettes seulement). */
-  protected readonly voitContribuables = computed(() => this.auth.role() !== 'admin');
+  /** La page Contribuables n'est ouverte ni à l'administration ni au régisseur : le nom s'affiche sans lien. */
+  protected readonly voitContribuables = computed(() => this.auth.role() !== 'admin' && this.auth.role() !== 'regisseur');
 
   protected readonly data = signal<ImpayesData | null>(null);
   protected readonly erreur = signal('');

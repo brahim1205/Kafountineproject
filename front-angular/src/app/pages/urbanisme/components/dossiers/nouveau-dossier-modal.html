@@ -61,7 +61,7 @@
                 <p class="text-emerald-50/70 text-[10px] font-medium">Tarif :
                   {{ permis()!.tarif.toLocaleString('fr-FR') }}
                   F /
-                  {{ permis()!.unite }}{{ auMetreCarre() && ` · Base de calcul : ${Math.max(1, surfaceSaisie() || 1)} m²` }}</p>
+                  {{ permis()!.unite }}@if (auMetreCarre()) { · Base de calcul : {{ Math.max(1, surfaceSaisie() || 1) }} m²}</p>
               </div>
               <p class="text-3xl font-black">{{ montant().toLocaleString('fr-FR') }}&ngsp;<span class="text-xs opacity-60">FCFA</span>
               </p>

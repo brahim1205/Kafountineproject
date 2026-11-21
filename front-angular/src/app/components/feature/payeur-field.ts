@@ -3,7 +3,7 @@ import { ContribuablesApi } from '../../services/contribuables';
 import { ContribuableSelect, requireSelectedContribuable } from './contribuable-select';
 
 /**
- * Payeur d'une recette : un contribuable déjà enregistré, ou un nouveau saisi sur place (CNI, nom, téléphone),
+ * Payeur d'une recette : un contribuable déjà enregistré, ou un nouveau saisi sur place (nom, téléphone, CNI facultative),
  * retrouvé par sa CNI ou créé. Le formulaire parent appelle `resoudre(form)` avant d'envoyer la recette.
  */
 @Component({
@@ -19,7 +19,7 @@ import { ContribuableSelect, requireSelectedContribuable } from './contribuable-
     </div>
     @if (nouveau()) {
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <input name="payeurCni" aria-label="CNI du payeur" placeholder="CNI" data-required="true" [class]="inputClassName()" />
+        <input name="payeurCni" aria-label="CNI du payeur (facultatif)" placeholder="CNI (facultatif)" [class]="inputClassName()" />
         <input name="payeurNom" aria-label="Prénom et nom du payeur" placeholder="Prénom et nom" data-required="true" [class]="inputClassName()" />
         <input name="payeurTelephone" aria-label="Téléphone du payeur" placeholder="Téléphone" data-required="true" [class]="inputClassName()" />
       </div>
@@ -37,7 +37,7 @@ export class PayeurField {
   async resoudre(form: HTMLFormElement): Promise<string | null> {
     if (!this.nouveau()) return requireSelectedContribuable(form, 'contribuableId');
     const champ = (nom: string) => form.elements.namedItem(nom) as HTMLInputElement | null;
-    for (const nom of ['payeurCni', 'payeurNom', 'payeurTelephone']) {
+    for (const nom of ['payeurNom', 'payeurTelephone']) {
       const input = champ(nom);
       if (input && !input.value.trim()) {
         input.setCustomValidity('Champ requis');

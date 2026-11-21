@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { formatTarif, statutBadge, UiPlace } from './places';
 
-const COLUMNS = ['Numéro', 'Type', 'Zone', 'Occupant', 'Activité', 'Tarif', 'Statut'];
+const COLUMNS = ['Type', 'Zone', 'Occupant', 'Activité', 'Tarif', 'Statut'];
 
 @Component({
   selector: 'app-places-table',

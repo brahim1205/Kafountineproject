@@ -194,7 +194,7 @@ export class AdminDashboard {
     if (data?.transactionsRecentes) {
     const formattedTransactions = data.transactionsRecentes.map((tx: TransactionRecente) => ({
     id: tx.numero || tx.id,
-    type: tx.type || tx.categorie || 'Transaction',
+    type: tx.service || tx.type || tx.categorie || 'Transaction',
     contribuable: tx.contribuable ? `${tx.contribuable.prenom || ''} ${tx.contribuable.nom || ''}`.trim() : tx.contribuableNom || '-',
     agent: tx.agent ? `${tx.agent.prenom || ''} ${tx.agent.nom || ''}`.trim() : '-',
     montant: tx.montant || 0,

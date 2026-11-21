@@ -20,6 +20,8 @@
 2. Vérifier le login web.
 3. Vérifier un parcours métier critique.
 4. Vérifier les logs backend : `ssh root@72.62.234.215 'cd /opt/kafontine && docker compose -f docker-compose.prod.yml logs --tail=200 backend'`.
+5. Lister seulement les erreurs (serveur et navigateur) : `ssh root@72.62.234.215 'cd /opt/kafontine && docker compose -f docker-compose.prod.yml logs --since 24h backend | grep -E "\"type\":\"(error|client-error)\""'`.
+   Une ligne `client-error` est un plantage survenu dans le navigateur d'un utilisateur (page, rôle, message). Les logs sont plafonnés à 5 × 20 Mo par service.
 
 ## 4. Backup
 

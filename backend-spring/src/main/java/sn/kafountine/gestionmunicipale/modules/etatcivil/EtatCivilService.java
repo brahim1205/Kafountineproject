@@ -69,6 +69,22 @@ public class EtatCivilService {
   }
 
   /** resolveEtatCivilDocument : { id, nom, tarif }. */
+  /** Tarif du catalogue (paramétrable) pour ce type de document, ou null s'il n'y figure pas. */
+  private Double tarifOfficiel(String typeDocument) {
+    String cle = typeDocument == null ? "" : typeDocument.strip();
+    for (Map<String, Object> service : catalog.listServices("etat-civil")) {
+      String nom = String.valueOf(service.get("nom"));
+      if (cle.equals(String.valueOf(service.get("id"))) || cle.equalsIgnoreCase(nom) || cle.equalsIgnoreCase(DocumentLabels.label(nom))) {
+        return service.get("tarif") instanceof Number n ? n.doubleValue() : null;
+      }
+    }
+    return null;
+  }
+
+  private static boolean superAdmin(Actor actor) {
+    return actor != null && "SUPER_ADMIN".equalsIgnoreCase(actor.role());
+  }
+
   static String[] resolveDocument(String typeDocument) {
     String normalized = typeDocument.strip().toLowerCase(Locale.ROOT);
     String[] known = DOCUMENT_CATALOG.get(normalized);
@@ -143,7 +159,11 @@ public class EtatCivilService {
     if (contribuable == null) throw AppException.notFound("Contribuable introuvable.");
     String[] documentType = resolveDocument(typeDocument);
     int year = Year.now().getValue();
-    double montant = input.montant() == null ? Double.parseDouble(documentType[2]) * exemplaires : input.montant();
+    Double tarif = tarifOfficiel(typeDocument);
+    // Le montant suit le tarif officiel : seul le super administrateur peut saisir un autre montant (reprise, correction).
+    double montant = superAdmin(actor) && input.montant() != null
+        ? input.montant()
+        : (tarif != null ? tarif : Double.parseDouble(documentType[2])) * exemplaires;
     if (montant < 0) throw AppException.validation("Le montant de la demande d'état civil est invalide.");
     if (recette(statut)) caisse.assertOuverte(actor.userId(), Instant.now());
     String numero = numeros.next(NumeroSequence.Series.ETAT_CIVIL, year);
@@ -183,6 +203,12 @@ public class EtatCivilService {
     String typeDocument = input.typeDocument() != null && !input.typeDocument().isEmpty() ? DocumentLabels.label(input.typeDocument()) : Db.str(existing, "typeDocument");
     Object exemplaires = input.exemplaires() != null ? Math.max(1, input.exemplaires()) : existing.get("exemplaires");
     Object montant = input.montant() != null ? input.montant() : existing.get("montant");
+    if (!superAdmin(actor)) {
+      // Hors super administrateur, le montant est recalculé au tarif officiel du type et du nombre d'exemplaires.
+      Double tarif = tarifOfficiel(input.typeDocument() != null && !input.typeDocument().isEmpty() ? input.typeDocument() : typeDocument);
+      if (tarif != null) montant = tarif * ((Number) exemplaires).doubleValue();
+      else if (input.montant() != null) montant = existing.get("montant");
+    }
     String statut = input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : Db.str(existing, "statut");
     boolean etaitRecette = recette(Db.str(existing, "statut"));
     Object encaisseLe = existing.get("encaisseLe");

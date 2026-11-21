@@ -106,6 +106,19 @@ public class UrbanismeService {
     return view(row);
   }
 
+  private static double montantOfficiel(Type type, Double surface) {
+    return type.unite().equals("m²") ? type.tarif() * Math.max(1, surface == null || surface == 0 ? 1 : surface) : type.tarif();
+  }
+
+  private static boolean superAdmin(Actor actor) {
+    return actor != null && "SUPER_ADMIN".equalsIgnoreCase(actor.role());
+  }
+
+  /** Valider ou rejeter un dossier : régisseur ou super administrateur. */
+  private static boolean peutTrancher(Actor actor) {
+    return actor != null && ("SUPER_ADMIN".equalsIgnoreCase(actor.role()) || "REGISSEUR".equalsIgnoreCase(actor.role()));
+  }
+
   private static boolean recette(String statut) {
     return "VALIDE".equals(statut);
   }
@@ -127,15 +140,19 @@ public class UrbanismeService {
     Type urbanismeType = resolveType(type);
     Double surface = input.surface();
     if (surface != null && surface < 0) throw AppException.validation("La surface du dossier d'urbanisme est invalide.");
-    double montant = input.montant() == null
-        ? (urbanismeType.unite().equals("m²") ? urbanismeType.tarif() * Math.max(1, surface == null || surface == 0 ? 1 : surface) : urbanismeType.tarif())
-        : input.montant();
+    double tarifOfficiel = montantOfficiel(urbanismeType, surface);
+    // Le montant suit le tarif officiel : seul le super administrateur peut en saisir un autre (reprise, correction).
+    double montant = input.montant() != null && superAdmin(actor) ? input.montant() : tarifOfficiel;
     if (montant < 0) throw AppException.validation("Le montant du dossier d'urbanisme est invalide.");
     int year = Year.now().getValue();
     String role = actor.role() == null ? "" : actor.role().strip().toUpperCase(Locale.ROOT);
     String defaultStatus = role.equals("ADMIN") || role.equals("SUPER_ADMIN") ? "VALIDE" : "EN_ATTENTE";
     String numero = numeros.next(NumeroSequence.Series.URBANISME, year);
     String statut = input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : defaultStatus;
+    // L'agent dépose le dossier ; le valider ou le rejeter revient au régisseur.
+    if (!peutTrancher(actor) && !"EN_ATTENTE".equals(statut)) {
+      throw AppException.forbidden("Un dossier déposé reste en attente : sa validation revient au régisseur.");
+    }
     if (recette(statut)) caisse.assertOuverte(actor.userId(), Instant.now());
     Map<String, Object> row = db.one("""
         INSERT INTO "UrbanismeCase" ("id", "numero", "contribuableId", "agentId", "type", "description", "surface", "localisation", "nature", "montant", "statut", "year", "modePaiement", "encaisseLe", "encaissePar", "createdAt", "updatedAt")
@@ -173,6 +190,17 @@ public class UrbanismeService {
     Object montant = input.montant() != null ? input.montant() : existing.get("montant");
     if (input.montant() != null && input.montant() < 0) throw AppException.validation("Le montant du dossier d'urbanisme est invalide.");
     Object statut = input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : existing.get("statut");
+    if (!peutTrancher(actor) && !String.valueOf(statut).equals(Db.str(existing, "statut"))) {
+      throw AppException.forbidden("La validation ou le rejet d'un dossier revient au régisseur.");
+    }
+    if (!peutTrancher(actor) && !"EN_ATTENTE".equals(Db.str(existing, "statut"))) {
+      throw AppException.forbidden("Ce dossier a déjà été tranché : seul le régisseur peut le modifier.");
+    }
+    if (!superAdmin(actor) && (input.montant() != null || input.type() != null || input.surface() != null)) {
+      // Hors super administrateur, le montant est recalculé au tarif officiel du type et de la surface.
+      Type typeFinal = resolveType(input.type() != null && !input.type().isEmpty() ? input.type() : Db.str(existing, "type"));
+      montant = montantOfficiel(typeFinal, surface instanceof Number n ? n.doubleValue() : null);
+    }
     boolean etaitRecette = recette(Db.str(existing, "statut"));
     Object encaisseLe = existing.get("encaisseLe");
     Object encaissePar = existing.get("encaissePar");
@@ -180,7 +208,7 @@ public class UrbanismeService {
       caisse.assertOuverte(etaitRecette ? Db.str(existing, "encaissePar") : actor.userId(), etaitRecette ? Db.date(existing, "encaisseLe") : Instant.now());
       encaisseLe = etaitRecette ? null : Timestamp.from(Instant.now());
       encaissePar = etaitRecette ? null : actor.userId();
-    } else if (etaitRecette && input.montant() != null && input.montant() != Db.num(existing, "montant")) {
+    } else if (etaitRecette && ((Number) montant).doubleValue() != Db.num(existing, "montant")) {
       caisse.assertOuverte(Db.str(existing, "encaissePar"), Db.date(existing, "encaisseLe"));
     }
     Map<String, Object> row = db.one("""

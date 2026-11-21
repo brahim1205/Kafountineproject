@@ -364,6 +364,15 @@ public class TransactionService {
    * Montant d'une ligne du catalogue : tarif × quantité, ou, pour un droit en pourcentage (15 % des recettes
    * d'une manifestation à entrée payante, arrêté du 8 mai 2024), taux × recettes déclarées, arrondi au franc.
    */
+  /** Montant officiel d'une pénalité « Pénalité (type) » du barème, ou null si le service n'en est pas une. */
+  private Double montantPenalite(String service) {
+    if (service == null || !service.startsWith("Pénalité (") || !service.endsWith(")")) return null;
+    String type = service.substring("Pénalité (".length(), service.length() - 1).strip();
+    Map<String, Object> row = db.one("SELECT \"montant\" FROM \"AppSettingPenalty\" WHERE \"type\" = :type LIMIT 1", Db.params("type", type));
+    if (row == null) throw AppException.validation("Pénalité inconnue du barème : " + type + ".");
+    return Db.num(row, "montant");
+  }
+
   static double montantDuService(double tarif, int quantite, Object calcul) {
     if ("pourcentage".equals(calcul)) return Math.round(tarif * quantite / 100.0);
     return tarif * quantite;
@@ -381,8 +390,14 @@ public class TransactionService {
       throw AppException.validation("Les actes d'état civil s'enregistrent depuis « Nouvelle demande », pas en ticket.");
     }
     double montant = montantReglementaire(categorie, service, quantite, input.montant() == null ? 0 : input.montant());
+    boolean superAdmin = "SUPER_ADMIN".equalsIgnoreCase(actor.role());
+    if (!superAdmin) {
+      Double penalite = montantPenalite(service);
+      if (penalite != null) montant = penalite;
+    }
     Instant date;
-    if (input.date() != null && !input.date().isEmpty()) {
+    // Un ticket porte la date du jour : seule une reprise par le super administrateur peut être antidatée.
+    if (superAdmin && input.date() != null && !input.date().isEmpty()) {
       date = Input.parseDate(input.date());
       if (date == null) throw new IllegalArgumentException("Invalid value for argument `date`: Provided Date object is invalid.");
     } else {
@@ -437,7 +452,10 @@ public class TransactionService {
       changes.put("tarifUnitaire", input.montant());
     }
     if (input.modePaiement() != null) changes.put("modePaiement", input.modePaiement());
-    if (input.statut() != null) changes.put("statut", input.statut());
+    // L'annulation passe par la suppression, qui la trace au journal ; une modification ne change pas le statut.
+    if (input.statut() != null && !input.statut().equals(Db.str(db.one("SELECT \"statut\" FROM \"Transaction\" WHERE \"id\" = :id", Db.params("id", id)), "statut"))) {
+      throw AppException.validation("Le statut d'un ticket ne se modifie pas : utilisez l'annulation.");
+    }
     MapSqlParameterSource params = new MapSqlParameterSource("id", id).addValue("updatedAt", Timestamp.from(Instant.now()));
     StringBuilder set = new StringBuilder("\"updatedAt\" = :updatedAt");
     changes.forEach((key, value) -> {

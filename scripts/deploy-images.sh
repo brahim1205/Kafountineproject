@@ -27,12 +27,20 @@ else
 fi
 override=$(mktemp .compose-release.XXXXXX.yml)
 trap 'rm -f "$override"' EXIT
+# Le fichier compose du serveur n'est pas mis à jour par le déploiement : la limite de taille
+# des logs est donc imposée ici, à chaque mise en ligne (5 fichiers de 20 Mo par service).
 cat > "$override" <<EOF
 services:
   backend:
     image: $backend_image
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "5"}
   $front_service:
     image: $frontend_image
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "5"}
 EOF
 if [[ -n "$migrator_image" ]]; then
   cat >> "$override" <<EOF

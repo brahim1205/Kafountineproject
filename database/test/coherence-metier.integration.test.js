@@ -87,7 +87,8 @@ describeIntegration('cohérence métier', () => {
       expect((await etatCivil.post('/etat-civil').send({ ...base, statut: 'REJETEE' })).status).toBe(201);
       expect(await stats()).toBe(before);
       expect((await etatCivil.post('/etat-civil').send({ ...base, statut: 'DELIVREE' })).status).toBe(201);
-      expect(await stats()).toBe(before + 1500);
+      // Le montant envoyé est ignoré : l'acte est compté à son tarif officiel.
+      expect(await stats()).toBe(before + Number(types[0].tarif));
     });
 
     it('refuse de supprimer un acte délivré, mais accepte de supprimer une demande en attente', async () => {
@@ -313,7 +314,7 @@ describeIntegration('cohérence métier', () => {
       const types = (await etatCivil.get('/etat-civil/types-documents')).body.data;
       expect((await etatCivil.post('/etat-civil').send({ contribuableId, typeDocument: types[0].id, exemplaires: 1, montant: 900, statut: 'DELIVREE' })).status).toBe(201);
       const propre = (await etatCivil.get('/caisse/journal')).body.data;
-      expect(propre.parSource['État civil']).toBeGreaterThanOrEqual(900);
+      expect(propre.parSource['État civil']).toBeGreaterThanOrEqual(Number(types[0].tarif));
 
       const vueRegisseur = (await regisseur.get(`/caisse/journal?agentId=${propre.agentId}`)).body.data;
       expect(vueRegisseur.lignes.some((l) => l.source === 'État civil')).toBe(false);
@@ -329,6 +330,49 @@ describeIntegration('cohérence métier', () => {
 
       const syntheseAdmin = (await superadmin.get('/caisse/synthese')).body.data;
       expect(syntheseAdmin.agents.find((a) => a.agentId === propre.agentId).montant).toBe(propre.total);
+    });
+  });
+
+  describe('contrôles contre la fraude', () => {
+    it('compte un acte d’état civil à son tarif officiel, quel que soit le montant envoyé', async () => {
+      const types = (await etatCivil.get('/etat-civil/types-documents')).body.data;
+      const acte = await etatCivil.post('/etat-civil').send({ contribuableId, typeDocument: types[0].id, exemplaires: 2, montant: 0, statut: 'EN_ATTENTE' });
+      expect(acte.status).toBe(201);
+      expect(Number(acte.body.data.montant)).toBe(Number(types[0].tarif) * 2);
+      const modifie = await etatCivil.put(`/etat-civil/${acte.body.data.id}`).send({ montant: 1 });
+      expect(Number(modifie.body.data.montant)).toBe(Number(types[0].tarif) * 2);
+    });
+
+    it('laisse au régisseur la validation des dossiers d’urbanisme et applique le tarif officiel', async () => {
+      const base = { contribuableId, type: 'autorisation-construire' };
+      expect((await agent.post('/urbanisme').send({ ...base, statut: 'VALIDE' })).status).toBe(403);
+      const depose = await agent.post('/urbanisme').send({ ...base, montant: 1 });
+      expect(depose.status).toBe(201);
+      expect(Number(depose.body.data.montant)).toBeGreaterThan(1);
+      expect((await agent.put(`/urbanisme/${depose.body.data.id}`).send({ statut: 'VALIDE' })).status).toBe(403);
+      const baisse = await agent.put(`/urbanisme/${depose.body.data.id}`).send({ montant: 1 });
+      expect(Number(baisse.body.data.montant)).toBe(Number(depose.body.data.montant));
+      expect((await regisseur.put(`/urbanisme/${depose.body.data.id}`).send({ statut: 'VALIDE' })).status).toBe(200);
+    });
+
+    it('date un ticket du jour et applique le montant de la pénalité du barème', async () => {
+      const penalites = (await agent.get('/settings/penalites')).body.data;
+      const penalite = penalites[0];
+      const service = `Pénalité (${penalite.type})`;
+      const res = await agent.post('/transactions').send({
+        contribuableId, categorie: 'Pénalités', type: service, service, quantite: 1, montant: 1, date: '2020-01-01T00:00:00.000Z',
+      });
+      expect(res.status).toBe(201);
+      expect(Number(res.body.data.montant)).toBe(Number(penalite.montant));
+      expect(new Date(res.body.data.date).getFullYear()).toBe(year);
+      const inconnue = await agent.post('/transactions').send({ contribuableId, categorie: 'Pénalités', type: 'Pénalité (Inventée)', service: 'Pénalité (Inventée)', montant: 1 });
+      expect(inconnue.status).toBe(400);
+    });
+
+    it('refuse de changer le statut d’un ticket hors annulation', async () => {
+      const cree = await ticket(regisseur, 500, 'ESPECE');
+      expect(cree.status).toBe(201);
+      expect((await regisseur.put(`/transactions/${cree.body.data.id}`).send({ statut: 'ANNULE' })).status).toBe(400);
     });
   });
 
@@ -393,11 +437,11 @@ describeIntegration('cohérence métier', () => {
 
       const vu = (await superadmin.get(`/contribuables/${id}/situation?year=${year}`)).body.data;
       expect(vu.parSource['Motos']).toBeGreaterThan(0);
-      expect(vu.parSource['État civil']).toBe(700);
+      expect(vu.parSource['État civil']).toBe(Number(types[0].tarif));
 
       const masque = (await regisseur.get(`/contribuables/${id}/situation?year=${year}`)).body.data;
       expect(masque.parSource['État civil']).toBeUndefined();
-      expect(masque.totalPaye).toBe(vu.totalPaye - 700);
+      expect(masque.totalPaye).toBe(vu.totalPaye - Number(types[0].tarif));
       expect((await quaipeche.get(`/contribuables/${id}/situation?year=${year}`)).status).toBe(403);
     });
 

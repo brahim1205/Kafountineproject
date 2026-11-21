@@ -90,7 +90,7 @@ public class DashboardService {
     for (Map<String, Object> row : rows) {
       Map<String, Object> c = contribuables.get(Db.str(row, "contribuableId"));
       Map<String, Object> a = agents.get(Db.str(row, "agentId"));
-      items.add(Api.map("id", row.get("id"), "numero", row.get("numero"), "montant", Db.num(row, "montant"), "categorie", row.get("categorie"),
+      items.add(Api.map("id", row.get("id"), "numero", row.get("numero"), "montant", Db.num(row, "montant"), "categorie", row.get("categorie"), "service", row.get("service"),
           "statut", row.get("statut"), "createdAt", JacksonConfig.iso(Db.date(row, "createdAt")),
           "contribuable", c == null ? null : Api.map("id", c.get("id"), "nom", c.get("nom"), "prenom", c.get("prenom"), "nin", c.get("nin"), "telephone", c.get("telephone")),
           "agent", a == null ? null : Api.map("nom", a.get("nom"), "prenom", a.get("prenom"))));

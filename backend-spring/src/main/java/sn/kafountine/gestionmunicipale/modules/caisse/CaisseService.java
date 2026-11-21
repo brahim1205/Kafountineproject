@@ -84,7 +84,7 @@ public class CaisseService {
     LocalDate date = (quand == null ? Instant.now() : quand).atZone(ZoneOffset.UTC).toLocalDate();
     if (db.count("SELECT COUNT(*) FROM \"CashClosure\" WHERE \"agentId\" = :agentId AND \"jour\" = CAST(:jour AS date)",
         Db.params("agentId", agentId, "jour", date.toString())) > 0) {
-      throw AppException.conflict("La caisse de cet agent est clôturée pour le " + date + " : réouvrez-la avant de modifier ses encaissements.");
+      throw AppException.conflict("La caisse est clôturée pour le " + date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + " : elle doit être réouverte avant d'y enregistrer ou modifier une recette.");
     }
   }
 

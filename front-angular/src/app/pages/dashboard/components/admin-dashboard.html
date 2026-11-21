@@ -254,8 +254,16 @@
                     FCFA</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ t.heure }}</td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                      <i class="ri-check-line mr-1"></i>Complété</span>
+                    @if (t.statut.startsWith('annul')) {
+                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                        <i class="ri-close-line mr-1"></i>Annulé</span>
+                    } @else if (t.statut === 'en_attente') {
+                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                        <i class="ri-time-line mr-1"></i>En attente</span>
+                    } @else {
+                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                        <i class="ri-check-line mr-1"></i>Payé</span>
+                    }
                   </td>
                 </tr>
               }

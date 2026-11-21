@@ -91,7 +91,7 @@ export class AgentDashboard {
   protected readonly tachesEnCours = computed(() => [
     { icon: 'ri-motorbike-line', label: 'Motos en retard de paiement', count: this.tachesCounts().motos, color: 'text-red-600 bg-red-50', link: '/motos' },
     { icon: 'ri-building-line', label: 'Dossiers urbanisme en attente', count: this.tachesCounts().urbanisme, color: 'text-sky-600 bg-sky-50', link: '/urbanisme' },
-    { icon: 'ri-store-2-line', label: 'Paiements marché à encaisser', count: this.tachesCounts().marche, color: 'text-emerald-600 bg-emerald-50', link: '/marche' },
+    { icon: 'ri-store-2-line', label: 'Paiements marché à enregistrer', count: this.tachesCounts().marche, color: 'text-emerald-600 bg-emerald-50', link: '/marche' },
     ]);
 
   /** Tickets enregistrés par l'agent sur le mois civil en cours (aucun objectif n'est fixé par la mairie). */

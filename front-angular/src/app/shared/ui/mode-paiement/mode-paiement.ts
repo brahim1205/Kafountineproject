@@ -11,7 +11,7 @@ export function libelleMode(mode: string): string {
   return MODES_PAIEMENT.find((item) => item.value === mode)?.label.replace(/ \(.*$/, '') ?? mode;
 }
 
-/** Choix du mode d'encaissement, commun à tous les formulaires. */
+/** Choix du mode de paiement, commun à tous les formulaires. */
 @Component({
   selector: 'app-mode-paiement',
   host: { class: 'block' },

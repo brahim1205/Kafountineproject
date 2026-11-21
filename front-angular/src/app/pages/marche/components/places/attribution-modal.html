@@ -15,7 +15,7 @@
                 @let value = row[0];
                 @let titre = row[1];
                 @let description = row[2];
-                <label [class]="`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-colors ${mode() === value ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200 hover:border-cyan-300'}`">
+                <label [class]="`flex items-center gap-3 p-3 border-2 rounded-lg transition-colors ${value === 'existant' && placesDisponibles().length === 0 ? 'cursor-not-allowed opacity-50 border-gray-200' : mode() === value ? 'cursor-pointer border-cyan-500 bg-cyan-50' : 'cursor-pointer border-gray-200 hover:border-cyan-300'}`">
                   <input type="radio" name="mode" [checked]="mode() === value" [disabled]="value === 'existant' && placesDisponibles().length === 0" (change)="mode.set(value)" />
                   <span>
                     <span class="block text-sm font-medium text-gray-900">{{ titre }}</span>
@@ -24,6 +24,12 @@
                 </label>
               }
             </div>
+            @if (placesDisponibles().length === 0) {
+              <p class="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <i class="ri-information-line text-sm" aria-hidden="true"></i>
+                Toutes les places existantes sont occupées. Créez une nouvelle place, ou résiliez d'abord une attribution pour libérer une place.
+              </p>
+            }
           </div>
           @if (mode() === 'existant') {
             <div class="md:col-span-2">

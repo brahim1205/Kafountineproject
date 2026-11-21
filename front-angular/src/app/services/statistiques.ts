@@ -16,6 +16,7 @@ export interface TransactionRecente {
   montant: number;
   type?: string;
   categorie?: string;
+  service?: string;
   statut?: string;
   createdAt?: string;
   contribuableNom?: string;

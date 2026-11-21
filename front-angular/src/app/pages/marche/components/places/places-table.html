@@ -12,8 +12,7 @@
         <tbody class="divide-y divide-gray-200">
           @for (place of places(); track place.id) {
             <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ place.numero }}</td>
-              <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ place.type }}</td>
+              <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ place.type }}</td>
               <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ place.zone }}</td>
               <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ place.occupant || '-' }}</td>
               <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ place.activite || '-' }}</td>

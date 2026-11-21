@@ -60,13 +60,13 @@
           </section>
         </div>
         <p class="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-          <i class="ri-money-dollar-circle-line mr-1"></i>Droit d’adhésion à encaisser :
+          <i class="ri-money-dollar-circle-line mr-1"></i>Droit d’adhésion à enregistrer :
           <strong>{{ droitAdhesion().toLocaleString() }}
             FCFA</strong>. Le reçu s’affiche après l’enregistrement.</p>
         <div class="flex gap-3 mt-6 pt-6 border-t border-gray-200">
           <button type="button" (click)="closed.emit()" [disabled]="isSubmitting()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">Annuler</button>
           <button type="submit" [disabled]="isSubmitting()" [class]="`flex-1 px-4 py-2 text-white rounded-lg whitespace-nowrap cursor-pointer ${isSubmitting() ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 transition-colors'}`">
-            <i [class]="`ri-${isSubmitting() ? 'loader-4-line animate-spin' : 'check-line'} mr-2`"></i>{{ isSubmitting() ? 'Enregistrement...' : 'Enregistrer et encaisser' }}</button>
+            <i [class]="`ri-${isSubmitting() ? 'loader-4-line animate-spin' : 'check-line'} mr-2`"></i>{{ isSubmitting() ? 'Enregistrement...' : 'Enregistrer la moto et le paiement' }}</button>
         </div>
         <app-form-error [message]="error()"></app-form-error>
       </form>

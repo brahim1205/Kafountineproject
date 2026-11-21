@@ -73,7 +73,7 @@
           }
           <div>
             <app-label [required]="true">Tarif (FCFA)</app-label>
-            <input type="number" name="tarif" min="0" data-required="true" [value]="place()?.tarif" placeholder="Ex: 25000" [class]="INPUT_CLASS" />
+            <input type="number" name="tarif" min="0" data-required="true" [value]="place()?.tarif" [readOnly]="tarifVerrouille()" [title]="tarifVerrouille() ? 'Tarif fixé par le régisseur' : ''" placeholder="Ex: 25000" [class]="INPUT_CLASS + (tarifVerrouille() ? ' bg-gray-100 cursor-not-allowed' : '')" />
           </div>
           <div>
             <app-label [required]="true">Période</app-label>

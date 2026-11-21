@@ -4,6 +4,7 @@ import { ACTIVITES, INPUT_CLASS, PERIODES, formatTarif, UiPlace } from './places
 import { ContribuablesApi } from '../../../../services/contribuables';
 import { MarcheApi } from '../../../../services/marche';
 import { Label } from './label';
+import { AuthService } from '../../../../core/auth/auth.service';
 
 type Mode = 'nouveau' | 'existant';
 
@@ -22,6 +23,10 @@ export class AttributionModal {
   protected readonly INPUT_CLASS = INPUT_CLASS;
   protected readonly contribuablesApi = inject(ContribuablesApi);
   protected readonly marcheApi = inject(MarcheApi);
+  private readonly auth = inject(AuthService);
+
+  /** L'agent encaisse au tarif de la place : seul le régisseur modifie le tarif d'une place existante. */
+  protected readonly tarifVerrouille = computed(() => this.mode() === 'existant' && this.auth.role() === 'agent');
   readonly initialPlace = input.required<UiPlace | null>();
 
   readonly placesDisponibles = input.required<UiPlace[]>();

@@ -379,6 +379,20 @@ describeIntegration('cohérence métier', () => {
       expect(Number(officiel.body.data.montant)).toBe(300);
     });
 
+    it('interdit à l’agent de baisser le tarif d’une place avant d’encaisser', async () => {
+      const place = await nouvellePlace(5000);
+      expect((await agent.put(`/marche/places/${place.id}`).send({ tarif: 100 })).status).toBe(403);
+      expect((await agent.put(`/marche/places/${place.id}`).send({ tarif: 5000, activite: 'Légumes' })).status).toBe(200);
+      expect((await regisseur.put(`/marche/places/${place.id}`).send({ tarif: 4000 })).status).toBe(200);
+    });
+
+    it('interdit de rejeter un acte d’état civil déjà délivré', async () => {
+      const types = (await etatCivil.get('/etat-civil/types-documents')).body.data;
+      const acte = (await etatCivil.post('/etat-civil').send({ contribuableId, typeDocument: types[0].id, exemplaires: 1, statut: 'DELIVREE' })).body.data;
+      expect((await etatCivil.put(`/etat-civil/${acte.id}`).send({ statut: 'REJETEE' })).status).toBe(403);
+      expect((await etatCivil.delete(`/etat-civil/${acte.id}`)).status).toBe(409);
+    });
+
     it('refuse de changer le statut d’un ticket hors annulation', async () => {
       const cree = await ticket(regisseur, 500, 'ESPECE');
       expect(cree.status).toBe(201);

@@ -211,6 +211,10 @@ public class EtatCivilService {
     }
     String statut = input.statut() != null && !input.statut().isEmpty() ? normalizeStatus(input.statut()) : Db.str(existing, "statut");
     boolean etaitRecette = recette(Db.str(existing, "statut"));
+    // Un acte délivré a été payé : le faire repasser en attente ou rejeté retirerait l'argent des recettes.
+    if (etaitRecette && !recette(statut) && !superAdmin(actor)) {
+      throw AppException.forbidden("Un acte délivré ne peut plus être rejeté : la correction revient au super administrateur.");
+    }
     Object encaisseLe = existing.get("encaisseLe");
     Object encaissePar = existing.get("encaissePar");
     if (recette(statut) != etaitRecette) {

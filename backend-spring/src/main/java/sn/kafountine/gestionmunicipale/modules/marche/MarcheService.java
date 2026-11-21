@@ -137,6 +137,10 @@ public class MarcheService {
   public Map<String, Object> updatePlace(Actor actor, String placeId, PlaceInput input) {
     Map<String, Object> existing = findPlace(placeId);
     if (existing == null) throw AppException.notFound("Place de marché introuvable.");
+    // Le tarif d'une place fixe ce que l'agent doit encaisser : il ne peut pas le baisser lui-même.
+    if ("AGENT".equalsIgnoreCase(actor.role()) && input.tarif() != null && input.tarif().doubleValue() != Db.num(existing, "tarif")) {
+      throw AppException.forbidden("Le tarif d'une place existante se modifie par le régisseur.");
+    }
     String nextNumero = truthy(input.numeroPlace()) ? input.numeroPlace().strip() : Db.str(existing, "numeroPlace");
     int existingYear = (int) Db.num(existing, "year");
     int nextYear = input.year() != null && input.year() != 0 ? input.year() : existingYear;

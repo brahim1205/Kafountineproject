@@ -135,6 +135,29 @@ model BudgetRequest {
   @@index([approvedById])
 }
 
+/// Erreurs techniques (serveur et navigateur), regroupées par signature, suivies par le super admin.
+model Incident {
+  id           String    @id @default(uuid())
+  signature    String    @unique
+  source       String
+  lieu         String
+  message      String
+  requestId    String?
+  userId       String?
+  userName     String?
+  role         String?
+  occurrences  Int       @default(1)
+  premiereFois DateTime  @default(now())
+  derniereFois DateTime  @default(now())
+  statut       String    @default("nouveau")
+  note         String?
+  traitePar    String?
+  traiteLe     DateTime?
+
+  @@index([statut])
+  @@index([derniereFois])
+}
+
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String?

@@ -9,6 +9,7 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import sn.kafountine.gestionmunicipale.modules.incidents.IncidentService;
 import sn.kafountine.gestionmunicipale.shared.http.Api;
 import sn.kafountine.gestionmunicipale.shared.security.AuthUser;
 import sn.kafountine.gestionmunicipale.shared.security.Authenticated;
@@ -25,6 +26,11 @@ import sn.kafountine.gestionmunicipale.shared.web.RequestContext;
 @RestController
 public class ClientErrorController {
   private static final ObjectMapper JSON = new ObjectMapper();
+  private final IncidentService incidents;
+
+  public ClientErrorController(IncidentService incidents) {
+    this.incidents = incidents;
+  }
 
   @PostMapping("/api/v1/client-errors")
   @Authenticated
@@ -50,6 +56,8 @@ public class ClientErrorController {
     } catch (JsonProcessingException error) {
       System.err.println("{\"type\":\"client-error\",\"message\":\"rapport illisible\"}");
     }
+    incidents.enregistrer("navigateur", page, message, RequestContext.requestId(request),
+        user == null ? null : user.userId(), user == null ? null : user.role());
     return Api.message("Erreur enregistrée");
   }
 }

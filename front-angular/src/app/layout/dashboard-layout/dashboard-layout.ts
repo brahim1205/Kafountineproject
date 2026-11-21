@@ -10,6 +10,7 @@ import { NotificationService } from '../../core/notifications/notification.servi
 import { AVAILABLE_YEARS, YearService } from '../../core/year/year.service';
 import { allMenuItems, ORDRE_REGISSEUR, playNotificationSound, roleLabels } from '../menu';
 import { NotificationPanel } from '../notification-panel/notification-panel';
+import { IncidentsApi } from '../../services/incidents';
 
 interface SearchResult {
   id: string;
@@ -41,6 +42,7 @@ export class DashboardLayout {
   private readonly api = inject(ApiService);
   private readonly notifications = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly incidentsApi = inject(IncidentsApi);
   private readonly document = inject(DOCUMENT);
   private readonly searchBox = viewChild<ElementRef<HTMLElement>>('searchBox');
 
@@ -58,6 +60,8 @@ export class DashboardLayout {
   protected readonly searchResults = signal<SearchResult[]>([]);
   protected readonly showSearchDropdown = signal(false);
   protected readonly unread = signal(0);
+  /** Incidents techniques non encore pris en charge : compteur affiché dans le menu du super admin. */
+  protected readonly incidentsNouveaux = signal(0);
   protected readonly currentPath = signal(this.router.url.split('?')[0]);
 
   protected readonly role = computed<UiRole>(() => this.auth.role() ?? 'admin');
@@ -104,6 +108,15 @@ export class DashboardLayout {
         this.showUserMenu.set(false);
         this.showSearchDropdown.set(false);
       });
+
+    effect(() => {
+      this.currentPath();
+      if (this.role() !== 'super_admin') return;
+      this.incidentsApi
+        .stats()
+        .then((stats) => this.incidentsNouveaux.set(stats.nouveau))
+        .catch(() => this.incidentsNouveaux.set(0));
+    });
 
     effect(() => {
       this.document.body.style.overflow = this.mobileViewport() && this.mobileSidebarOpen() ? 'hidden' : '';

@@ -139,9 +139,17 @@
         [title]="expanded ? '' : item.label"
         [class]="'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ' + (isActive(item.path) ? 'bg-emerald-50 text-emerald-700' : 'text-gray-700 hover:bg-gray-100') + (expanded ? '' : ' justify-center')"
       >
-        <i [class]="item.icon + ' flex-shrink-0 text-xl'"></i>
+        <span class="relative flex-shrink-0">
+          <i [class]="item.icon + ' text-xl'"></i>
+          @if (item.path === '/incidents' && incidentsNouveaux() > 0 && !expanded) {
+            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500" aria-hidden="true"></span>
+          }
+        </span>
         @if (expanded) {
           <span class="text-sm font-medium">{{ item.label }}</span>
+          @if (item.path === '/incidents' && incidentsNouveaux() > 0) {
+            <span class="ml-auto min-w-5 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-xs font-semibold text-center" [attr.aria-label]="incidentsNouveaux() + ' nouveaux incidents'">{{ incidentsNouveaux() }}</span>
+          }
         }
       </a>
     }

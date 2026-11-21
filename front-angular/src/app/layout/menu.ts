@@ -43,6 +43,7 @@ export const allMenuItems: MenuItem[] = [
   { path: '/impayes', icon: 'ri-error-warning-line', label: 'Impayés', roles: ['admin', 'super_admin', 'agent', 'service_finances', 'quai_peche', 'regisseur'] },
   { path: '/contribuables', icon: 'ri-group-line', label: 'Contribuables', roles: ['super_admin', 'agent', 'service_finances', 'etat_civil'] },
   { path: '/audit', icon: 'ri-file-list-3-line', label: 'Journal Audit', roles: ['super_admin'] },
+  { path: '/incidents', icon: 'ri-bug-line', label: 'Incidents', roles: ['super_admin'] },
 ];
 
 export const roleLabels: Record<UiRole, string> = {

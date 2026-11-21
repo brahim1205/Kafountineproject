@@ -22,6 +22,7 @@
 4. Vérifier les logs backend : `ssh root@72.62.234.215 'cd /opt/kafontine && docker compose -f docker-compose.prod.yml logs --tail=200 backend'`.
 5. Lister seulement les erreurs (serveur et navigateur) : `ssh root@72.62.234.215 'cd /opt/kafontine && docker compose -f docker-compose.prod.yml logs --since 24h backend | grep -E "\"type\":\"(error|client-error)\""'`.
    Une ligne `client-error` est un plantage survenu dans le navigateur d'un utilisateur (page, rôle, message). Les logs sont plafonnés à 5 × 20 Mo par service.
+   Les mêmes erreurs sont aussi visibles dans l'application : menu **Incidents** du super admin (regroupées, avec un statut Nouveau / En cours / Traité et une note ; conservées 90 jours après la dernière occurrence).
 6. Alertes par e-mail : le workflow [`alertes.yml`](./.github/workflows/alertes.yml) vérifie toutes les heures que le site répond et lit les erreurs de l'heure écoulée. S'il y en a, il envoie un résumé à l'adresse du secret `ALERT_EMAIL` (environnement `production`), via le compte SMTP des secrets `ALERT_SMTP_USER` et `ALERT_SMTP_PASSWORD` (Gmail par défaut : mot de passe d'application ; autre fournisseur : variables `ALERT_SMTP_HOST`, `ALERT_SMTP_PORT`). Sans ces secrets, le workflow échoue et GitHub prévient par sa notification habituelle.
 
 ## 4. Backup

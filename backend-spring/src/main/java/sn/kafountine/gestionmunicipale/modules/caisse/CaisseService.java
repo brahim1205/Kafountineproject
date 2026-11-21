@@ -311,6 +311,8 @@ public class CaisseService {
     Map<String, Object> row = verrou(id);
     if (!"CLOTUREE".equals(row.get("statut"))) throw AppException.conflict("Une clôture validée ne peut plus être rouverte.");
     if (motif == null || motif.isBlank()) throw AppException.validation("Le motif de réouverture est requis.");
+    // Séparation des tâches : rouvrir sa propre caisse permettrait d'y retoucher ses recettes après coup.
+    if (actor.userId().equals(row.get("agentId"))) throw AppException.forbidden("Votre propre caisse doit être rouverte par une autre personne.");
     db.update("DELETE FROM \"CashClosure\" WHERE \"id\" = :id", Db.params("id", id));
     auditTrail.record(actor, "Réouverture de caisse", "Caisse", "Clôture du " + row.get("jour") + " rouverte : " + motif.strip()
         + " (attendu " + Js.num(Db.num(row, "montantAttendu")) + " FCFA, compté " + Js.num(Db.num(row, "montantCompte")) + " FCFA)", "warning");

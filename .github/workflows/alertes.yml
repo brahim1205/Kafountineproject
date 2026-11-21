@@ -1,0 +1,82 @@
+name: Alertes production
+
+# Toutes les heures : le site répond-il, et le backend a-t-il journalisé des erreurs
+# (serveur ou navigateur) ? Si oui, un e-mail est envoyé à ALERT_EMAIL. Sans configuration
+# SMTP, la tâche échoue et GitHub prévient par son propre e-mail de notification.
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-alertes
+  cancel-in-progress: false
+
+jobs:
+  surveiller:
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 10
+    env:
+      APP_DIR: ${{ vars.APP_DIR || '/opt/kafontine' }}
+      HEALTH_URL: ${{ secrets.HEALTH_URL || 'https://orbyteconsulting.tech/ready' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disponibilité du site
+        id: dispo
+        run: |
+          if curl -fsS --max-time 20 --retry 2 --retry-delay 10 "$HEALTH_URL" > /dev/null; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: ./.github/actions/production-ssh
+        id: ssh
+        continue-on-error: true
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      - name: Préparer l'alerte
+        id: alerte
+        run: |
+          set -uo pipefail
+          [[ "$APP_DIR" =~ ^/[a-zA-Z0-9/_-]+$ ]]
+          : > alerte.txt
+          if [[ "${{ steps.dispo.outputs.ok }}" != true ]]; then
+            printf 'Le site ne répond pas : %s\nVérifier le serveur (RUNBOOK_PRODUCTION.md).\n\n' "$HEALTH_URL" >> alerte.txt
+          fi
+          if [[ "${{ steps.ssh.outcome }}" != success ]]; then
+            printf 'Connexion SSH au serveur impossible : logs non lus.\n' >> alerte.txt
+          elif ! ssh kafontine-production "cd '$APP_DIR' && docker compose --env-file .env.prod -f docker-compose.prod.yml logs --no-log-prefix --since 61m backend" > logs.txt 2>/dev/null; then
+            printf 'Lecture des logs du backend impossible.\n' >> alerte.txt
+          else
+            python3 scripts/resume-erreurs.py < logs.txt >> alerte.txt
+          fi
+          rm -f logs.txt
+          if [[ -s alerte.txt ]]; then
+            printf '\nDétail complet : étape 5 de RUNBOOK_PRODUCTION.md.\n' >> alerte.txt
+            echo "envoyer=true" >> "$GITHUB_OUTPUT"
+            cat alerte.txt >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Aucune erreur sur la dernière heure."
+          fi
+      - name: Envoyer l'e-mail
+        if: steps.alerte.outputs.envoyer == 'true'
+        env:
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+          ALERT_SMTP_USER: ${{ secrets.ALERT_SMTP_USER }}
+          ALERT_SMTP_PASSWORD: ${{ secrets.ALERT_SMTP_PASSWORD }}
+          ALERT_SMTP_HOST: ${{ vars.ALERT_SMTP_HOST }}
+          ALERT_SMTP_PORT: ${{ vars.ALERT_SMTP_PORT }}
+          ALERT_SUBJECT: "[Kafountine] Alerte production"
+        run: |
+          if [[ -z "$ALERT_EMAIL" || -z "$ALERT_SMTP_USER" || -z "$ALERT_SMTP_PASSWORD" ]]; then
+            echo "::error::Alerte non envoyée par e-mail : secrets ALERT_EMAIL, ALERT_SMTP_USER, ALERT_SMTP_PASSWORD absents."
+            exit 1
+          fi
+          python3 scripts/envoyer-alerte.py alerte.txt

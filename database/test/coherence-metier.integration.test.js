@@ -388,7 +388,7 @@ describeIntegration('cohérence métier', () => {
 
     it('interdit de rejeter un acte d’état civil déjà délivré', async () => {
       const types = (await etatCivil.get('/etat-civil/types-documents')).body.data;
-      const acte = (await etatCivil.post('/etat-civil').send({ contribuableId, typeDocument: types[0].id, exemplaires: 1, statut: 'DELIVREE' })).body.data;
+      const acte = (await etatCivil.post('/etat-civil').send({ contribuableId, typeDocument: types[0].id, exemplaires: 1, montant: 0, statut: 'DELIVREE' })).body.data;
       expect((await etatCivil.put(`/etat-civil/${acte.id}`).send({ statut: 'REJETEE' })).status).toBe(403);
       expect((await etatCivil.delete(`/etat-civil/${acte.id}`)).status).toBe(409);
     });

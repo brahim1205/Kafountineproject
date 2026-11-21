@@ -440,6 +440,29 @@ public class TransactionService {
     caisse.assertOuverte(Db.str(row, "agentId"), Db.date(row, "createdAt"));
   }
 
+  /**
+   * Montant à enregistrer après une modification, ou null s'il ne change pas. Seul le super administrateur
+   * saisit un montant libre. Pour les autres, un ticket délivré garde le montant de son reçu : il n'est
+   * recalculé, au tarif officiel, que si le service ou la quantité changent, et ne se baisse jamais à la main.
+   */
+  private Double montantApresModification(Actor actor, String id, Map<String, Object> changes, UpdateInput input) {
+    if ("SUPER_ADMIN".equalsIgnoreCase(actor.role())) return input.montant();
+    Map<String, Object> actuel = db.one("SELECT \"categorie\", \"service\", \"quantite\", \"montant\" FROM \"Transaction\" WHERE \"id\" = :id", Db.params("id", id));
+    String service = changes.containsKey("service") ? (String) changes.get("service") : Db.str(actuel, "service");
+    int quantite = input.quantite() != null ? input.quantite() : (int) Math.max(1, Db.num(actuel, "quantite"));
+    boolean recalcul = !java.util.Objects.equals(service, Db.str(actuel, "service")) || quantite != (int) Math.max(1, Db.num(actuel, "quantite"));
+    if (recalcul) {
+      Double reglementaire = montantReglementaire(Db.str(actuel, "categorie"), service, quantite);
+      if (reglementaire == null) reglementaire = montantPenalite(service);
+      if (reglementaire == null) throw AppException.validation("Ce service ne figure pas au tarif officiel : « " + service + " ».");
+      return reglementaire;
+    }
+    if (input.montant() != null && Math.abs(input.montant() - Db.num(actuel, "montant")) > 0.009) {
+      throw AppException.forbidden("Le montant d'un ticket délivré est celui du reçu : seul le super administrateur peut le corriger.");
+    }
+    return null;
+  }
+
   @Transactional
   public Map<String, Object> update(Actor actor, String id, UpdateInput input) {
     Map<String, Object> before = summary(id);
@@ -450,9 +473,10 @@ public class TransactionService {
     // input.service || input.categorie || input.type (categorie n'est pas accepté par le schéma).
     if (input.type() != null) changes.put("service", input.service() != null && !input.service().isEmpty() ? input.service() : input.type());
     if (input.quantite() != null) changes.put("quantite", input.quantite());
-    if (input.montant() != null) {
-      changes.put("montant", input.montant());
-      changes.put("tarifUnitaire", input.montant());
+    Double montantFinal = montantApresModification(actor, id, changes, input);
+    if (montantFinal != null) {
+      changes.put("montant", montantFinal);
+      changes.put("tarifUnitaire", montantFinal);
     }
     if (input.modePaiement() != null) changes.put("modePaiement", input.modePaiement());
     // L'annulation passe par la suppression, qui la trace au journal ; une modification ne change pas le statut.
@@ -469,7 +493,8 @@ public class TransactionService {
       throw AppException.notFound("Ressource introuvable");
     }
     Map<String, Object> updated = rawTransaction(id);
-    String montant = input.montant() == null ? "" : " ; montant " + Js.num(Db.num(before, "montant")) + " → " + Js.num(input.montant()) + " FCFA";
+    String montant = montantFinal == null || montantFinal == Db.num(before, "montant") ? ""
+        : " ; montant " + Js.num(Db.num(before, "montant")) + " → " + Js.num(montantFinal) + " FCFA";
     auditTrail.record(actor, "Modification transaction", "Recettes", "Transaction " + before.get("numero") + " modifiée" + montant, "warning");
     return updated;
   }

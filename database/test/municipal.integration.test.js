@@ -140,16 +140,16 @@ describeIntegration('services municipaux (intégration)', () => {
     it('enregistre un ticket avec la catégorie envoyée par le frontend', async () => {
       const res = await agent.post('/transactions', {
         contribuableId,
-        categorie: 'Marché',
-        type: 'Marché',
-        service: 'Ticket journalier',
-        quantite: 1,
+        categorie: 'marche',
+        type: 'marche',
+        service: 'Etals - Grand etalage',
+        quantite: 15,
         montant: 1500,
         modePaiement: 'ESPECE',
         reference: `REC-${suffix}`,
       });
       expect(res.status).toBe(201);
-      expect(res.body.data).toMatchObject({ categorie: 'Marché', service: 'Ticket journalier' });
+      expect(res.body.data).toMatchObject({ categorie: 'marche', service: 'Etals - Grand etalage' });
       expect(Number(res.body.data.montant)).toBe(1500);
 
       // Chaque encaissement laisse une trace dans le journal d'audit.
@@ -168,7 +168,7 @@ describeIntegration('services municipaux (intégration)', () => {
   });
 
   describe('numérotation', () => {
-    const ticket = () => ({ contribuableId, categorie: 'Marché', type: 'Marché', service: 'Ticket journalier', quantite: 1, montant: 100, modePaiement: 'ESPECE' });
+    const ticket = () => ({ contribuableId, categorie: 'marche', type: 'marche', service: 'Etals - Grand etalage', quantite: 1, montant: 100, modePaiement: 'ESPECE' });
 
     it('démarre le compteur après le plus grand numéro existant, comparé comme un nombre (999 → 1000)', async () => {
       const seed = await agent.post('/transactions', ticket());
@@ -223,10 +223,12 @@ describeIntegration('services municipaux (intégration)', () => {
 
     beforeAll(async () => {
       for (const statut of ['PAYE', 'PAYE', 'EN_ATTENTE']) {
+        // Le ticket passe par le tarif officiel, puis reçoit une catégorie propre au test pour l'isoler.
         const res = await agent.post('/transactions', {
-          contribuableId, categorie, type: categorie, service: 'Ticket test', quantite: 1, montant: 100, modePaiement: 'ESPECE', statut,
+          contribuableId, categorie: 'marche', type: 'marche', service: 'Etals - Grand etalage', quantite: 1, montant: 100, modePaiement: 'ESPECE', statut,
         });
         expect(res.status).toBe(201);
+        await prisma.transaction.update({ where: { id: res.body.data.id }, data: { categorie } });
       }
     });
 
@@ -317,7 +319,7 @@ describeIntegration('services municipaux (intégration)', () => {
       const withTicket = await admin.post('/contribuables', fiche(1));
       expect(withTicket.status).toBe(201);
       const ticketRes = await agent.post('/transactions', {
-        contribuableId: withTicket.body.data.id, categorie: 'Marché', type: 'Marché', service: 'Ticket', quantite: 1, montant: 100,
+        contribuableId: withTicket.body.data.id, categorie: 'marche', type: 'marche', service: 'Etals - Grand etalage', quantite: 1, montant: 100,
       });
       expect(ticketRes.status).toBe(201);
       const refused = await admin.delete(`/contribuables/${withTicket.body.data.id}`);

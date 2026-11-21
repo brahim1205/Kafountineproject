@@ -39,8 +39,9 @@ describeIntegration('cohérence métier', () => {
     const call = (method) => (path) => session[method](`/api/v1${path}`).set('Origin', origin);
     return { id: created.body.data.id, get: call('get'), post: call('post') };
   };
+  // Un ticket passe par le tarif officiel : « Grand étalage » à 100 FCFA par jour donne le montant voulu.
   const ticket = (compte, montant, modePaiement) => compte.post('/transactions').send({
-    contribuableId, type: 'Taxe de test', service: 'Taxe de test', categorie: 'test', montant, modePaiement,
+    contribuableId, type: 'marche', service: 'Etals - Grand etalage', categorie: 'marche', quantite: montant / 100, montant, modePaiement,
   });
 
   beforeAll(async () => {
@@ -367,6 +368,15 @@ describeIntegration('cohérence métier', () => {
       expect(new Date(res.body.data.date).getFullYear()).toBe(year);
       const inconnue = await agent.post('/transactions').send({ contribuableId, categorie: 'Pénalités', type: 'Pénalité (Inventée)', service: 'Pénalité (Inventée)', montant: 1 });
       expect(inconnue.status).toBe(400);
+    });
+
+    it('refuse un ticket hors du tarif officiel, sauf au super administrateur', async () => {
+      const invente = { contribuableId, categorie: 'test', type: 'Taxe inventée', service: 'Taxe inventée', montant: 1 };
+      expect((await agent.post('/transactions').send(invente)).status).toBe(400);
+      expect((await regisseur.post('/transactions').send(invente)).status).toBe(400);
+      const officiel = await agent.post('/transactions').send({ contribuableId, categorie: 'marche', type: 'marche', service: 'Etals - Grand etalage', quantite: 3, montant: 1 });
+      expect(officiel.status).toBe(201);
+      expect(Number(officiel.body.data.montant)).toBe(300);
     });
 
     it('refuse de changer le statut d’un ticket hors annulation', async () => {

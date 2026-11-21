@@ -351,13 +351,13 @@ public class TransactionService {
   }
 
   /** Un service du catalogue est facturé à son tarif officiel, quel que soit le montant envoyé par le navigateur. */
-  private double montantReglementaire(String categorie, String service, int quantite, double montantSaisi) {
+  private Double montantReglementaire(String categorie, String service, int quantite) {
     for (Map<String, Object> item : catalog.listServices(categorie)) {
       if (service.equals(item.get("nom")) || service.equals(item.get("id"))) {
         return montantDuService(((Number) item.get("tarif")).doubleValue(), quantite, item.get("calcul"));
       }
     }
-    return montantSaisi;
+    return null;
   }
 
   /**
@@ -389,12 +389,15 @@ public class TransactionService {
     if (acteEtatCivil(categorie)) {
       throw AppException.validation("Les actes d'état civil s'enregistrent depuis « Nouvelle demande », pas en ticket.");
     }
-    double montant = montantReglementaire(categorie, service, quantite, input.montant() == null ? 0 : input.montant());
     boolean superAdmin = "SUPER_ADMIN".equalsIgnoreCase(actor.role());
-    if (!superAdmin) {
-      Double penalite = montantPenalite(service);
-      if (penalite != null) montant = penalite;
+    // Montant fixé par le serveur : tarif du catalogue, sinon barème des pénalités. Seul le super administrateur
+    // peut enregistrer une recette hors catalogue (reprise, cas particulier), et elle reste tracée au journal.
+    Double reglementaire = montantReglementaire(categorie, service, quantite);
+    if (reglementaire == null && !superAdmin) reglementaire = montantPenalite(service);
+    if (reglementaire == null && !superAdmin) {
+      throw AppException.validation("Ce service ne figure pas au tarif officiel : « " + service + " ».");
     }
+    double montant = reglementaire != null ? reglementaire : (input.montant() == null ? 0 : input.montant());
     Instant date;
     // Un ticket porte la date du jour : seule une reprise par le super administrateur peut être antidatée.
     if (superAdmin && input.date() != null && !input.date().isEmpty()) {

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import sn.kafountine.gestionmunicipale.modules.incidents.IncidentService;
 import sn.kafountine.gestionmunicipale.shared.config.Env;
 import sn.kafountine.gestionmunicipale.shared.security.AuthUser;
 import sn.kafountine.gestionmunicipale.shared.web.RequestContext;
@@ -21,6 +22,11 @@ import sn.kafountine.gestionmunicipale.shared.web.RequestContext;
 @RestControllerAdvice
 public class ErrorHandling {
   private static final ObjectMapper JSON = new ObjectMapper();
+  private final IncidentService incidents;
+
+  public ErrorHandling(IncidentService incidents) {
+    this.incidents = incidents;
+  }
 
   public static Map<String, Object> body(AppException error, HttpServletRequest request) {
     Map<String, Object> body = new LinkedHashMap<>();
@@ -78,6 +84,9 @@ public class ErrorHandling {
     } catch (IOException ignored) {
       // journalisation impossible : la réponse d'erreur part quand même
     }
+    String message = error.getMessage() == null ? error.getClass().getSimpleName() : error.getClass().getSimpleName() + ": " + error.getMessage();
+    incidents.enregistrer("serveur", request.getMethod() + " " + request.getRequestURI(), message, RequestContext.requestId(request),
+        user == null ? null : user.userId(), user == null ? null : user.role());
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("success", false);
     body.put("message", "Erreur interne du serveur");

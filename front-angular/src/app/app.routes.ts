@@ -32,6 +32,7 @@ export const routes: Routes = [
       { path: 'utilisateurs', canActivate: [roleGuard(['admin', 'super_admin', 'regisseur'])], loadComponent: () => import('./pages/utilisateurs/page').then((m) => m.Utilisateurs) },
       { path: 'rapports', canActivate: [roleGuard(['admin', 'super_admin'])], loadComponent: () => import('./pages/rapports/page').then((m) => m.Rapports) },
       { path: 'audit', canActivate: [roleGuard(['super_admin'])], loadComponent: () => import('./pages/audit/page').then((m) => m.Audit) },
+      { path: 'incidents', canActivate: [roleGuard(['super_admin'])], loadComponent: () => import('./pages/incidents/page').then((m) => m.Incidents) },
       { path: 'budget-suivi', canActivate: [roleGuard(['service_finances'])], loadComponent: () => import('./pages/budget-suivi/page').then((m) => m.BudgetSuiviPage) },
       { path: 'gestion-budget', canActivate: [roleGuard(['service_finances'])], loadComponent: () => import('./pages/gestion-budget/page').then((m) => m.GestionBudgetPage) },
       { path: 'quai-peche', pathMatch: 'full', redirectTo: 'quai-peche/commissions' },

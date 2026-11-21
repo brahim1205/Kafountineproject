@@ -437,11 +437,11 @@ describeIntegration('cohérence métier', () => {
 
       const vu = (await superadmin.get(`/contribuables/${id}/situation?year=${year}`)).body.data;
       expect(vu.parSource['Motos']).toBeGreaterThan(0);
-      expect(vu.parSource['État civil']).toBe(700);
+      expect(vu.parSource['État civil']).toBe(Number(types[0].tarif));
 
       const masque = (await regisseur.get(`/contribuables/${id}/situation?year=${year}`)).body.data;
       expect(masque.parSource['État civil']).toBeUndefined();
-      expect(masque.totalPaye).toBe(vu.totalPaye - 700);
+      expect(masque.totalPaye).toBe(vu.totalPaye - Number(types[0].tarif));
       expect((await quaipeche.get(`/contribuables/${id}/situation?year=${year}`)).status).toBe(403);
     });
 

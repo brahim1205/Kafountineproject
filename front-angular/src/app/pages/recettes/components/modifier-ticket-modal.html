@@ -7,7 +7,7 @@
         <app-contribuable-select name="contributorId" [initial]="initial()" [inputClassName]="INPUT_CLASS"></app-contribuable-select>
       </app-field>
       <app-field label="Montant (FCFA)">
-        <input type="number" name="amount" data-required="true" min="0" [value]="row().amount" [class]="INPUT_CLASS" />
+        <input type="number" name="amount" data-required="true" min="0" [value]="row().amount" [readOnly]="montantVerrouille()" [title]="montantVerrouille() ? 'Montant du reçu : recalculé au tarif officiel si le service change' : ''" [class]="INPUT_CLASS + (montantVerrouille() ? ' bg-gray-100 cursor-not-allowed' : '')" />
       </app-field>
       <div class="flex items-center justify-between pt-6 border-t border-gray-200 mt-6">
         <button type="button" (click)="handleDelete()" [disabled]="busy()" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-60">

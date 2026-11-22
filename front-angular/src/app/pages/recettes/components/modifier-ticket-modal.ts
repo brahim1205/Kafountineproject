@@ -6,6 +6,7 @@ import { clearFieldValidationError, getErrorMessage, validateFormElement } from 
 import { INPUT_CLASS, RecetteRow } from '../types';
 import { ToastService } from '../../../shared/ui/toast/toast.service';
 import { TaxesApi } from '../../../services/taxes';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-modifier-ticket-modal',
@@ -19,6 +20,7 @@ export class ModifierTicketModal {
   protected readonly INPUT_CLASS = INPUT_CLASS;
   protected readonly toast = inject(ToastService);
   protected readonly taxesApi = inject(TaxesApi);
+  private readonly auth = inject(AuthService);
   readonly row = input.required<RecetteRow>();
 
   readonly closed = output<void>();
@@ -26,6 +28,9 @@ export class ModifierTicketModal {
   readonly saved = output<void>();
 
   protected readonly busy = signal(false);
+
+  /** Seul le super admin corrige un montant à la main ; pour les autres, le serveur applique le tarif officiel. */
+  protected readonly montantVerrouille = computed(() => this.auth.role() !== 'super_admin');
 
   protected async run(action: () => Promise<unknown>, success: string, failure: string) {
     this.busy.set(true);

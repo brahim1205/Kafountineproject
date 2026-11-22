@@ -356,6 +356,19 @@ describeIntegration('cohérence métier', () => {
       expect((await regisseur.put(`/urbanisme/${depose.body.data.id}`).send({ statut: 'VALIDE' })).status).toBe(200);
     });
 
+    it('interdit au régisseur de baisser le montant d’un ticket délivré, et recalcule au tarif si la quantité change', async () => {
+      const cree = await ticket(agent, 1500);
+      expect(cree.status).toBe(201);
+      const id = cree.body.data.id;
+      expect((await regisseur.put(`/transactions/${id}`).send({ montant: 100 })).status).toBe(403);
+      expect((await regisseur.put(`/transactions/${id}`).send({ montant: 1500, modePaiement: 'MOBILE_MONEY' })).status).toBe(200);
+      const requantifie = await regisseur.put(`/transactions/${id}`).send({ quantite: 20, montant: 1 });
+      expect(requantifie.status).toBe(200);
+      expect(Number(requantifie.body.data.montant)).toBe(2000);
+      const corrige = await superadmin.put(`/transactions/${id}`).send({ montant: 1800 });
+      expect(Number(corrige.body.data.montant)).toBe(1800);
+    });
+
     it('date un ticket du jour et applique le montant de la pénalité du barème', async () => {
       const penalites = (await agent.get('/settings/penalites')).body.data;
       const penalite = penalites[0];

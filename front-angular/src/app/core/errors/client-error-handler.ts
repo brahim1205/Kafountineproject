@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHandler, Injectable } from '@angular/core';
 import { ApiError } from '../api/api.models';
 import { API_BASE_URL } from '../api/api.service';
+import { estModuleIntrouvable, rechargerVersPageActuelle } from './version-perimee';
 
 const MAX_RAPPORTS_PAR_PAGE = 10;
 
@@ -25,6 +26,8 @@ export class ClientErrorHandler implements ErrorHandler {
   handleError(error: unknown): void {
     console.error(error);
     if (error instanceof HttpErrorResponse || error instanceof ApiError) return;
+    // Onglet ouvert avant un déploiement : on recharge pour prendre la nouvelle version.
+    if (estModuleIntrouvable(error) && rechargerVersPageActuelle(location.pathname + location.search)) return;
     const rapport = decrireErreur(error);
     if (this.dejaEnvoyees.has(rapport.message) || this.dejaEnvoyees.size >= MAX_RAPPORTS_PAR_PAGE) return;
     this.dejaEnvoyees.add(rapport.message);

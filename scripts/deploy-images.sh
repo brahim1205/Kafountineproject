@@ -28,7 +28,8 @@ fi
 override=$(mktemp .compose-release.XXXXXX.yml)
 trap 'rm -f "$override"' EXIT
 # Le fichier compose du serveur n'est pas mis à jour par le déploiement : la limite de taille
-# des logs est donc imposée ici, à chaque mise en ligne (5 fichiers de 20 Mo par service).
+# des logs est donc imposée ici, à chaque mise en ligne (5 fichiers de 20 Mo par service),
+# et la configuration nginx est toujours celle de l'image.
 cat > "$override" <<EOF
 services:
   backend:
@@ -38,6 +39,8 @@ services:
       options: {max-size: "20m", max-file: "5"}
   $front_service:
     image: $frontend_image
+    # Ancien montage d'un nginx.conf du serveur : il masquait celui de l'image (cache, en-têtes).
+    volumes: !reset []
     logging:
       driver: json-file
       options: {max-size: "20m", max-file: "5"}
